@@ -14,29 +14,29 @@ const showInstallBtn = ref(false);
 let deferredPrompt = null;
 
 onMounted(async () => {
-  // Request permission and get the token when the app loads
   try {
     const token = await getToken(messaging, {
       vapidKey:
-        "BFtbTRBYpdA5i7niGO3YPvykJGJ1zg6_JgC_2CqA3-ha5Gq6464HgJIc-9hk16x-jOytUll4mjbF2qISNFWdWy0",
+        "BPACu3jz1Y3_bB4VPwO96LkPua-bJKVXBOioaf75Gc7xQQ-aqZ04a0qBSbxuX6ZW6KcPB1Lcv68zGP5qrM2q9dU",
     });
     if (token) {
       console.log("FCM Registration Token:", token);
-      // You can now send this token to your server to store for sending notifications
     } else {
-      console.log(
-        "No registration token available. Request permission to generate one."
-      );
+      console.log("No registration token available. Request permission.");
     }
   } catch (err) {
     console.error("An error occurred while retrieving token:", err);
   }
-
   // Set up the listener for foreground messages
   onMessage(messaging, (payload) => {
     console.log("Message received in the foreground:", payload);
-    // You can display a custom notification or update the UI here
-    alert(`New Message: ${payload.notification.title}`);
+    // Check if the payload has a notification object
+    if (payload.notification) {
+      alert(`New Message: ${payload.notification.title}`);
+    } else {
+      // This is a data-only message, so handle it differently
+      console.log("Received a data-only message:", payload.data);
+    }
   });
 });
 
