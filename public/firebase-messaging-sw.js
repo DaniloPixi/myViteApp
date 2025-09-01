@@ -1,9 +1,9 @@
 // public/firebase-messaging-sw.js
-
+self.__WB_MANIFEST;
 // Import and initialize the Firebase SDK using the "compat" versions
 importScripts('https://www.gstatic.com/firebasejs/9.1.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/9.1.0/firebase-messaging-compat.js');
-
+importScripts('https://storage.googleapis.com/workbox-cdn/releases/6.4.1/workbox-precaching.prod.js');
 // Initialize the Firebase app in the service worker by passing in
 // your app's Firebase config object.
 const firebaseConfig = {
