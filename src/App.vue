@@ -7,12 +7,40 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { onMounted, ref } from "vue";
+import { messaging, getToken, onMessage } from "./firebase";
 
 const showInstallBtn = ref(false);
 let deferredPrompt = null;
 
-// Listen for the 'beforeinstallprompt' event
+onMounted(async () => {
+  // Request permission and get the token when the app loads
+  try {
+    const token = await getToken(messaging, {
+      vapidKey:
+        "BFtbTRBYpdA5i7niGO3YPvykJGJ1zg6_JgC_2CqA3-ha5Gq6464HgJIc-9hk16x-jOytUll4mjbF2qISNFWdWy0",
+    });
+    if (token) {
+      console.log("FCM Registration Token:", token);
+      // You can now send this token to your server to store for sending notifications
+    } else {
+      console.log(
+        "No registration token available. Request permission to generate one."
+      );
+    }
+  } catch (err) {
+    console.error("An error occurred while retrieving token:", err);
+  }
+
+  // Set up the listener for foreground messages
+  onMessage(messaging, (payload) => {
+    console.log("Message received in the foreground:", payload);
+    // You can display a custom notification or update the UI here
+    alert(`New Message: ${payload.notification.title}`);
+  });
+});
+
+// PWA installation logic from before
 window.addEventListener("beforeinstallprompt", (e) => {
   e.preventDefault();
   deferredPrompt = e;
@@ -20,7 +48,6 @@ window.addEventListener("beforeinstallprompt", (e) => {
   console.log("PWA is installable!");
 });
 
-// Listen for the 'appinstalled' event to hide the button
 window.addEventListener("appinstalled", () => {
   showInstallBtn.value = false;
   console.log("PWA was installed!");
