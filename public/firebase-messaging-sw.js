@@ -1,11 +1,19 @@
 // public/firebase-messaging-sw.js
 
-// Precache and route the files injected by the Vite PWA plugin.
-precacheAndRoute(self.__WB_MANIFEST || []);
+// Import Workbox libraries for caching and routing
+importScripts('https://storage.googleapis.com/workbox-cdn/releases/6.4.1/workbox-precaching.prod.js');
+importScripts('https://storage.googleapis.com/workbox-cdn/releases/6.4.1/workbox-routing.prod.js');
 
-// The rest of your Firebase code...
+// Import Firebase SDKs
 importScripts('https://www.gstatic.com/firebasejs/9.1.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/9.1.0/firebase-messaging-compat.js');
+
+// The placeholder that will be replaced by the PWA plugin with a list of files to cache.
+self.__WB_MANIFEST;
+
+// Precache and route the files listed in the manifest
+const { precacheAndRoute } = workbox.precaching;
+precacheAndRoute(self.__WB_MANIFEST || []);
 
 // Initialize the Firebase app in the service worker
 const firebaseConfig = {
