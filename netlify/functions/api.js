@@ -13,11 +13,26 @@ try {
     throw new Error('Missing one or more required Firebase environment variables.');
   }
 
+  // --- START: Robust Private Key Cleaning ---
+  // The private key from Netlify might have extra quotes or formatting issues from import.
+  // This block cleans the key before it is used.
+  let cleanPrivateKey = process.env.FIREBASE_PRIVATE_KEY;
+
+  // 1. Remove leading/trailing quotes if they exist.
+  if (cleanPrivateKey.startsWith('"') && cleanPrivateKey.endsWith('"')) {
+    console.log('Found and removing leading/trailing quotes from private key.');
+    cleanPrivateKey = cleanPrivateKey.slice(1, -1);
+  }
+
+  // 2. The private key is stored as a single line with escaped newlines.
+  //    Replace the literal '\n' with actual newline characters '
+'.
+  cleanPrivateKey = cleanPrivateKey.replace(/\\n/g, '\n');
+  // --- END: Robust Private Key Cleaning ---
+
   const serviceAccount = {
     projectId: process.env.FIREBASE_PROJECT_ID,
-    // The private key comes from Netlify as a single-line string with escaped newlines.
-    // We need to replace the '\n' with actual newlines '\n'.
-    privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+    privateKey: cleanPrivateKey,
     clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
   };
 
@@ -36,9 +51,8 @@ try {
 }
 // ---- END: Secure Firebase Admin Setup ----
 
+
 // ---- START: In-Memory Database for Tokens ----
-// This array will hold our tokens. In a serverless environment, this state
-// might not persist between function invocations if the function 'goes cold'.
 let registeredTokens = [];
 // ---- END: In-Memory Database ----
 
@@ -69,7 +83,7 @@ router.post('/send', async (req, res) => {
     return res.status(400).json({ error: 'Title and body are required' });
   }
   
-  // Guard clause to ensure Firebase is initialized before trying to send a message
+  // Guard clause to ensure Firebase is initialized
   if (admin.apps.length === 0) {
     console.error('Firebase not initialized. Cannot send message.');
     return res.status(500).json({ success: false, error: 'Firebase not initialized on the server.' });
@@ -78,7 +92,6 @@ router.post('/send', async (req, res) => {
   const tokens = [...registeredTokens];
 
   if (tokens.length === 0) {
-    // This is not an error, just a state. Let the client know.
     return res.status(200).json({ success: true, message: 'No registered tokens to send to.' });
   }
 
@@ -96,7 +109,6 @@ router.post('/send', async (req, res) => {
       response.responses.forEach((resp, idx) => {
         if (!resp.success) {
           const errorCode = resp.error.code;
-          // These error codes indicate that the token is no longer valid.
           if (errorCode === 'messaging/registration-token-not-registered' || errorCode === 'messaging/invalid-registration-token') {
             tokensToDelete.push(tokens[idx]);
           }
