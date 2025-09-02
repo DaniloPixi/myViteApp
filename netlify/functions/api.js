@@ -8,12 +8,20 @@ const app = express();
 
 // ---- START: Secure Firebase Admin Setup for Deployment ----
 try {
-  if (!process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
-    throw new Error('FIREBASE_SERVICE_ACCOUNT_KEY environment variable not set.');
+  // Check for required environment variables from Netlify
+  if (!process.env.FIREBASE_PROJECT_ID || !process.env.FIREBASE_PRIVATE_KEY || !process.env.FIREBASE_CLIENT_EMAIL) {
+    throw new Error('Missing one or more required Firebase environment variables.');
   }
-  const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
 
-  // Check if Firebase app is already initialized
+  const serviceAccount = {
+    projectId: process.env.FIREBASE_PROJECT_ID,
+    // The private key comes from Netlify as a single-line string with escaped newlines.
+    // We need to replace the '\n' with actual newlines '\n'.
+    privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+  };
+
+  // Check if Firebase app is already initialized to prevent re-initialization
   if (admin.apps.length === 0) {
     admin.initializeApp({
       credential: admin.credential.cert(serviceAccount)
@@ -25,14 +33,12 @@ try {
 
 } catch (error) {
   console.error('Error initializing Firebase Admin SDK:', error.message);
-  // We don't exit the process in a serverless function, just log the error
 }
 // ---- END: Secure Firebase Admin Setup ----
 
 // ---- START: In-Memory Database for Tokens ----
 // This array will hold our tokens. In a serverless environment, this state
 // might not persist between function invocations if the function 'goes cold'.
-// For a more robust solution, a database like Firebase's own Firestore would be the next step.
 let registeredTokens = [];
 // ---- END: In-Memory Database ----
 
@@ -62,11 +68,18 @@ router.post('/send', async (req, res) => {
   if (!title || !body) {
     return res.status(400).json({ error: 'Title and body are required' });
   }
+  
+  // Guard clause to ensure Firebase is initialized before trying to send a message
+  if (admin.apps.length === 0) {
+    console.error('Firebase not initialized. Cannot send message.');
+    return res.status(500).json({ success: false, error: 'Firebase not initialized on the server.' });
+  }
 
   const tokens = [...registeredTokens];
 
   if (tokens.length === 0) {
-    return res.status(200).json({ message: 'No tokens are registered.' });
+    // This is not an error, just a state. Let the client know.
+    return res.status(200).json({ success: true, message: 'No registered tokens to send to.' });
   }
 
   const message = {
@@ -83,6 +96,7 @@ router.post('/send', async (req, res) => {
       response.responses.forEach((resp, idx) => {
         if (!resp.success) {
           const errorCode = resp.error.code;
+          // These error codes indicate that the token is no longer valid.
           if (errorCode === 'messaging/registration-token-not-registered' || errorCode === 'messaging/invalid-registration-token') {
             tokensToDelete.push(tokens[idx]);
           }
