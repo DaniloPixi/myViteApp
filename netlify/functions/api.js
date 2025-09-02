@@ -102,9 +102,11 @@ router.post('/send', async (req, res) => {
   }
 });
 
+// IMPORTANT: The body-parser middleware MUST be registered before the router.
+app.use(bodyParser.json());
+
 // We use the router with a base path
 app.use('/api', router);
-app.use(bodyParser.json());
 
 // This is the magic that makes our Express app work with Netlify Functions
 module.exports.handler = serverless(app);
