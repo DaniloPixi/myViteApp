@@ -7,9 +7,9 @@ export default defineConfig({
   plugins: [
     vue(),
     VitePWA({
-      strategies: 'injectManifest', // Use your custom service worker
-      srcDir: 'public', // Your custom service worker is in the public directory
-      filename: 'firebase-messaging-sw.js',
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.js',
       registerType: 'autoUpdate',
       injectRegister: 'auto',
       workbox: {

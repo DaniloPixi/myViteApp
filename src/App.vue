@@ -3,6 +3,7 @@
     <h1>Welcome to My PWA! 🚀</h1>
     <p>This app behaves like a native app when installed.</p>
     <button v-if="showInstallBtn" @click="installPWA">Install App</button>
+    <button @click="logToken">Log Token</button>
   </div>
 </template>
 
@@ -13,7 +14,7 @@ import { messaging, getToken, onMessage } from "./firebase";
 const showInstallBtn = ref(false);
 let deferredPrompt = null;
 
-onMounted(async () => {
+const logToken = async () => {
   try {
     const token = await getToken(messaging, {
       vapidKey:
@@ -21,12 +22,16 @@ onMounted(async () => {
     });
     if (token) {
       console.log("FCM Registration Token:", token);
+      alert(`FCM Token: ${token}`)
     } else {
       console.log("No registration token available. Request permission.");
     }
   } catch (err) {
     console.error("An error occurred while retrieving token:", err);
   }
+}
+
+onMounted(async () => {
   // Set up the listener for foreground messages
   onMessage(messaging, (payload) => {
     console.log("Message received in the foreground:", payload);
@@ -101,6 +106,7 @@ button {
   cursor: pointer;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   transition: background-color 0.3s;
+  margin-top: 1rem;
 }
 
 button:hover {
