@@ -44,5 +44,16 @@ export default defineConfig({
         background_color: '#ffffff'
       }
     })
-  ]
+  ],
+  // --- START: Proxy Configuration ---
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, '')
+      }
+    }
+  }
+  // --- END: Proxy Configuration ---
 });

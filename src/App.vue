@@ -1,9 +1,10 @@
 <template>
   <div id="app-container">
     <h1>Welcome to My PWA! 🚀</h1>
-    <p>This app behaves like a native app when installed.</p>
+    <p>This app is ready for push notifications.</p>
     <button v-if="showInstallBtn" @click="installPWA">Install App</button>
-    <button @click="logToken">Log Token</button>
+    <button @click="enableNotifications">Enable Notifications</button>
+    <p v-if="notificationStatus" class="status-message">{{ notificationStatus }}</p>
   </div>
 </template>
 
@@ -12,9 +13,37 @@ import { onMounted, ref } from "vue";
 import { messaging, getToken, onMessage } from "./firebase";
 
 const showInstallBtn = ref(false);
+const notificationStatus = ref("");
 let deferredPrompt = null;
 
-const logToken = async () => {
+// --- NEW: Function to send the token to your server ---
+const sendTokenToServer = async (token) => {
+  notificationStatus.value = "Registering your device...";
+  try {
+    // --- UPDATED URL to use the proxy ---
+    const response = await fetch('/api/register', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ token }),
+    });
+
+    if (response.ok) {
+      notificationStatus.value = "✅ Device registered for notifications!";
+      console.log("Token sent to server successfully.");
+    } else {
+      throw new Error('Failed to register token with the server.');
+    }
+  } catch (error) {
+    notificationStatus.value = "❌ Failed to register device.";
+    console.error("Error sending token to server:", error);
+  }
+};
+
+// --- UPDATED: Function to get token and send it ---
+const enableNotifications = async () => {
+  notificationStatus.value = "Requesting permission...";
   try {
     const token = await getToken(messaging, {
       vapidKey:
@@ -22,54 +51,38 @@ const logToken = async () => {
     });
     if (token) {
       console.log("FCM Registration Token:", token);
-      alert(`FCM Token: ${token}`)
+      await sendTokenToServer(token);
     } else {
+      notificationStatus.value = "🔔 Permission denied. You can enable it in browser settings.";
       console.log("No registration token available. Request permission.");
     }
   } catch (err) {
+    notificationStatus.value = "❌ An error occurred while getting the token.";
     console.error("An error occurred while retrieving token:", err);
   }
-}
+};
 
-onMounted(async () => {
-  // Set up the listener for foreground messages
+onMounted(() => {
+  // Listener for messages when the app is in the foreground
   onMessage(messaging, (payload) => {
     console.log("Message received in the foreground:", payload);
-    // Check if the payload has a notification object
     if (payload.notification) {
       alert(`New Message: ${payload.notification.title}`);
-    } else {
-      // This is a data-only message, so handle it differently
-      console.log("Received a data-only message:", payload.data);
     }
   });
 });
 
-// PWA installation logic from before
+// PWA installation logic
 window.addEventListener("beforeinstallprompt", (e) => {
   e.preventDefault();
   deferredPrompt = e;
   showInstallBtn.value = true;
-  console.log("PWA is installable!");
-});
-
-window.addEventListener("appinstalled", () => {
-  showInstallBtn.value = false;
-  console.log("PWA was installed!");
 });
 
 const installPWA = () => {
   if (deferredPrompt) {
     showInstallBtn.value = false;
     deferredPrompt.prompt();
-    deferredPrompt.userChoice.then((choiceResult) => {
-      if (choiceResult.outcome === "accepted") {
-        console.log("User accepted the install prompt.");
-      } else {
-        console.log("User dismissed the install prompt.");
-      }
-      deferredPrompt = null;
-    });
   }
 };
 </script>
@@ -111,5 +124,12 @@ button {
 
 button:hover {
   background-color: #368f6a;
+}
+
+.status-message {
+  margin-top: 1.5rem;
+  font-size: 1rem;
+  color: #555;
+  font-weight: 500;
 }
 </style>

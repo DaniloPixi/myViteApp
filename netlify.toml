@@ -1,0 +1,11 @@
+[build]
+  # This is the directory Netlify will serve your built frontend from.
+  publish = "dist"
+  # This is the directory where our serverless functions are located.
+  functions = "netlify/functions"
+
+[[redirects]]
+  # This rule proxies any request from "/api/..." to our serverless function.
+  from = "/api/*"
+  to = "/.netlify/functions/api/:splat"
+  status = 200

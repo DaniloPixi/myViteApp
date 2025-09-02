@@ -9,8 +9,13 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "body-parser": "^2.2.0",
+    "cors": "^2.8.5",
     "curl": "^0.1.4",
+    "express": "^5.1.0",
     "firebase": "^12.2.1",
+    "firebase-admin": "^13.5.0",
+    "serverless-http": "^4.0.0",
     "vue": "^3.5.18"
   },
   "devDependencies": {
