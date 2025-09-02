@@ -14,8 +14,6 @@ try {
   }
 
   // --- START: Robust Private Key Cleaning ---
-  // The private key from Netlify might have extra quotes or formatting issues from import.
-  // This block cleans the key before it is used.
   let cleanPrivateKey = process.env.FIREBASE_PRIVATE_KEY;
 
   // 1. Remove leading/trailing quotes if they exist.
@@ -24,10 +22,10 @@ try {
     cleanPrivateKey = cleanPrivateKey.slice(1, -1);
   }
 
-  // 2. The private key is stored as a single line with escaped newlines.
-  //    Replace the literal '\n' with actual newline characters '
-'.
-  cleanPrivateKey = cleanPrivateKey.replace(/\\n/g, '\n');
+  // 2. The private key is stored as a single line with escaped newlines (\\n).
+  //    This replaces the two characters '\\' and 'n' with a single newline character.
+  //    We use double quotes for the replacement string to be safe.
+  cleanPrivateKey = cleanPrivateKey.replace(/\\n/g, "\n");
   // --- END: Robust Private Key Cleaning ---
 
   const serviceAccount = {
@@ -36,7 +34,7 @@ try {
     clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
   };
 
-  // Check if Firebase app is already initialized to prevent re-initialization
+  // Check if Firebase app is already initialized
   if (admin.apps.length === 0) {
     admin.initializeApp({
       credential: admin.credential.cert(serviceAccount)
@@ -83,7 +81,6 @@ router.post('/send', async (req, res) => {
     return res.status(400).json({ error: 'Title and body are required' });
   }
   
-  // Guard clause to ensure Firebase is initialized
   if (admin.apps.length === 0) {
     console.error('Firebase not initialized. Cannot send message.');
     return res.status(500).json({ success: false, error: 'Firebase not initialized on the server.' });
@@ -128,11 +125,7 @@ router.post('/send', async (req, res) => {
   }
 });
 
-// IMPORTANT: The body-parser middleware MUST be registered before the router.
 app.use(bodyParser.json());
-
-// We use the router with a base path
 app.use('/api', router);
 
-// This is the magic that makes our Express app work with Netlify Functions
 module.exports.handler = serverless(app);
