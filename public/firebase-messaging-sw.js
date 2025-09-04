@@ -26,11 +26,17 @@ console.log('[firebase-messaging-sw.js] Loaded and initialized.');
 messaging.onBackgroundMessage(function(payload) {
   console.log('[firebase-messaging-sw.js] Received background message ', payload);
 
-  const notificationTitle = payload.notification.title;
+  // Handle both "notification" and "data" payloads to avoid crashes.
+  const notificationTitle = payload.notification?.title || payload.data?.title;
   const notificationOptions = {
-    body: payload.notification.body,
-    icon: '/firebase-logo.png'
+    body: payload.notification?.body || payload.data?.body,
+    icon: '/pwa-192x192.png' // Use the same PWA icon
   };
 
-  self.registration.showNotification(notificationTitle, notificationOptions);
+  // Only show notification if there's a title.
+  if (notificationTitle) {
+    self.registration.showNotification(notificationTitle, notificationOptions);
+  } else {
+      console.warn("[firebase-messaging-sw.js] Received background message without a title.", payload);
+  }
 });

@@ -228,14 +228,19 @@ async function sendTestNotificationToSelf() {
 messaging.onMessage((payload) => {
   console.log('Foreground message received.', payload);
 
-  // Use the Notification API to show the message, just like in the service worker.
-  const notificationTitle = payload.notification.title;
+  // Handle both "notification" and "data" payloads to avoid crashes.
+  const notificationTitle = payload.notification?.title || payload.data?.title;
   const notificationOptions = {
-    body: payload.notification.body,
-    icon: '/pwa-192x192.png' // Using the PWA icon
+    body: payload.notification?.body || payload.data?.body,
+    icon: '/pwa-192x192.png'
   };
 
-  new Notification(notificationTitle, notificationOptions);
+  // Only show notification if there's a title.
+  if (notificationTitle) {
+      new Notification(notificationTitle, notificationOptions);
+  } else {
+      console.warn("Received foreground message without a title.", payload);
+  }
 });
 
 </script>

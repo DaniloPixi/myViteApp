@@ -133,7 +133,7 @@ app.post('/api/send-to-user', async (req, res) => {
 
   } catch (error) {
     console.error(`SERVER-SEND: Error sending notification to user ${userId}:`, error);
-    // Check for specific FCM error codes
+    // Check for a specific FCM error code
     if (error.code === 'messaging/registration-token-not-registered') {
       // The token is invalid. We should delete it from our database.
       await db.collection('fcm_tokens').doc(userId).delete();
