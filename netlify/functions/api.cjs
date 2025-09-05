@@ -39,7 +39,9 @@ function getFirebaseCredentials() {
         // Fallback for local development.
         console.log('SERVER: Assuming local development. Initializing Firebase from serviceAccountKey.json.');
         try {
-            return require('./serviceAccountKey.json');
+            // TRICK: Make the path dynamic to fool the Netlify bundler's static analysis.
+            const keyPath = './serviceAccountKey.json';
+            return require(keyPath);
         } catch (error) {
             console.error("CRITICAL: Failed to load serviceAccountKey.json in local environment.", error);
             throw new Error("In local dev, serviceAccountKey.json is required but was not found.");
@@ -58,7 +60,7 @@ try {
     }
 } catch (error) {
     // Log the detailed error and stop the function from running.
-    console.error('SERVER CRITICAL: 최종 Firebase 초기화 실패 (Final Firebase initialization failed):', error.message);
+    console.error('SERVER CRITICAL: Final Firebase initialization failed:', error.message);
     // To prevent the lambda from being created and used in a broken state.
     throw new Error('Could not initialize Firebase Admin SDK. Check logs for details.');
 }
@@ -66,6 +68,8 @@ try {
 const db = admin.firestore();
 const app = express();
 app.use(bodyParser.json());
+
+// Your other app logic (CORS, middleware, routes) remains the same...
 
 
 // --- CORS Middleware ---
@@ -149,7 +153,7 @@ app.post('/api/send-to-user', async (req, res) => {
   }
 
   try {
-    // 1. Get the user's FCM token from Firestore.
+    // 1. Get the user\'s FCM token from Firestore.
     const tokenDocRef = db.collection('fcm_tokens').doc(userId);
     const doc = await tokenDocRef.get();
 
@@ -187,7 +191,6 @@ app.post('/api/send-to-user', async (req, res) => {
     res.status(500).json({ error: 'Internal server error while sending notification.' });
   }
 });
-
 
 // Final setup
 module.exports.handler = require('serverless-http')(app);
