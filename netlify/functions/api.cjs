@@ -5,47 +5,68 @@ const bodyParser = require('body-parser');
 
 console.log('SERVER: Cold start; loading api.cjs module.');
 
+// --- Function to get Firebase credentials ---
+function getFirebaseCredentials() {
+    // Check if we are in a Netlify environment by looking for specific env vars.
+    const isNetlify = process.env.NETLIFY && process.env.FIREBASE_PROJECT_ID;
+
+    if (isNetlify) {
+        console.log('SERVER: Netlify environment detected. Initializing Firebase from environment variables.');
+
+        // Create the credentials object from environment variables.
+        const serviceAccount = {
+            type: "service_account",
+            project_id: process.env.FIREBASE_PROJECT_ID,
+            private_key_id: process.env.FIREBASE_PRIVATE_KEY_ID,
+            private_key: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+            client_email: process.env.FIREBASE_CLIENT_EMAIL,
+            client_id: process.env.FIREBASE_CLIENT_ID,
+            auth_uri: "https://accounts.google.com/o/oauth2/auth",
+            token_uri: "https://oauth2.googleapis.com/token",
+            auth_provider_x509_cert_url: "https://www.googleapis.com/oauth2/v1/certs",
+            client_x509_cert_url: process.env.FIREBASE_CLIENT_X509_CERT_URL
+        };
+
+        // Basic validation
+        for (const [key, value] of Object.entries(serviceAccount)) {
+            if (!value) {
+                throw new Error(`CRITICAL: Missing required Firebase environment variable for key: ${key}`);
+            }
+        }
+
+        return serviceAccount;
+    } else {
+        // Fallback for local development.
+        console.log('SERVER: Assuming local development. Initializing Firebase from serviceAccountKey.json.');
+        try {
+            return require('./serviceAccountKey.json');
+        } catch (error) {
+            console.error("CRITICAL: Failed to load serviceAccountKey.json in local environment.", error);
+            throw new Error("In local dev, serviceAccountKey.json is required but was not found.");
+        }
+    }
+}
+
 // --- Firebase Admin SDK Initialization ---
 try {
-  let serviceAccount;
-
-  // Check if running in Netlify/production by looking for environment variables
-  if (process.env.FIREBASE_PROJECT_ID) {
-    console.log('SERVER: Initializing Firebase Admin SDK from environment variables.');
-    serviceAccount = {
-      type: "service_account",
-      project_id: process.env.FIREBASE_PROJECT_ID,
-      private_key_id: process.env.FIREBASE_PRIVATE_KEY_ID,
-      // IMPORTANT: Netlify escapes newlines, so we must replace \n with a real newline character.
-      private_key: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
-      client_email: process.env.FIREBASE_CLIENT_EMAIL,
-      client_id: process.env.FIREBASE_CLIENT_ID,
-      auth_uri: "https://accounts.google.com/o/oauth2/auth",
-      token_uri: "https://oauth2.googleapis.com/token",
-      auth_provider_x509_cert_url: "https://www.googleapis.com/oauth2/v1/certs",
-      client_x509_cert_url: process.env.FIREBASE_CLIENT_X509_CERT_URL
-    };
-  } else {
-    // Fallback to local JSON file for local development
-    console.log('SERVER: Initializing Firebase Admin SDK from local serviceAccountKey.json file.');
-    serviceAccount = require('./serviceAccountKey.json');
-  }
-
-  if (admin.apps.length === 0) {
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount)
-    });
-    console.log('SERVER: Firebase Admin SDK initialized successfully.');
-  }
+    if (admin.apps.length === 0) {
+        const serviceAccount = getFirebaseCredentials();
+        admin.initializeApp({
+            credential: admin.credential.cert(serviceAccount)
+        });
+        console.log('SERVER: Firebase Admin SDK initialized successfully.');
+    }
 } catch (error) {
-  console.error('SERVER CRITICAL: Error initializing Firebase Admin SDK:', error);
-  console.error('HINT: If this is a local environment, ensure serviceAccountKey.json exists. If on Netlify, ensure all FIREBASE_ environment variables are set correctly in the build settings.');
-  throw new Error('Could not initialize Firebase Admin SDK.');
+    // Log the detailed error and stop the function from running.
+    console.error('SERVER CRITICAL: 최종 Firebase 초기화 실패 (Final Firebase initialization failed):', error.message);
+    // To prevent the lambda from being created and used in a broken state.
+    throw new Error('Could not initialize Firebase Admin SDK. Check logs for details.');
 }
 
 const db = admin.firestore();
 const app = express();
 app.use(bodyParser.json());
+
 
 // --- CORS Middleware ---
 app.use((req, res, next) => {
