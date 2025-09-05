@@ -3,7 +3,12 @@ const express = require('express');
 const admin = require('firebase-admin');
 const bodyParser = require('body-parser');
 
+// --- DIAGNOSTIC LOGS ---
 console.log('SERVER: Cold start; loading api.cjs module.');
+console.log(`DIAGNOSTIC_LOG: Value of process.env.NETLIFY is: ${process.env.NETLIFY}`);
+console.log(`DIAGNOSTIC_LOG: Value of process.env.FIREBASE_PROJECT_ID is: ${process.env.FIREBASE_PROJECT_ID}`);
+// --- END DIAGNOSTIC LOGS ---
+
 
 // --- Function to get Firebase credentials ---
 function getFirebaseCredentials() {
@@ -24,12 +29,10 @@ function getFirebaseCredentials() {
 
         for (const envVar of requiredEnvVars) {
             if (!process.env[envVar]) {
-                // This error will be visible in the Netlify function logs and cause a clear failure.
                 throw new Error(`CRITICAL: Missing required Firebase environment variable: ${envVar}`);
             }
         }
 
-        // Now it's safe to construct the service account object.
         const serviceAccount = {
             type: "service_account",
             project_id: process.env.FIREBASE_PROJECT_ID,
