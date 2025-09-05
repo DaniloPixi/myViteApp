@@ -7,13 +7,29 @@ console.log('SERVER: Cold start; loading api.cjs module.');
 
 // --- Function to get Firebase credentials ---
 function getFirebaseCredentials() {
-    // Check if we are in a Netlify environment by looking for specific env vars.
     const isNetlify = process.env.NETLIFY && process.env.FIREBASE_PROJECT_ID;
 
     if (isNetlify) {
         console.log('SERVER: Netlify environment detected. Initializing Firebase from environment variables.');
 
-        // Create the credentials object from environment variables.
+        // PRE-VALIDATE required environment variables to avoid runtime errors.
+        const requiredEnvVars = [
+            'FIREBASE_PROJECT_ID',
+            'FIREBASE_PRIVATE_KEY_ID',
+            'FIREBASE_PRIVATE_KEY',
+            'FIREBASE_CLIENT_EMAIL',
+            'FIREBASE_CLIENT_ID',
+            'FIREBASE_CLIENT_X509_CERT_URL'
+        ];
+
+        for (const envVar of requiredEnvVars) {
+            if (!process.env[envVar]) {
+                // This error will be visible in the Netlify function logs and cause a clear failure.
+                throw new Error(`CRITICAL: Missing required Firebase environment variable: ${envVar}`);
+            }
+        }
+
+        // Now it's safe to construct the service account object.
         const serviceAccount = {
             type: "service_account",
             project_id: process.env.FIREBASE_PROJECT_ID,
@@ -26,20 +42,12 @@ function getFirebaseCredentials() {
             auth_provider_x509_cert_url: "https://www.googleapis.com/oauth2/v1/certs",
             client_x509_cert_url: process.env.FIREBASE_CLIENT_X509_CERT_URL
         };
-
-        // Basic validation
-        for (const [key, value] of Object.entries(serviceAccount)) {
-            if (!value) {
-                throw new Error(`CRITICAL: Missing required Firebase environment variable for key: ${key}`);
-            }
-        }
-
+        
         return serviceAccount;
+
     } else {
-        // Fallback for local development.
         console.log('SERVER: Assuming local development. Initializing Firebase from serviceAccountKey.json.');
         try {
-            // TRICK: Make the path dynamic to fool the Netlify bundler's static analysis.
             const keyPath = './serviceAccountKey.json';
             return require(keyPath);
         } catch (error) {
@@ -59,18 +67,13 @@ try {
         console.log('SERVER: Firebase Admin SDK initialized successfully.');
     }
 } catch (error) {
-    // Log the detailed error and stop the function from running.
     console.error('SERVER CRITICAL: Final Firebase initialization failed:', error.message);
-    // To prevent the lambda from being created and used in a broken state.
     throw new Error('Could not initialize Firebase Admin SDK. Check logs for details.');
 }
 
 const db = admin.firestore();
 const app = express();
 app.use(bodyParser.json());
-
-// Your other app logic (CORS, middleware, routes) remains the same...
-
 
 // --- CORS Middleware ---
 app.use((req, res, next) => {
@@ -153,7 +156,6 @@ app.post('/api/send-to-user', async (req, res) => {
   }
 
   try {
-    // 1. Get the user\'s FCM token from Firestore.
     const tokenDocRef = db.collection('fcm_tokens').doc(userId);
     const doc = await tokenDocRef.get();
 
@@ -164,7 +166,6 @@ app.post('/api/send-to-user', async (req, res) => {
 
     const fcmToken = doc.data().token;
 
-    // 2. Construct the message payload.
     const message = {
       notification: {
         title: title,
@@ -173,7 +174,6 @@ app.post('/api/send-to-user', async (req, res) => {
       token: fcmToken,
     };
 
-    // 3. Send the message using Firebase Admin SDK.
     console.log(`SERVER-SEND: Sending notification to user ${userId}...`);
     const response = await admin.messaging().send(message);
     console.log('SERVER-SEND: Successfully sent message:', response);
@@ -182,9 +182,7 @@ app.post('/api/send-to-user', async (req, res) => {
 
   } catch (error) {
     console.error(`SERVER-SEND: Error sending notification to user ${userId}:`, error);
-    // Check for a specific FCM error code
     if (error.code === 'messaging/registration-token-not-registered') {
-      // The token is invalid. We should delete it from our database.
       await db.collection('fcm_tokens').doc(userId).delete();
       return res.status(404).json({ error: 'Invalid token. It has been deleted.' });
     }
