@@ -3,16 +3,12 @@ const express = require('express');
 const admin = require('firebase-admin');
 const bodyParser = require('body-parser');
 
-// --- DIAGNOSTIC LOGS ---
 console.log('SERVER: Cold start; loading api.cjs module.');
-console.log(`DIAGNOSTIC_LOG: Value of process.env.NETLIFY is: ${process.env.NETLIFY}`);
-console.log(`DIAGNOSTIC_LOG: Value of process.env.FIREBASE_PROJECT_ID is: ${process.env.FIREBASE_PROJECT_ID}`);
-// --- END DIAGNOSTIC LOGS ---
-
 
 // --- Function to get Firebase credentials ---
 function getFirebaseCredentials() {
-    const isNetlify = process.env.NETLIFY && process.env.FIREBASE_PROJECT_ID;
+    // If FIREBASE_PROJECT_ID exists, we are in the Netlify environment.
+    const isNetlify = process.env.FIREBASE_PROJECT_ID;
 
     if (isNetlify) {
         console.log('SERVER: Netlify environment detected. Initializing Firebase from environment variables.');
