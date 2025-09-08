@@ -9,6 +9,8 @@ let db;
 try {
   if (admin.apps.length === 0) {
     let serviceAccount;
+
+    // PRODUCTION/DEPLOYMENT: Use environment variables set in Netlify UI.
     if (process.env.FIREBASE_PROJECT_ID) {
       console.log("Initializing Firebase Admin with environment variables (Production Mode).");
       serviceAccount = {
@@ -24,12 +26,17 @@ try {
         client_x509_cert_url: process.env.FIREBASE_CLIENT_X509_CERT_URL
       };
     } else {
+      // LOCAL DEVELOPMENT: Use the local service account key file.
+      // The require path is built from a variable to hide it from Netlify's static analysis, preventing build failures.
       console.log("Initializing Firebase Admin with local serviceAccountKey.json (Local Mode).");
-      serviceAccount = require('./serviceAccountKey.json');
+      const keyPath = './serviceAccountKey.json';
+      serviceAccount = require(keyPath);
     }
+
     admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
     db = admin.firestore();
     console.log("✅ ✅ ✅ Firebase Admin Initialized SUCCESSFULLY. ✅ ✅ ✅");
+
   } else {
     db = admin.firestore();
     console.log("Firebase Admin was already initialized.");
@@ -37,7 +44,8 @@ try {
 } catch (error) {
   db = null;
   console.error("❌ ❌ ❌ CRITICAL: FIREBASE ADMIN SDK INITIALIZATION FAILED. ❌ ❌ ❌");
-  console.error("Error details:", error);
+  console.error("This is often caused by missing service account credentials in the environment.");
+  console.error("Error details:", error.message);
 }
 
 const app = express();
@@ -45,7 +53,7 @@ app.use(bodyParser.json());
 
 const checkDb = (req, res, next) => {
   if (!db) {
-    return res.status(500).json({ success: false, message: "DATABASE NOT CONNECTED. Check server logs." });
+    return res.status(500).json({ success: false, message: "DATABASE NOT CONNECTED. Check server logs for Firebase initialization errors." });
   }
   next();
 };
@@ -61,28 +69,23 @@ const authenticateToken = async (req, res, next) => {
     next();
   } catch (error) {
     console.error('Token verification failed:', error.code);
-    return res.status(403).json({ success: false, message: 'Forbidden: Invalid token.' });
+    return res.status(403).json({ success: false, message: 'Forbidden: Invalid or expired token.' });
   }
 };
 
 // --- API Endpoints ---
 
-// NEW ENDPOINT for registering a push notification token
 app.post('/api/register', authenticateToken, checkDb, async (req, res) => {
   const { token } = req.body;
   const { uid } = req.user;
 
   if (!token) {
-    return res.status(400).json({ success: false, message: 'Token is required.' });
+    return res.status(400).json({ success: false, message: 'Push notification token is required.' });
   }
 
   try {
-    // Store the token in a 'pushTokens' collection, linking it to the user's UID
     const tokenRef = db.collection('pushTokens').doc(token);
-    await tokenRef.set({
-      uid: uid,
-      createdAt: new Date().toISOString()
-    });
+    await tokenRef.set({ uid: uid, createdAt: new Date().toISOString() });
     console.log(`Successfully stored push token for user: ${uid}`);
     res.status(200).json({ success: true, message: 'Token registered successfully.' });
   } catch (error) {
