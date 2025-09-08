@@ -95,9 +95,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, computed } from 'vue';
-import { db } from '../firebase';
-import { collection, addDoc, onSnapshot, query, orderBy, doc, deleteDoc } from "firebase/firestore";
+import { ref, onMounted, computed, watch } from 'vue';
 import ConfirmDeleteModal from '../components/ConfirmDeleteModal.vue';
 
 const props = defineProps({
@@ -106,7 +104,7 @@ const props = defineProps({
   hashtagFilter: { type: String, default: '' },
   dateFilter: { type: String, default: '' },
   timeFilter: { type: String, default: '' },
-  durationFilter: { type: Array, default: () => [] }, // Changed prop
+  durationFilter: { type: Array, default: () => [] },
 });
 
 const isFormVisible = ref(false);
@@ -121,25 +119,137 @@ const isSubmitting = ref(false);
 const submitError = ref('');
 const today = new Date().toISOString().split('T')[0];
 
-const toggleHashtag = (tag) => {
-  const index = selectedHashtags.value.indexOf(tag);
-  if (index > -1) {
-    selectedHashtags.value.splice(index, 1);
-  } else if (selectedHashtags.value.length < 3) {
-    selectedHashtags.value.push(tag);
-  }
-};
-
-const selectDuration = (duration) => {
-  selectedDuration.value = selectedDuration.value === duration ? '' : duration;
-};
-
 const plans = ref([]);
 const isLoading = ref(true);
 const fetchError = ref('');
-let unsubscribeFromPlans = null;
 
-// --- Updated Filtered Plans Computation ---
+const isModalVisible = ref(false);
+const planToDeleteId = ref(null);
+const dynamicTitle = ref('');
+
+// --- API Communication ---
+const getAuthToken = async () => {
+  if (!props.user) throw new Error("User not authenticated");
+  return await props.user.getIdToken();
+};
+
+const fetchPlans = async () => {
+  if (!props.user) return;
+  isLoading.value = true;
+  try {
+    const token = await getAuthToken();
+    const response = await fetch('/api/plans', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (!response.ok) throw new Error('Could not fetch plans.');
+    const data = await response.json();
+    plans.value = data;
+  } catch (error) {
+    fetchError.value = error.message;
+  } finally {
+    isLoading.value = false;
+  }
+};
+
+const handleSubmit = async () => {
+  if (!planText.value || !planDate.value || !planLocation.value) {
+    submitError.value = "Please fill out all required fields.";
+    return;
+  }
+  isSubmitting.value = true;
+  submitError.value = '';
+  try {
+    const token = await getAuthToken();
+    const timeParts = [];
+    if (specificTime.value) timeParts.push(specificTime.value);
+    if (selectedDuration.value) timeParts.push(selectedDuration.value);
+    const timeValue = timeParts.join(', ');
+
+    const response = await fetch('/api/plans', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        text: planText.value,
+        date: planDate.value,
+        time: timeValue,
+        location: planLocation.value,
+        hashtags: selectedHashtags.value.map(tag => `#${tag}`),
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to save plan');
+    }
+
+    // Reset form and hide
+    planText.value = '';
+    planDate.value = '';
+    specificTime.value = '';
+    selectedDuration.value = '';
+    planLocation.value = '';
+    selectedHashtags.value = [];
+    isFormVisible.value = false;
+    
+    await fetchPlans(); // Refresh the list from the server
+
+  } catch (error) {
+    console.error("Error saving plan:", error);
+    submitError.value = `Failed to save plan: ${error.message}`;
+  } finally {
+    isSubmitting.value = false;
+  }
+};
+
+const promptDelete = (planId) => {
+  planToDeleteId.value = planId;
+  isModalVisible.value = true;
+};
+
+const handleDelete = async () => {
+  if (!planToDeleteId.value) return;
+  try {
+    const token = await getAuthToken();
+    const response = await fetch(`/api/plans/${planToDeleteId.value}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+
+    if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to delete plan');
+    }
+
+    await fetchPlans(); // Refresh the list
+  } catch (error) {
+    console.error("Error deleting plan:", error);
+    // Optionally show an error message to the user
+  } finally {
+    isModalVisible.value = false;
+    planToDeleteId.value = null;
+  }
+};
+
+// --- Lifecycle and Computed Properties ---
+onMounted(() => {
+  const titles = ["What's on that beautiful mind ?", "What do you want to do with me ?"];
+  dynamicTitle.value = titles[Math.floor(Math.random() * titles.length)];
+  
+  if (props.user) {
+    fetchPlans();
+  }
+});
+
+// When user logs in, fetch their plans
+watch(() => props.user, (newUser) => {
+  if (newUser) {
+    fetchPlans();
+  }
+});
+
 const filteredPlans = computed(() => {
   return plans.value.filter(plan => {
     const locationMatch = !props.locationFilter || plan.location.toLowerCase().includes(props.locationFilter.toLowerCase());
@@ -163,94 +273,20 @@ const filteredPlans = computed(() => {
   });
 });
 
-const isModalVisible = ref(false);
-const planToDeleteId = ref(null);
-const dynamicTitle = ref('');
-
-onMounted(() => {
-  const titles = ["What's on that beautiful mind ?", "What do you want to do with me ?"];
-  dynamicTitle.value = titles[Math.floor(Math.random() * titles.length)];
-  
-  isLoading.value = true;
-  const plansQuery = query(collection(db, 'plans'), orderBy('createdAt', 'desc'));
-
-  unsubscribeFromPlans = onSnapshot(plansQuery, (snapshot) => {
-    plans.value = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      hashtags: doc.data().hashtags || [],
-    }));
-    isLoading.value = false;
-  }, (error) => {
-    console.error("Error fetching plans:", error);
-    fetchError.value = 'Could not load plans. Please try again later.';
-    isLoading.value = false;
-  });
-});
-
-onUnmounted(() => {
-  if (unsubscribeFromPlans) {
-    unsubscribeFromPlans();
-  }
-});
-
-const handleSubmit = async () => {
-  if (!planText.value || !planDate.value || !planLocation.value) {
-    submitError.value = "Please fill out all required fields.";
-    return;
-  }
-  isSubmitting.value = true;
-  submitError.value = '';
-  try {
-    const timeParts = [];
-    if (specificTime.value) timeParts.push(specificTime.value);
-    if (selectedDuration.value) timeParts.push(selectedDuration.value);
-    const timeValue = timeParts.join(', ');
-
-    await addDoc(collection(db, 'plans'), {
-      text: planText.value,
-      date: planDate.value,
-      time: timeValue,
-      location: planLocation.value,
-      hashtags: selectedHashtags.value.map(tag => `#${tag}`),
-      creatorUid: props.user.uid,
-      createdBy: props.user.displayName || props.user.email,
-      createdAt: new Date().toISOString(),
-    });
-
-    planText.value = '';
-    planDate.value = '';
-    specificTime.value = '';
-    selectedDuration.value = '';
-    planLocation.value = '';
-    selectedHashtags.value = [];
-    isFormVisible.value = false;
-
-  } catch (error) {
-    console.error("Error saving plan:", error);
-    submitError.value = `Failed to save plan: ${error.message}`;
-  } finally {
-    isSubmitting.value = false;
+const toggleHashtag = (tag) => {
+  const index = selectedHashtags.value.indexOf(tag);
+  if (index > -1) {
+    selectedHashtags.value.splice(index, 1);
+  } else if (selectedHashtags.value.length < 3) {
+    selectedHashtags.value.push(tag);
   }
 };
 
-const promptDelete = (planId) => {
-  planToDeleteId.value = planId;
-  isModalVisible.value = true;
+const selectDuration = (duration) => {
+  selectedDuration.value = selectedDuration.value === duration ? '' : duration;
 };
 
-const handleDelete = async () => {
-  if (!planToDeleteId.value) return;
-  try {
-    await deleteDoc(doc(db, 'plans', planToDeleteId.value));
-  } catch (error) {
-    console.error("Error deleting plan:", error);
-  } finally {
-    isModalVisible.value = false;
-    planToDeleteId.value = null;
-  }
-};
-
+// --- Formatting Helpers ---
 const formatDate = (dateString) => {
   if (!dateString) return '';
   const options = { year: 'numeric', month: 'long', day: 'numeric' };
