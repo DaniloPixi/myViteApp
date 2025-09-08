@@ -15,7 +15,12 @@
           <label for="password">Password</label>
           <input type="password" id="password" v-model="password" required />
         </div>
-        <button type="submit">Register</button>
+        <!-- Bind the disabled state and change the text based on the loading flag -->
+        <button type="submit" :disabled="loading">
+          {{ loading ? 'Registering...' : 'Register' }}
+        </button>
+        <!-- Display the error message if it exists -->
+        <p v-if="error" class="error-message">{{ error }}</p>
       </form>
       <p class="switch-form">
         Already have an account? <a href="#" @click.prevent="switchToLogin">Login here</a>
@@ -24,48 +29,53 @@
   </div>
 </template>
 
-<script>
-import { auth, createUserWithEmailAndPassword, updateProfile } from '../firebase';
+<script setup>
+import { ref } from 'vue';
+import { auth } from '../firebase';
 
-export default {
-  name: 'Register',
-  data() {
-    return {
-      nickname: '',
-      email: '',
-      password: '',
-    };
-  },
-  methods: {
-    async handleRegister() {
-      try {
-        // 1. Create the user with email and password
-        const userCredential = await createUserWithEmailAndPassword(auth, this.email, this.password);
-        const user = userCredential.user;
+const emit = defineEmits(['switch-form']);
 
-        // 2. Update the user's profile with the nickname
-        await updateProfile(user, { 
-          displayName: this.nickname 
-        });
+const nickname = ref('');
+const email = ref('');
+const password = ref('');
+const loading = ref(false); // Reactive flag for loading state
+const error = ref('');     // Reactive string for error messages
 
-        alert(`Successfully registered! Welcome, ${this.nickname}!`);
+const handleRegister = async () => {
+  loading.value = true;
+  error.value = '';
 
-        // This component doesn't need to do anything else.
-        // App.vue will detect the authentication state change and switch the view.
-
-      } catch (error) {
-        console.error("Error during registration:", error);
-        alert(`Registration failed: ${error.message}`);
-      }
-    },
-    switchToLogin() {
-      this.$emit('switch-form', 'login');
+  try {
+    const userCredential = await auth.createUserWithEmailAndPassword(email.value, password.value);
+    await userCredential.user.updateProfile({ 
+      displayName: nickname.value 
+    });
+    // On success, App.vue will handle the redirect. We don't need to set loading to false.
+  } catch (err) {
+    console.error("Error during registration:", err);
+    // Prettify the error message
+    switch (err.code) {
+      case 'auth/email-already-in-use':
+        error.value = 'This email address is already in use.';
+        break;
+      case 'auth/weak-password':
+        error.value = 'The password is too weak. Please choose a stronger one.';
+        break;
+      default:
+        error.value = 'An unexpected error occurred during registration.';
+        break;
     }
+    loading.value = false; // Set loading to false only on failure
   }
+};
+
+const switchToLogin = () => {
+  emit('switch-form', 'login');
 };
 </script>
 
 <style scoped>
+/* ... all other styles remain the same ... */
 .register-container {
   display: flex;
   justify-content: center;
@@ -125,6 +135,19 @@ button {
 
 button:hover {
   background-color: #368f6a;
+}
+
+/* Style for the error message */
+.error-message {
+  color: #ff6b6b;
+  margin-top: 1.5rem;
+  font-weight: 500;
+}
+
+button:disabled {
+  background-color: #333;
+  color: #777;
+  cursor: not-allowed;
 }
 
 .switch-form {

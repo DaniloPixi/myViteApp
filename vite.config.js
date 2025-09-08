@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
 import { VitePWA } from 'vite-plugin-pwa';
+import Inspector from 'vite-plugin-vue-inspector';
 
 export default defineConfig(({ command }) => {
   const isBuild = command === 'build';
@@ -8,6 +9,7 @@ export default defineConfig(({ command }) => {
   return {
     plugins: [
       vue(),
+      Inspector(),
       VitePWA({
         registerType: 'autoUpdate',
         injectRegister: 'auto',

@@ -11,7 +11,12 @@
           <label for="password">Password</label>
           <input type="password" id="password" v-model="password" required />
         </div>
-        <button type="submit">Login</button>
+        <!-- Bind the disabled state and change the text based on the loading flag -->
+        <button type="submit" :disabled="loading">
+          {{ loading ? 'Logging in...' : 'Login' }}
+        </button>
+        <!-- Display the error message if it exists -->
+        <p v-if="error" class="error-message">{{ error }}</p>
       </form>
       <p class="switch-form">
         Don't have an account? <a href="#" @click.prevent="switchToRegister">Register here</a>
@@ -20,36 +25,49 @@
   </div>
 </template>
 
-<script>
-import { auth, signInWithEmailAndPassword } from '../firebase';
+<script setup>
+import { ref } from 'vue';
+import { auth } from '../firebase';
 
-export default {
-  name: 'Login',
-  data() {
-    return {
-      email: '',
-      password: '',
-    };
-  },
-  methods: {
-    async handleLogin() {
-      try {
-        await signInWithEmailAndPassword(auth, this.email, this.password);
-        // App.vue will handle the redirect on successful login
-        // because of the onAuthStateChanged listener.
-      } catch (error) {
-        console.error("Error during login:", error);
-        alert(`Login failed: ${error.message}`);
-      }
-    },
-    switchToRegister() {
-      this.$emit('switch-form', 'register');
+const emit = defineEmits(['switch-form']);
+
+const email = ref('');
+const password = ref('');
+const loading = ref(false); // Reactive flag for loading state
+const error = ref('');     // Reactive string for error messages
+
+const handleLogin = async () => {
+  loading.value = true; // Set loading to true when the function starts
+  error.value = '';     // Clear any previous errors
+
+  try {
+    await auth.signInWithEmailAndPassword(email.value, password.value);
+    // On success, App.vue will handle the redirect. No need to set loading to false here.
+  } catch (err) {
+    console.error("Error during login:", err);
+    // Prettify the error message for the user
+    switch (err.code) {
+      case 'auth/user-not-found':
+        error.value = 'No account found with this email.';
+        break;
+      case 'auth/wrong-password':
+        error.value = 'Incorrect password. Please try again.';
+        break;
+      default:
+        error.value = 'An unexpected error occurred. Please try again.';
+        break;
     }
+    loading.value = false; // Set loading to false on failure
   }
+};
+
+const switchToRegister = () => {
+  emit('switch-form', 'register');
 };
 </script>
 
 <style scoped>
+/* ... all other styles remain the same ... */
 .login-container {
   display: flex;
   justify-content: center;
@@ -60,7 +78,7 @@ export default {
 .login-card {
   padding: 2.5em;
   border-radius: 12px;
-  background-color: #2f2f2f;
+  background-color: #1e1e1e; /* Updated background color for consistency */
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
   width: 100%;
   max-width: 400px;
@@ -109,6 +127,19 @@ button {
 
 button:hover {
   background-color: #368f6a;
+}
+
+/* Style for the error message */
+.error-message {
+  color: #ff6b6b; /* A standard error color */
+  margin-top: 1.5rem;
+  font-weight: 500;
+}
+
+button:disabled {
+  background-color: #333;
+  color: #777;
+  cursor: not-allowed;
 }
 
 .switch-form {

@@ -121,3 +121,6 @@ serviceAccountKey.json
 
 # Local Netlify folder
 .netlify
+
+# Local environment variables
+.env
