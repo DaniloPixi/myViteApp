@@ -106,7 +106,7 @@ const props = defineProps({
   hashtagFilter: { type: String, default: '' },
   dateFilter: { type: String, default: '' },
   timeFilter: { type: String, default: '' },
-  durationFilter: { type: String, default: '' }, // Added prop
+  durationFilter: { type: Array, default: () => [] }, // Changed prop
 });
 
 const isFormVisible = ref(false);
@@ -146,10 +146,9 @@ const filteredPlans = computed(() => {
     const hashtagMatch = !props.hashtagFilter || (plan.hashtags && plan.hashtags.some(tag => tag.toLowerCase().includes(props.hashtagFilter.toLowerCase())));
     const dateMatch = !props.dateFilter || plan.date === props.dateFilter;
     
-    // New Duration Filter Logic
-    const durationMatch = !props.durationFilter || (plan.time && plan.time.includes(props.durationFilter));
+    const durationMatch = props.durationFilter.length === 0 || (plan.time && props.durationFilter.some(d => plan.time.includes(d)));
 
-    const timeMatch = computed(() => {
+    const timeMatch = (() => {
       if (!props.timeFilter) return true;
       if (!plan.time) return false;
       const timeRegex = /\d{2}:\d{2}/;
@@ -158,9 +157,9 @@ const filteredPlans = computed(() => {
       const planHour = parseInt(match[0].split(':')[0], 10);
       const filterHour = parseInt(props.timeFilter, 10);
       return planHour === filterHour;
-    });
+    })();
 
-    return locationMatch && hashtagMatch && dateMatch && timeMatch.value && durationMatch;
+    return locationMatch && hashtagMatch && dateMatch && timeMatch && durationMatch;
   });
 });
 

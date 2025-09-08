@@ -83,7 +83,7 @@ const locationFilter = ref('');
 const hashtagFilter = ref('');
 const dateFilter = ref('');
 const timeFilter = ref('');
-const durationFilter = ref(''); // New filter state for duration
+const durationFilter = ref([]); // Changed to an array
 
 // --- Watch for view changes and save to localStorage ---
 watch(currentView, (newView) => {
