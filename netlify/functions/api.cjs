@@ -1,8 +1,6 @@
-
 const express = require('express');
 const serverless = require('serverless-http');
 const admin = require('firebase-admin');
-const { getMessaging } = require('firebase-admin/messaging');
 const bodyParser = require('body-parser');
 
 let db;
@@ -10,20 +8,46 @@ let db;
 // --- Firebase Initialization ---
 try {
   if (!admin.apps.length) {
-    const serviceAccount = require('./serviceAccountKey.json');
+    let serviceAccount;
+
+    // Check if running in a deployed environment (like Netlify) with environment variables
+    if (process.env.FIREBASE_PRIVATE_KEY) {
+      console.log("Initializing Firebase Admin with environment variables.");
+      serviceAccount = {
+        type: "service_account",
+        project_id: process.env.FIREBASE_PROJECT_ID,
+        private_key_id: process.env.FIREBASE_PRIVATE_KEY_ID,
+        private_key: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'), // Un-escape newlines
+        client_email: process.env.FIREBASE_CLIENT_EMAIL,
+        client_id: process.env.FIREBASE_CLIENT_ID,
+        auth_uri: "https://accounts.google.com/o/oauth2/auth",
+        token_uri: "https://oauth2.googleapis.com/token",
+        auth_provider_x509_cert_url: "https://www.googleapis.com/oauth2/v1/certs",
+        client_x509_cert_url: process.env.FIREBASE_CLIENT_X509_CERT_URL,
+      };
+    } else {
+      // Fallback for local development using the JSON file
+      console.log("Initializing Firebase Admin with local serviceAccountKey.json.");
+      serviceAccount = require('./serviceAccountKey.json');
+    }
+
     admin.initializeApp({
       credential: admin.credential.cert(serviceAccount)
     });
     db = admin.firestore();
     console.log("✅ ✅ ✅ Firebase Admin Initialized SUCCESSFULLY. ✅ ✅ ✅");
+
   } else {
     db = admin.firestore();
     console.log("Firebase Admin was already initialized.");
   }
-} catch(error) {
+} catch (error) {
     db = null;
     console.error("❌ ❌ ❌ CRITICAL: FIREBASE ADMIN SDK INITIALIZATION FAILED. ❌ ❌ ❌");
-    console.error(error);
+    console.error("Error details:", error);
+    if (error.code === 'MODULE_NOT_FOUND') {
+        console.error(`\n--- HINT ---\nThis error often means you're running on a server (like Netlify) where the 'serviceAccountKey.json' file is not present. Ensure your Firebase service account keys are set as environment variables in your deployment environment. The function is expecting variables like 'FIREBASE_PROJECT_ID', 'FIREBASE_PRIVATE_KEY', etc.\n--- HINT ---`);
+    }
 }
 
 const app = express();
@@ -39,14 +63,11 @@ const checkDb = (req, res, next) => {
   next();
 };
 
-// --- Authentication Middleware (kept for user identification) ---
+// --- Authentication Middleware ---
 const authenticateToken = async (req, res, next) => {
   const idToken = req.headers.authorization?.split('Bearer ')[1];
   if (!idToken) {
-    // Allow unauthenticated access for simplicity in a shared model, but this is NOT recommended for production
-    // If you want to lock it down, return this response:
-    // return res.status(401).json({ success: false, message: 'Unauthorized: No token provided.' });
-    req.user = { uid: 'anonymous', name: 'Anonymous' }; // Assign a generic user
+    req.user = { uid: 'anonymous', name: 'Anonymous' };
     return next();
   }
   try {
@@ -54,7 +75,6 @@ const authenticateToken = async (req, res, next) => {
     req.user = { uid: decodedToken.uid, name: decodedToken.name, email: decodedToken.email };
     next();
   } catch (error) {
-    // If token is invalid, treat as anonymous
     console.error('Token verification failed, treating as anonymous user.', error.code);
     req.user = { uid: 'anonymous', name: 'Anonymous' };
     next();
@@ -63,20 +83,6 @@ const authenticateToken = async (req, res, next) => {
 
 // --- API Endpoints ---
 
-app.post('/api/register', authenticateToken, checkDb, async (req, res) => {
-    if (req.user.uid === 'anonymous') return res.status(403).json({ success: false, message: 'Anonymous users cannot register devices.'});
-    const { token } = req.body;
-    const { uid } = req.user;
-    try {
-        await db.collection('devices').doc(token).set({ uid: uid, updatedAt: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
-        res.status(200).json({ success: true, message: 'Device registered.' });
-    } catch (error) {
-        console.error('Error in /api/register:', error);
-        res.status(500).json({ success: false, message: 'Internal server error.' });
-    }
-});
-
-// GET all plans for everyone
 app.get('/api/plans', authenticateToken, checkDb, async (req, res) => {
     try {
         const plansSnapshot = await db.collection('plans').orderBy('createdAt', 'desc').get();
@@ -88,7 +94,6 @@ app.get('/api/plans', authenticateToken, checkDb, async (req, res) => {
     }
 });
 
-// POST a new plan (created by the logged in user)
 app.post('/api/plans', authenticateToken, checkDb, async (req, res) => {
   const { text, date, location, time, hashtags } = req.body;
   const { uid, name, email } = req.user;
@@ -99,13 +104,10 @@ app.post('/api/plans', authenticateToken, checkDb, async (req, res) => {
       location,
       time: time || '',
       hashtags: hashtags || [],
-      creatorUid: uid, // Still track who created it
-      createdBy: name || email, // Still track who created it
+      creatorUid: uid,
+      createdBy: name || email,
       createdAt: new Date().toISOString(),
     });
-    
-    // Notification logic remains the same
-
     res.status(201).json({ success: true, planId: newPlanRef.id });
   } catch (error) {
     console.error('Error in /api/plans POST:', error);
@@ -113,7 +115,6 @@ app.post('/api/plans', authenticateToken, checkDb, async (req, res) => {
   }
 });
 
-// DELETE any plan
 app.delete('/api/plans/:planId', authenticateToken, checkDb, async (req, res) => {
     const { planId } = req.params;
     try {
@@ -123,14 +124,13 @@ app.delete('/api/plans/:planId', authenticateToken, checkDb, async (req, res) =>
             return res.status(404).json({ success: false, message: 'Plan not found.' });
         }
         await planRef.delete();
-        res.status(200).json({ success: true, message: 'Plan deleted successfully by any user.' });
+        res.status(200).json({ success: true, message: 'Plan deleted successfully.' });
     } catch (error) {
         console.error('Error in /api/plans DELETE:', error);
         res.status(500).json({ success: false, message: 'Internal server error.' });
     }
 });
 
-// EDIT any plan
 app.put('/api/plans/:planId', authenticateToken, checkDb, async (req, res) => {
     const { planId } = req.params;
     const { text, date, location, time, hashtags } = req.body;
@@ -143,7 +143,6 @@ app.put('/api/plans/:planId', authenticateToken, checkDb, async (req, res) => {
             return res.status(404).json({ success: false, message: 'Plan not found.' });
         }
 
-        // Create an object with only the fields that are being updated
         const updateData = {};
         if (text !== undefined) updateData.text = text;
         if (date !== undefined) updateData.date = date;
