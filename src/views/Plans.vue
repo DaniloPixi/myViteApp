@@ -11,7 +11,7 @@
       <div v-else class="plan-cards-container">
         <div v-for="plan in filteredPlans" :key="plan.id" class="plan-card">
           <div class="card-actions">
-            <button @click="openEditModal(plan)" class="edit-button">✏️</button>
+            <button @click="openEditModal(plan)" class="edit-button">&#9998;</button>
             <button @click="promptDelete(plan.id)" class="delete-button">×</button>
           </div>
           <h3>{{ plan.text }}</h3>
@@ -249,7 +249,6 @@ h1 { color: #42b883; text-align: center; margin-bottom: 2rem; }
 
 .card-actions { position: absolute; top: 10px; right: 10px; display: flex; gap: 0.5rem; }
 .edit-button, .delete-button { background: #444; color: #fff; border: none; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 1rem; }
-.edit-button { background: #3a5f80; }
 
 .create-plan-button-section { text-align: center; margin-bottom: 2.5rem; }
 .add-plan-button { padding: 0.7em 1.4em; border-radius: 30px; border: none; background-color: #42b883; color: white; font-size: 1.1em; font-weight: 600; cursor: pointer; }
