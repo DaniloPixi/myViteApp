@@ -6,49 +6,48 @@ const bodyParser = require('body-parser');
 let db;
 
 // --- Firebase Initialization ---
-try {
-  if (!admin.apps.length) {
-    let serviceAccount;
+// THIS VERSION IS FOR NETLIFY DEPLOYMENT ONLY. It relies exclusively on environment variables.
 
-    // Check if running in a deployed environment (like Netlify) with environment variables
-    if (process.env.FIREBASE_PRIVATE_KEY) {
-      console.log("Initializing Firebase Admin with environment variables.");
-      serviceAccount = {
-        type: "service_account",
-        project_id: process.env.FIREBASE_PROJECT_ID,
-        private_key_id: process.env.FIREBASE_PRIVATE_KEY_ID,
-        private_key: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'), // Un-escape newlines
-        client_email: process.env.FIREBASE_CLIENT_EMAIL,
-        client_id: process.env.FIREBASE_CLIENT_ID,
-        auth_uri: "https://accounts.google.com/o/oauth2/auth",
-        token_uri: "https://oauth2.googleapis.com/token",
-        auth_provider_x509_cert_url: "https://www.googleapis.com/oauth2/v1/certs",
-        client_x509_cert_url: process.env.FIREBASE_CLIENT_X509_CERT_URL,
-      };
-    } else {
-      // Fallback for local development using the JSON file
-      console.log("Initializing Firebase Admin with local serviceAccountKey.json.");
-      serviceAccount = require('./serviceAccountKey.json');
+try {
+  if (admin.apps.length === 0) {
+    console.log("Initializing Firebase Admin with environment variables for deployment.");
+
+    // Construct the service account object from environment variables
+    const serviceAccount = {
+      type: "service_account",
+      project_id: process.env.FIREBASE_PROJECT_ID,
+      private_key_id: process.env.FIREBASE_PRIVATE_KEY_ID,
+      private_key: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'), // Important: un-escape newlines
+      client_email: process.env.FIREBASE_CLIENT_EMAIL,
+      client_id: process.env.FIREBASE_CLIENT_ID,
+      auth_uri: "https://accounts.google.com/o/oauth2/auth",
+      token_uri: "https://oauth2.googleapis.com/token",
+      auth_provider_x509_cert_url: "https://www.googleapis.com/oauth2/v1/certs",
+      client_x509_cert_url: process.env.FIREBASE_CLIENT_X509_CERT_URL
+    };
+
+    // Verify that the environment variables were loaded
+    if (!serviceAccount.project_id || !serviceAccount.private_key || !serviceAccount.client_email) {
+      throw new Error("Firebase service account environment variables are missing or empty.");
     }
 
     admin.initializeApp({
       credential: admin.credential.cert(serviceAccount)
     });
+
     db = admin.firestore();
-    console.log("✅ ✅ ✅ Firebase Admin Initialized SUCCESSFULLY. ✅ ✅ ✅");
+    console.log("✅ ✅ ✅ Firebase Admin Initialized SUCCESSFULLY for deployment. ✅ ✅ ✅");
 
   } else {
     db = admin.firestore();
     console.log("Firebase Admin was already initialized.");
   }
 } catch (error) {
-    db = null;
-    console.error("❌ ❌ ❌ CRITICAL: FIREBASE ADMIN SDK INITIALIZATION FAILED. ❌ ❌ ❌");
-    console.error("Error details:", error);
-    if (error.code === 'MODULE_NOT_FOUND') {
-        console.error(`\n--- HINT ---\nThis error often means you're running on a server (like Netlify) where the 'serviceAccountKey.json' file is not present. Ensure your Firebase service account keys are set as environment variables in your deployment environment. The function is expecting variables like 'FIREBASE_PROJECT_ID', 'FIREBASE_PRIVATE_KEY', etc.\n--- HINT ---`);
-    }
+  db = null;
+  console.error("❌ ❌ ❌ CRITICAL: FIREBASE ADMIN SDK DEPLOYMENT INITIALIZATION FAILED. ❌ ❌ ❌");
+  console.error("Error details:", error);
 }
+
 
 const app = express();
 app.use(bodyParser.json());
@@ -57,7 +56,7 @@ const checkDb = (req, res, next) => {
   if (!db) {
     return res.status(500).json({ 
       success: false, 
-      message: "DATABASE NOT CONNECTED. See server logs for instructions."
+      message: "DATABASE NOT CONNECTED. Deployment initialization failed. Check server logs."
     });
   }
   next();
