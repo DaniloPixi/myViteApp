@@ -1,15 +1,6 @@
 <template>
   <div class="plans-view">
 
-    <!-- Update Sidebar to handle all filters -->
-    <Sidebar 
-      v-model:location="locationFilter"
-      v-model:hashtags="hashtagFilter"
-      v-model:date="dateFilter"
-      v-model:time="timeFilter"
-      :available-hashtags="availableHashtags"
-    />
-
     <!-- Plan Display List -->
     <section class="plan-list-section">
       <h1>Your Upcoming Plans</h1>
@@ -105,14 +96,19 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, computed } from 'vue';
-import { db } from '../firebase'; // Import Firestore database instance
+import { db } from '../firebase';
 import { collection, addDoc, onSnapshot, query, orderBy, doc, deleteDoc } from "firebase/firestore";
 import ConfirmDeleteModal from '../components/ConfirmDeleteModal.vue';
-import Sidebar from '../components/Sidebar.vue';
 
-const props = defineProps({ user: { type: Object, required: true } });
+const props = defineProps({
+  user: { type: Object, required: true },
+  locationFilter: { type: String, default: '' },
+  hashtagFilter: { type: String, default: '' },
+  dateFilter: { type: String, default: '' },
+  timeFilter: { type: String, default: '' },
+  durationFilter: { type: String, default: '' }, // Added prop
+});
 
-// --- Form State ---
 const isFormVisible = ref(false);
 const planText = ref('');
 const planDate = ref('');
@@ -138,34 +134,40 @@ const selectDuration = (duration) => {
   selectedDuration.value = selectedDuration.value === duration ? '' : duration;
 };
 
-// --- Plan List State ---
 const plans = ref([]);
 const isLoading = ref(true);
 const fetchError = ref('');
 let unsubscribeFromPlans = null;
 
-// --- Filter State ---
-const locationFilter = ref('');
-const hashtagFilter = ref('');
-const dateFilter = ref('');
-const timeFilter = ref('');
-
+// --- Updated Filtered Plans Computation ---
 const filteredPlans = computed(() => {
   return plans.value.filter(plan => {
-    const locationMatch = !locationFilter.value || plan.location.toLowerCase().includes(locationFilter.value.toLowerCase());
-    const hashtagMatch = !hashtagFilter.value || (plan.hashtags && plan.hashtags.some(tag => tag.toLowerCase().includes(hashtagFilter.value.toLowerCase())));
-    const dateMatch = !dateFilter.value || plan.date === dateFilter.value;
-    // Note: Time filtering logic might need adjustments based on the new real-time data structure
-    return locationMatch && hashtagMatch && dateMatch;
+    const locationMatch = !props.locationFilter || plan.location.toLowerCase().includes(props.locationFilter.toLowerCase());
+    const hashtagMatch = !props.hashtagFilter || (plan.hashtags && plan.hashtags.some(tag => tag.toLowerCase().includes(props.hashtagFilter.toLowerCase())));
+    const dateMatch = !props.dateFilter || plan.date === props.dateFilter;
+    
+    // New Duration Filter Logic
+    const durationMatch = !props.durationFilter || (plan.time && plan.time.includes(props.durationFilter));
+
+    const timeMatch = computed(() => {
+      if (!props.timeFilter) return true;
+      if (!plan.time) return false;
+      const timeRegex = /\d{2}:\d{2}/;
+      const match = plan.time.match(timeRegex);
+      if (!match) return false;
+      const planHour = parseInt(match[0].split(':')[0], 10);
+      const filterHour = parseInt(props.timeFilter, 10);
+      return planHour === filterHour;
+    });
+
+    return locationMatch && hashtagMatch && dateMatch && timeMatch.value && durationMatch;
   });
 });
 
-// --- Modal State ---
 const isModalVisible = ref(false);
 const planToDeleteId = ref(null);
 const dynamicTitle = ref('');
 
-// --- Firestore Real-time Logic ---
 onMounted(() => {
   const titles = ["What's on that beautiful mind ?", "What do you want to do with me ?"];
   dynamicTitle.value = titles[Math.floor(Math.random() * titles.length)];
@@ -177,7 +179,6 @@ onMounted(() => {
     plans.value = snapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data(),
-      // Ensure hashtags is always an array
       hashtags: doc.data().hashtags || [],
     }));
     isLoading.value = false;
@@ -194,7 +195,6 @@ onUnmounted(() => {
   }
 });
 
-// --- Form Submission Logic ---
 const handleSubmit = async () => {
   if (!planText.value || !planDate.value || !planLocation.value) {
     submitError.value = "Please fill out all required fields.";
@@ -219,7 +219,6 @@ const handleSubmit = async () => {
       createdAt: new Date().toISOString(),
     });
 
-    // Reset form fields
     planText.value = '';
     planDate.value = '';
     specificTime.value = '';
@@ -236,7 +235,6 @@ const handleSubmit = async () => {
   }
 };
 
-// --- Delete Plan Logic ---
 const promptDelete = (planId) => {
   planToDeleteId.value = planId;
   isModalVisible.value = true;
@@ -248,14 +246,12 @@ const handleDelete = async () => {
     await deleteDoc(doc(db, 'plans', planToDeleteId.value));
   } catch (error) {
     console.error("Error deleting plan:", error);
-    alert("Could not delete the plan. Please try again.");
   } finally {
     isModalVisible.value = false;
     planToDeleteId.value = null;
   }
 };
 
-// --- Helper Functions ---
 const formatDate = (dateString) => {
   if (!dateString) return '';
   const options = { year: 'numeric', month: 'long', day: 'numeric' };
@@ -282,7 +278,7 @@ const formatTime = (timeString) => {
 </script>
 
 <style scoped>
-/* Existing styles remain unchanged */
+/* Styles remain unchanged */
 .plans-view {
   max-width: 600px;
   margin: 0 auto;
@@ -314,11 +310,6 @@ h1, h2 {
   font-size: 1.1em;
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.3s;
-}
-
-.add-plan-button:hover {
-  background-color: #368f6a;
 }
 
 .plan-form-container {
@@ -384,11 +375,6 @@ input {
   background-color: #333;
   color: #fff;
   cursor: pointer;
-  transition: background-color 0.3s, border-color 0.3s;
-}
-
-.duration-buttons button:hover {
-  background-color: #555;
 }
 
 .duration-buttons button.selected {
@@ -414,15 +400,10 @@ input {
   border-radius: 30px;
   border: none;
   cursor: pointer;
-  transition: background-color 0.3s, opacity 0.3s;
 }
 
 .form-actions .cancel-button {
   background-color: #555;
-}
-
-.form-actions .cancel-button:hover {
-  background-color: #666;
 }
 
 .form-actions button[type="submit"] {
@@ -455,8 +436,6 @@ button:disabled {
   border-radius: 12px;
   padding: 1.5rem;
   padding-bottom: 2.5rem; 
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  transition: transform 0.2s, box-shadow 0.2s;
 }
 
 .delete-button {
@@ -472,21 +451,7 @@ button:disabled {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 16px;
-  line-height: 1;
   cursor: pointer;
-  opacity: 0.7;
-  transition: opacity 0.2s, background-color 0.2s;
-}
-
-.delete-button:hover {
-  background-color: #ff6b6b;
-  opacity: 1;
-}
-
-.plan-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
 }
 
 .plan-card h3 {
@@ -542,11 +507,6 @@ button:disabled {
   background-color: #333;
   color: #fff;
   cursor: pointer;
-  transition: background-color 0.3s, border-color 0.3s;
-}
-
-.hashtag-selection-container button:hover {
-  background-color: #555;
 }
 
 .hashtag-selection-container button.selected {

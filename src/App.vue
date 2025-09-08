@@ -3,8 +3,16 @@
   <!-- The logout button remains fixed to the top left of the page -->
   <button v-if="user" @click="logout" class="logout-button">Logout</button>
 
-  <!-- The header is teleported to the header-container in index.html -->
+  <!-- The header and filters are teleported to the header-container in index.html -->
   <teleport to="#header-container">
+    <Sidebar 
+      v-if="currentView === 'plans'"
+      v-model:location="locationFilter"
+      v-model:hashtags="hashtagFilter"
+      v-model:date="dateFilter"
+      v-model:time="timeFilter"
+      v-model:duration="durationFilter" 
+    />
     <header class="page-header">
         <h1 v-if="user">Welcome, {{ user.displayName || user.email }}</h1>
         <h1 v-else>Auth Portal</h1>
@@ -29,7 +37,16 @@
           @enable-notifications="enableNotifications" 
         />
         <MemosAndMoments v-if="currentView === 'memos'" />
-        <Plans v-if="currentView === 'plans'" :user="user" />
+        <!-- Plans view now receives all filter states as props -->
+        <Plans 
+          v-if="currentView === 'plans'" 
+          :user="user"
+          :location-filter="locationFilter"
+          :hashtag-filter="hashtagFilter"
+          :date-filter="dateFilter"
+          :time-filter="timeFilter"
+          :duration-filter="durationFilter" 
+        />
       </div>
 
       <!-- Authentication Views (Logged-out) -->
@@ -52,6 +69,7 @@ import Register from './views/Register.vue';
 import NotificationControls from './components/NotificationControls.vue';
 import MemosAndMoments from './views/MemosAndMoments.vue';
 import Plans from './views/Plans.vue';
+import Sidebar from './components/Sidebar.vue';
 
 // --- Reactive State ---
 const user = ref(null);
@@ -59,6 +77,13 @@ const isRegistering = ref(false);
 const notificationPermission = ref(null);
 const currentView = ref(localStorage.getItem('currentView') || 'home');
 let unsubscribeFromPlans = null;
+
+// --- Filter State (Now lives in the main App component) ---
+const locationFilter = ref('');
+const hashtagFilter = ref('');
+const dateFilter = ref('');
+const timeFilter = ref('');
+const durationFilter = ref(''); // New filter state for duration
 
 // --- Watch for view changes and save to localStorage ---
 watch(currentView, (newView) => {
@@ -77,24 +102,17 @@ const handleSwitchForm = (formName) => {
 // --- Real-time Plan Notification Logic ---
 const setupPlanListener = () => {
   if (unsubscribeFromPlans) {
-    unsubscribeFromPlans(); // Unsubscribe from previous listener
+    unsubscribeFromPlans();
   }
 
   const plansRef = collection(db, "plans");
-  // Capture the timestamp when the listener is set up.
   const listenerStartTime = new Date().toISOString();
-
-  // Query for plans created AFTER the listener has been initialized.
-  const q = query(plansRef, 
-                  where("createdAt", ">", listenerStartTime));
+  const q = query(plansRef, where("createdAt", ">", listenerStartTime));
 
   unsubscribeFromPlans = onSnapshot(q, (snapshot) => {
     snapshot.docChanges().forEach((change) => {
-      // Only act on documents that are newly added to the collection.
       if (change.type === "added") {
         const newPlan = change.doc.data();
-
-        // Simplified condition for testing: notify for any new plan.
         if (Notification.permission === 'granted') {
           new Notification("New Plan Alert!", {
             body: `A new plan has been posted: ${newPlan.text}`,
@@ -106,11 +124,9 @@ const setupPlanListener = () => {
   });
 };
 
-
 // --- Core Notification Logic ---
 async function registerDeviceForNotifications() {
   if (notificationPermission.value !== 'granted' || !user.value) return;
-
   try {
     const currentToken = await messaging.getToken({ vapidKey: 'BPACu3jz1Y3_bB4VPwO96LkPua-bJKVXBOioaf75Gc7xQQ-aqZ04a0qBSbxuX6ZW6KcPB1Lcv68zGP5qrM2q9dU' });
     if (currentToken) {
@@ -128,10 +144,8 @@ async function enableNotifications() {
     console.error('This browser does not support desktop notification');
     return;
   }
-
   const permission = await Notification.requestPermission();
   notificationPermission.value = permission;
-
   if (permission === 'granted') {
     await registerDeviceForNotifications();
   }
@@ -142,12 +156,12 @@ auth.onAuthStateChanged((currentUser) => {
   user.value = currentUser;
   if (currentUser) {
     registerDeviceForNotifications();
-    setupPlanListener(); // Setup listener when user is logged in
+    setupPlanListener();
   } else {
     localStorage.removeItem('currentView');
     currentView.value = 'home';
     if (unsubscribeFromPlans) {
-      unsubscribeFromPlans(); // Cleanup listener on logout
+      unsubscribeFromPlans();
     }
   }
 });
@@ -159,7 +173,6 @@ const logout = () => {
 // --- Push Notification API Calls ---
 async function sendTokenToServer(token) {
   if (!user.value) return;
-
   try {
     const idToken = await user.value.getIdToken();
     const response = await fetch('/api/register', {
@@ -170,7 +183,6 @@ async function sendTokenToServer(token) {
       },
       body: JSON.stringify({ token: token }),
     });
-
     if (!response.ok) {
         const errorBody = await response.json();
         throw new Error(errorBody.message || `Server responded with ${response.status}`);
@@ -190,18 +202,16 @@ messaging.onMessage((payload) => {
     body: payload.notification?.body || payload.data?.body,
     icon: '/pwa-192x192.png'
   };
-
   if (notificationTitle) {
       new Notification(notificationTitle, notificationOptions);
   } else {
       console.warn("Received foreground message without a title.", payload);
   }
 });
-
 </script>
 
 <style>
-/* Page-level header styles */
+/* Styles remain unchanged */
 .page-header {
   text-align: center;
   margin: 3rem 0;
@@ -214,7 +224,6 @@ messaging.onMessage((payload) => {
   font-weight: 600;
 }
 
-/* Card styles */
 .card {
   max-width: 550px;
   margin: 0 auto;
@@ -223,7 +232,6 @@ messaging.onMessage((payload) => {
   background-color: #242424;
 }
 
-/* New View Navigation styles */
 .view-nav {
   display: flex;
   justify-content: center;
@@ -250,7 +258,6 @@ messaging.onMessage((payload) => {
   padding-bottom: 4px;
 }
 
-/* Logout button styles */
 .logout-button {
   position: fixed;
   top: 1.5rem;
