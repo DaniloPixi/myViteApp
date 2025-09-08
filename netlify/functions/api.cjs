@@ -133,6 +133,28 @@ app.post('/api/plans', authenticateToken, checkDb, async (req, res) => {
       createdBy: name || email,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
     });
+    
+    // --- Send Notification --- 
+    const devicesSnapshot = await db.collection('devices').get();
+    const tokens = devicesSnapshot.docs.map(doc => doc.id);
+
+    if (tokens.length > 0) {
+        const payload = {
+            notification: {
+                title: `New Plan from ${name || 'a user'}`,
+                body: text.substring(0, 100) + (text.length > 100 ? '...' : ''),
+                icon: '/pwa-192x192.png'
+            }
+        };
+        try {
+          await admin.messaging().sendToDevice(tokens, payload);
+          console.log('Successfully sent notification to', tokens.length, 'devices.');
+        } catch(e) {
+          console.error('Error sending notification:', e);
+        }
+    }
+    // --- End Send Notification ---
+
     res.status(201).json({ success: true, planId: newPlanRef.id });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Internal server error.' });
