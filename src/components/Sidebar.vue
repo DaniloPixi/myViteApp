@@ -43,7 +43,7 @@
             <div class="filter-group duration-group">
               <label>Duration</label>
               <div class="duration-buttons">
-                <button v-for="d in availableDurations" :key="d" @click="toggleDurationFilter(d)" :class="{ selected: duration.includes(d) }">{{ d }}</button>
+                <button v-for="d in availableDurations" :key="d" @click="toggleDurationFilter(d)" :class="{ selected: duration.includes(d) }">{{ d === 'Indetermined' ? '∞' : d }}</button>
               </div>
             </div>
           </div>

@@ -3,10 +3,9 @@
   <!-- The logout button remains fixed to the top left of the page -->
   <button v-if="user" @click="logout" class="logout-button">Logout</button>
 
-  <!-- The header and filters are teleported to the header-container in index.html -->
-  <teleport to="#header-container">
+  <div class="sticky-header">
     <Sidebar 
-      v-if="currentView === 'plans'"
+      v-if="currentView === 'plans' || currentView === 'memos'"
       v-model:location="locationFilter"
       v-model:hashtags="hashtagFilter"
       v-model:date="dateFilter"
@@ -17,7 +16,7 @@
         <h1 v-if="user">Welcome, {{ user.displayName || user.email }}</h1>
         <h1 v-else>Auth Portal</h1>
     </header>
-  </teleport>
+  </div>
   
   <!-- The main content card -->
   <div class="card">
@@ -187,10 +186,17 @@ onUnmounted(() => {
 </script>
 
 <style>
-/* Styles remain unchanged */
+.sticky-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background-color: #1a1a1a; /* Match the body background */
+  padding-top: 1rem;
+}
+
 .page-header {
   text-align: center;
-  margin: 3rem 0;
+  margin: 1rem 0 2rem; /* Adjusted margin for sticky layout */
 }
 
 .page-header h1 {
