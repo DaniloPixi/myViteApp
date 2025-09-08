@@ -8,21 +8,57 @@ const path = require('path');
 let db;
 
 // --- Firebase Initialization ---
+let serviceAccount;
+
+// In production (Netlify), use environment variables
+if (process.env.FIREBASE_PRIVATE_KEY) {
+  try {
+    serviceAccount = {
+      type: "service_account",
+      project_id: process.env.FIREBASE_PROJECT_ID,
+      private_key_id: process.env.FIREBASE_PRIVATE_KEY_ID,
+      private_key: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+      client_email: process.env.FIREBASE_CLIENT_EMAIL,
+      client_id: process.env.FIREBASE_CLIENT_ID,
+      auth_uri: "https://accounts.google.com/o/oauth2/auth",
+      token_uri: "https://oauth2.googleapis.com/token",
+      auth_provider_x509_cert_url: "https://www.googleapis.com/oauth2/v1/certs",
+      client_x509_cert_url: process.env.FIREBASE_CLIENT_X509_CERT_URL,
+    };
+    console.log("Firebase credentials loaded from environment variables.");
+  } catch (error) {
+    db = null;
+    console.error("CRITICAL: FIREBASE_INIT_FAILED. Could not construct credentials from environment variables.");
+    console.error(error);
+  }
+} else {
+  // In local development, use the JSON file
+  try {
+    serviceAccount = require('./serviceAccountKey.json');
+    console.log("Firebase credentials loaded from serviceAccountKey.json.");
+  } catch (error) {
+    db = null;
+    console.error("CRITICAL: FIREBASE_INIT_FAILED. Could not load 'serviceAccountKey.json' for local development.");
+    console.error("Place your Firebase service account key in 'netlify/functions/serviceAccountKey.json'");
+  }
+}
+
 try {
-  // This is the only path that matters. Create the file here.
-  const serviceAccount = require('./serviceAccountKey.json');
-  if (!admin.apps.length) {
+  if (serviceAccount && !admin.apps.length) {
     admin.initializeApp({
       credential: admin.credential.cert(serviceAccount)
     });
+    db = admin.firestore();
+    console.log("Firebase Admin Initialized SUCCESSFULLY.");
+  } else if (!serviceAccount) {
+      throw new Error("Service account is not available.");
   }
-  db = admin.firestore();
-  console.log("Firebase Admin Initialized SUCCESSFULLY.");
-} catch (error) {
-  db = null;
-  console.error("CRITICAL: FIREBASE_INIT_FAILED. Could not load 'serviceAccountKey.json'.");
-  console.error("Place your Firebase service account key in 'netlify/functions/serviceAccountKey.json'");
+} catch(error) {
+    if (db !== null) db = null;
+    console.error("CRITICAL: FIREBASE_APP_INIT_FAILED.");
+    console.error(error);
 }
+
 
 const app = express();
 app.use(bodyParser.json());
