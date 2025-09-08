@@ -34,7 +34,9 @@ if (process.env.FIREBASE_PRIVATE_KEY) {
 } else {
   // In local development, use the JSON file
   try {
-    serviceAccount = require('./serviceAccountKey.json');
+    // The dynamic path here prevents Netlify's bundler from trying to find the file at build time.
+    const keyFileName = 'serviceAccountKey.json';
+    serviceAccount = require(path.join(__dirname, keyFileName));
     console.log("Firebase credentials loaded from serviceAccountKey.json.");
   } catch (error) {
     db = null;
@@ -74,7 +76,7 @@ const checkDb = (req, res, next) => {
   next();
 };
 
-// --- Authentication Middleware --
+// --- Authentication Middleware ---
 const authenticateToken = async (req, res, next) => {
   const idToken = req.headers.authorization?.split('Bearer ')[1];
   if (!idToken) {
