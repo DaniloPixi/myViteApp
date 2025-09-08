@@ -59,9 +59,8 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue';
+import { ref, watch, onUnmounted } from 'vue';
 import { auth, messaging, db } from './firebase';
-import { collection, onSnapshot, query, where, orderBy } from "firebase/firestore";
 
 // Import child components and views
 import Login from './views/Login.vue';
@@ -76,7 +75,6 @@ const user = ref(null);
 const isRegistering = ref(false);
 const notificationPermission = ref(null);
 const currentView = ref(localStorage.getItem('currentView') || 'home');
-let unsubscribeFromPlans = null;
 
 // --- Filter State (Now lives in the main App component) ---
 const locationFilter = ref('');
@@ -97,31 +95,6 @@ if ('Notification' in window) {
 // --- Component Switching ---
 const handleSwitchForm = (formName) => {
   isRegistering.value = formName === 'register';
-};
-
-// --- Real-time Plan Notification Logic ---
-const setupPlanListener = () => {
-  if (unsubscribeFromPlans) {
-    unsubscribeFromPlans();
-  }
-
-  const plansRef = collection(db, "plans");
-  const listenerStartTime = new Date().toISOString();
-  const q = query(plansRef, where("createdAt", ">", listenerStartTime));
-
-  unsubscribeFromPlans = onSnapshot(q, (snapshot) => {
-    snapshot.docChanges().forEach((change) => {
-      if (change.type === "added") {
-        const newPlan = change.doc.data();
-        if (Notification.permission === 'granted') {
-          new Notification("New Plan Alert!", {
-            body: `A new plan has been posted: ${newPlan.text}`,
-            icon: '/pwa-192x192.png'
-          });
-        }
-      }
-    });
-  });
 };
 
 // --- Core Notification Logic ---
@@ -152,17 +125,13 @@ async function enableNotifications() {
 }
 
 // --- Authentication State Management ---
-auth.onAuthStateChanged((currentUser) => {
+const unsubscribeAuth = auth.onAuthStateChanged((currentUser) => {
   user.value = currentUser;
   if (currentUser) {
     registerDeviceForNotifications();
-    setupPlanListener();
   } else {
     localStorage.removeItem('currentView');
     currentView.value = 'home';
-    if (unsubscribeFromPlans) {
-      unsubscribeFromPlans();
-    }
   }
 });
 
@@ -174,7 +143,7 @@ const logout = () => {
 async function sendTokenToServer(token) {
   if (!user.value) return;
   try {
-    const idToken = await user.value.getIdToken();
+    const idToken = await user.value.getIdToken(true); // Force refresh the token
     const response = await fetch('/api/register', {
       method: 'POST',
       headers: { 
@@ -206,6 +175,13 @@ messaging.onMessage((payload) => {
       new Notification(notificationTitle, notificationOptions);
   } else {
       console.warn("Received foreground message without a title.", payload);
+  }
+});
+
+// --- Lifecycle Hooks ---
+onUnmounted(() => {
+  if (unsubscribeAuth) {
+    unsubscribeAuth();
   }
 });
 </script>

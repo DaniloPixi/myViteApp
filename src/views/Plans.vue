@@ -112,7 +112,8 @@ const filteredPlans = computed(() => {
 // --- API HELPER ---
 const getAuthToken = async () => {
   if (!props.user) throw new Error("User not authenticated");
-  return await props.user.getIdToken();
+  // Force refresh the token to avoid using an expired one.
+  return await props.user.getIdToken(true);
 };
 
 // --- API CALLS ---

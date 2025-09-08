@@ -1,7 +1,9 @@
 const express = require('express');
 const serverless = require('serverless-http');
 const admin = require('firebase-admin');
+const { getMessaging } = require('firebase-admin/messaging');
 const bodyParser = require('body-parser');
+const path = require('path');
 
 let db;
 
@@ -27,9 +29,8 @@ try {
       };
     } else {
       // LOCAL DEVELOPMENT: Use the local service account key file.
-      // The require path is built from a variable to hide it from Netlify's static analysis, preventing build failures.
       console.log("Initializing Firebase Admin with local serviceAccountKey.json (Local Mode).");
-      const keyPath = './serviceAccountKey.json';
+      const keyPath = path.join(process.cwd(), 'netlify', 'functions', 'serviceAccountKey.json');
       serviceAccount = require(keyPath);
     }
 
@@ -44,7 +45,6 @@ try {
 } catch (error) {
   db = null;
   console.error("❌ ❌ ❌ CRITICAL: FIREBASE ADMIN SDK INITIALIZATION FAILED. ❌ ❌ ❌");
-  console.error("This is often caused by missing service account credentials in the environment.");
   console.error("Error details:", error.message);
 }
 
@@ -53,12 +53,20 @@ app.use(bodyParser.json());
 
 const checkDb = (req, res, next) => {
   if (!db) {
-    return res.status(500).json({ success: false, message: "DATABASE NOT CONNECTED. Check server logs for Firebase initialization errors." });
+    return res.status(503).json({ success: false, message: "DATABASE NOT CONNECTED. Check server logs for Firebase initialization errors." });
   }
   next();
 };
 
 const authenticateToken = async (req, res, next) => {
+  if (admin.apps.length === 0) {
+    console.error("Firebase Admin SDK is not initialized. Cannot authenticate token.");
+    return res.status(503).json({ 
+        success: false, 
+        message: 'Server configuration error: Firebase not initialized. Check server logs for details.' 
+    });
+  }
+
   const idToken = req.headers.authorization?.split('Bearer ')[1];
   if (!idToken) {
     return res.status(401).json({ success: false, message: 'Unauthorized: No token provided.' });
@@ -69,7 +77,7 @@ const authenticateToken = async (req, res, next) => {
     next();
   } catch (error) {
     console.error('Token verification failed:', error.code);
-    return res.status(403).json({ success: false, message: 'Forbidden: Invalid or expired token.' });
+    return res.status(403).json({ success: false, message: `Forbidden: Invalid or expired token. (${error.code})` });
   }
 };
 
@@ -119,6 +127,37 @@ app.post('/api/plans', authenticateToken, checkDb, async (req, res) => {
       createdBy: name || email,
       createdAt: new Date().toISOString(),
     });
+
+    const tokensSnapshot = await db.collection('pushTokens').get();
+    const tokens = tokensSnapshot.docs.map(doc => doc.id);
+
+    if (tokens.length > 0) {
+        const message = {
+            notification: {
+                title: `New Plan Added: ${text}`,
+                body: `By ${name || email} on ${date}`,
+            },
+            tokens: tokens,
+        };
+
+        const response = await getMessaging().sendEachForMulticast(message);
+
+        if (response.failureCount > 0) {
+            response.responses.forEach((resp, idx) => {
+                if (!resp.success) {
+                    const error = resp.error;
+                    const failedToken = tokens[idx];
+                    console.error('Failure sending notification to', failedToken, error);
+                    if (error.code === 'messaging/invalid-registration-token' ||
+                        error.code === 'messaging/registration-token-not-registered') {
+                        console.log(`Deleting invalid token: ${failedToken}`);
+                        db.collection('pushTokens').doc(failedToken).delete();
+                    }
+                }
+            });
+        }
+    }
+
     res.status(201).json({ success: true, planId: newPlanRef.id });
   } catch (error) {
     console.error('Error in /api/plans POST:', error);
