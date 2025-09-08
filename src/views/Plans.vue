@@ -3,22 +3,17 @@
 
     <!-- Plan Display List -->
     <section class="plan-list-section">
-      <h1>Your Upcoming Plans</h1>
-      <div v-if="isLoading" class="loading-state">
-        <p>Loading plans...</p>
-      </div>
-      <div v-else-if="fetchError" class="error-message">
-        <p>{{ fetchError }}</p>
-      </div>
-      <div v-else-if="plans.length === 0" class="empty-state">
-        <p>No plans yet. Let's create one!</p>
-      </div>
-      <div v-else-if="filteredPlans.length === 0" class="empty-state">
-        <p>No plans match your current filters.</p>
-      </div>
+      <h1>Our Upcoming Plans</h1>
+      <div v-if="isLoading" class="loading-state"><p>Loading plans...</p></div>
+      <div v-else-if="fetchError" class="error-message"><p>{{ fetchError }}</p></div>
+      <div v-else-if="!plans.length" class="empty-state"><p>No plans yet. Let's create one!</p></div>
+      <div v-else-if="!filteredPlans.length" class="empty-state"><p>No plans match your current filters.</p></div>
       <div v-else class="plan-cards-container">
         <div v-for="plan in filteredPlans" :key="plan.id" class="plan-card">
-          <button @click="promptDelete(plan.id)" class="delete-button">×</button>
+          <div class="card-actions">
+            <button @click="openEditModal(plan)" class="edit-button">✏️</button>
+            <button @click="promptDelete(plan.id)" class="delete-button">×</button>
+          </div>
           <h3>{{ plan.text }}</h3>
           <p class="plan-detail"><strong>Date:</strong> {{ formatDate(plan.date) }}</p>
           <p v-if="plan.time" class="plan-detail"><strong>Time:</strong> {{ formatTime(plan.time) }}</p>
@@ -31,64 +26,29 @@
       </div>
     </section>
 
-    <!-- Collapsible Plan Creation Form -->
-    <section class="add-plan-section">
-      <button v-if="!isFormVisible" @click="isFormVisible = true" class="add-plan-button">
-        {{ dynamicTitle }}
+    <!-- Create Plan Button -->
+    <section class="create-plan-button-section">
+      <button @click="openCreateModal" class="add-plan-button">
+        {{ createButtonTitle }}
       </button>
-
-      <div v-if="isFormVisible" class="plan-form-container">
-        <h2>{{ dynamicTitle }}</h2>
-        <form @submit.prevent="handleSubmit" class="plan-form">
-          <div class="form-group">
-            <label for="plan-text">What's the plan?</label>
-            <input type="text" id="plan-text" v-model="planText" placeholder="whatever you want" required>
-          </div>
-          <div class="form-group">
-            <label for="plan-date">Date</label>
-            <input type="date" id="plan-date" v-model="planDate" :min="today" required>
-          </div>
-          
-          <div class="form-group">
-            <div class="time-duration-group">
-              <input type="time" id="plan-time" v-model="specificTime">
-              <div class="duration-buttons">
-                <button @click.prevent="selectDuration('All day')" :class="{ selected: selectedDuration === 'All day' }">All day</button>
-                <button @click.prevent="selectDuration('All night')" :class="{ selected: selectedDuration === 'All night' }">All night</button>
-                <button @click.prevent="selectDuration('Indetermined')" :class="{ selected: selectedDuration === 'Indetermined' }">Indetermined</button>
-              </div>
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label for="plan-location">Location</label>
-            <input type="text" id="plan-location" v-model="planLocation" placeholder="" required>
-          </div>
-
-          <div class="form-group">
-            <label>Hashtags (up to 3)</label>
-            <div class="hashtag-selection-container">
-              <button v-for="tag in availableHashtags" :key="tag" @click.prevent="toggleHashtag(tag)" :class="{ selected: selectedHashtags.includes(tag) }">
-                #{{ tag }}
-              </button>
-            </div>
-          </div>
-          
-          <div class="form-actions">
-            <button type="submit" :disabled="isSubmitting">{{ isSubmitting ? 'Saving...' : 'Save Plan' }}</button>
-            <button type="button" @click="isFormVisible = false" class="cancel-button">Cancel</button>
-          </div>
-          <p v-if="submitError" class="error-message">{{ submitError }}</p>
-        </form>
-      </div>
     </section>
 
+    <!-- Modals -->
+    <PlanFormModal
+      v-if="isFormModalVisible"
+      :plan="editingPlan"
+      :is-submitting="isSubmitting"
+      :submit-error="submitError"
+      @close="closeFormModal"
+      @save="handleSave"
+    />
+
     <ConfirmDeleteModal
-      v-if="isModalVisible"
+      v-if="isDeleteModalVisible"
       title="Confirm Deletion"
       message="Are you sure you want to delete this plan? This action cannot be undone."
       @confirm="handleDelete"
-      @close="isModalVisible = false"
+      @close="isDeleteModalVisible = false"
     />
 
   </div>
@@ -96,8 +56,10 @@
 
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue';
+import PlanFormModal from '../components/PlanFormModal.vue';
 import ConfirmDeleteModal from '../components/ConfirmDeleteModal.vue';
 
+// --- PROPS ---
 const props = defineProps({
   user: { type: Object, required: true },
   locationFilter: { type: String, default: '' },
@@ -107,149 +69,23 @@ const props = defineProps({
   durationFilter: { type: Array, default: () => [] },
 });
 
-const isFormVisible = ref(false);
-const planText = ref('');
-const planDate = ref('');
-const planLocation = ref('');
-const availableHashtags = ref(['date', 'party', 'food', '18+', 'travel', 'weekend', 'chill', 'friends', 'love', 'random']);
-const selectedHashtags = ref([]);
-const specificTime = ref('');
-const selectedDuration = ref('');
-const isSubmitting = ref(false);
-const submitError = ref('');
-const today = new Date().toISOString().split('T')[0];
-
+// --- STATE ---
 const plans = ref([]);
 const isLoading = ref(true);
 const fetchError = ref('');
+const isSubmitting = ref(false);
+const submitError = ref('');
 
-const isModalVisible = ref(false);
+// Modal State
+const isFormModalVisible = ref(false);
+const editingPlan = ref(null);
+const isDeleteModalVisible = ref(false);
 const planToDeleteId = ref(null);
-const dynamicTitle = ref('');
 
-// --- API Communication ---
-const getAuthToken = async () => {
-  if (!props.user) throw new Error("User not authenticated");
-  return await props.user.getIdToken();
-};
+// Static Data
+const createButtonTitle = ref('');
 
-const fetchPlans = async () => {
-  if (!props.user) return;
-  isLoading.value = true;
-  try {
-    const token = await getAuthToken();
-    const response = await fetch('/api/plans', {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-    if (!response.ok) throw new Error('Could not fetch plans.');
-    const data = await response.json();
-    plans.value = data;
-  } catch (error) {
-    fetchError.value = error.message;
-  } finally {
-    isLoading.value = false;
-  }
-};
-
-const handleSubmit = async () => {
-  if (!planText.value || !planDate.value || !planLocation.value) {
-    submitError.value = "Please fill out all required fields.";
-    return;
-  }
-  isSubmitting.value = true;
-  submitError.value = '';
-  try {
-    const token = await getAuthToken();
-    const timeParts = [];
-    if (specificTime.value) timeParts.push(specificTime.value);
-    if (selectedDuration.value) timeParts.push(selectedDuration.value);
-    const timeValue = timeParts.join(', ');
-
-    const response = await fetch('/api/plans', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({
-        text: planText.value,
-        date: planDate.value,
-        time: timeValue,
-        location: planLocation.value,
-        hashtags: selectedHashtags.value.map(tag => `#${tag}`),
-      })
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || 'Failed to save plan');
-    }
-
-    // Reset form and hide
-    planText.value = '';
-    planDate.value = '';
-    specificTime.value = '';
-    selectedDuration.value = '';
-    planLocation.value = '';
-    selectedHashtags.value = [];
-    isFormVisible.value = false;
-    
-    await fetchPlans(); // Refresh the list from the server
-
-  } catch (error) {
-    console.error("Error saving plan:", error);
-    submitError.value = `Failed to save plan: ${error.message}`;
-  } finally {
-    isSubmitting.value = false;
-  }
-};
-
-const promptDelete = (planId) => {
-  planToDeleteId.value = planId;
-  isModalVisible.value = true;
-};
-
-const handleDelete = async () => {
-  if (!planToDeleteId.value) return;
-  try {
-    const token = await getAuthToken();
-    const response = await fetch(`/api/plans/${planToDeleteId.value}`, {
-      method: 'DELETE',
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-
-    if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to delete plan');
-    }
-
-    await fetchPlans(); // Refresh the list
-  } catch (error) {
-    console.error("Error deleting plan:", error);
-    // Optionally show an error message to the user
-  } finally {
-    isModalVisible.value = false;
-    planToDeleteId.value = null;
-  }
-};
-
-// --- Lifecycle and Computed Properties ---
-onMounted(() => {
-  const titles = ["What's on that beautiful mind ?", "What do you want to do with me ?"];
-  dynamicTitle.value = titles[Math.floor(Math.random() * titles.length)];
-  
-  if (props.user) {
-    fetchPlans();
-  }
-});
-
-// When user logs in, fetch their plans
-watch(() => props.user, (newUser) => {
-  if (newUser) {
-    fetchPlans();
-  }
-});
-
+// --- COMPUTED PROPERTIES ---
 const filteredPlans = computed(() => {
   return plans.value.filter(plan => {
     const locationMatch = !props.locationFilter || plan.location.toLowerCase().includes(props.locationFilter.toLowerCase());
@@ -273,281 +109,154 @@ const filteredPlans = computed(() => {
   });
 });
 
-const toggleHashtag = (tag) => {
-  const index = selectedHashtags.value.indexOf(tag);
-  if (index > -1) {
-    selectedHashtags.value.splice(index, 1);
-  } else if (selectedHashtags.value.length < 3) {
-    selectedHashtags.value.push(tag);
+// --- API HELPER ---
+const getAuthToken = async () => {
+  if (!props.user) throw new Error("User not authenticated");
+  return await props.user.getIdToken();
+};
+
+// --- API CALLS ---
+const fetchPlans = async () => {
+  if (!props.user) return;
+  isLoading.value = true;
+  try {
+    const token = await getAuthToken();
+    const response = await fetch('/api/plans', { headers: { 'Authorization': `Bearer ${token}` } });
+    if (!response.ok) throw new Error('Could not fetch plans.');
+    plans.value = await response.json();
+  } catch (error) {
+    fetchError.value = error.message;
+  } finally {
+    isLoading.value = false;
   }
 };
 
-const selectDuration = (duration) => {
-  selectedDuration.value = selectedDuration.value === duration ? '' : duration;
+const handleSave = async (planData) => {
+  isSubmitting.value = true;
+  submitError.value = '';
+
+  try {
+    const token = await getAuthToken();
+    const method = editingPlan.value ? 'PUT' : 'POST';
+    const url = editingPlan.value ? `/api/plans/${editingPlan.value.id}` : '/api/plans';
+
+    const response = await fetch(url, {
+      method: method,
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify(planData)
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to save the plan');
+    }
+
+    await fetchPlans();
+    closeFormModal();
+
+  } catch (error) {
+    submitError.value = `Error: ${error.message}`;
+  } finally {
+    isSubmitting.value = false;
+  }
 };
 
-// --- Formatting Helpers ---
+const handleDelete = async () => {
+  try {
+    const token = await getAuthToken();
+    const response = await fetch(`/api/plans/${planToDeleteId.value}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (!response.ok) throw new Error('Failed to delete plan');
+    await fetchPlans();
+  } catch (error) {
+    console.error("Error deleting plan:", error);
+  } finally {
+    isDeleteModalVisible.value = false;
+  }
+};
+
+// --- MODAL HANDLING ---
+const openCreateModal = () => {
+  editingPlan.value = null;
+  submitError.value = '';
+  isFormModalVisible.value = true;
+};
+
+const openEditModal = (plan) => {
+  editingPlan.value = plan;
+  submitError.value = '';
+  isFormModalVisible.value = true;
+};
+
+const closeFormModal = () => {
+  isFormModalVisible.value = false;
+  editingPlan.value = null;
+  submitError.value = ''; // Clear previous submission errors
+};
+
+const promptDelete = (planId) => {
+  planToDeleteId.value = planId;
+  isDeleteModalVisible.value = true;
+};
+
+// --- FORMATTING ---
 const formatDate = (dateString) => {
   if (!dateString) return '';
   const options = { year: 'numeric', month: 'long', day: 'numeric' };
   const date = new Date(dateString);
-  const userTimezoneOffset = date.getTimezoneOffset() * 60000;
-  return new Date(date.getTime() + userTimezoneOffset).toLocaleDateString(undefined, options);
+  return new Date(date.getTime() + date.getTimezoneOffset() * 60000).toLocaleDateString(undefined, options);
 };
-
 const formatTime = (timeString) => {
-  if (!timeString) return '';
-  const parts = timeString.split(', ');
-  const timePart = parts.find(p => /^\d{2}:\d{2}$/.test(p));
-  const durationPart = parts.find(p => ['All day', 'All night', 'Indetermined'].includes(p));
-  let formattedTime = '';
-  if (timePart) {
-    const [hours, minutes] = timePart.split(':');
-    const date = new Date();
-    date.setHours(hours, minutes, 0, 0);
-    formattedTime = date.toLocaleTimeString(navigator.language, { hour: 'numeric', minute: '2-digit', hour12: true });
-  }
-  return [formattedTime, durationPart].filter(Boolean).join(', ') || timeString;
+    if (!timeString) return '';
+    const parts = timeString.split(', ');
+    const timePart = parts.find(p => /^\d{2}:\d{2}$/.test(p));
+    const durationPart = parts.find(p => ['All day', 'All night', 'Indetermined'].includes(p));
+    let formattedTime = '';
+    if (timePart) {
+        const [hours, minutes] = timePart.split(':');
+        const date = new Date();
+        date.setHours(hours, minutes, 0, 0);
+        formattedTime = date.toLocaleTimeString(navigator.language, { hour: 'numeric', minute: '2-digit', hour12: true });
+    }
+    return [formattedTime, durationPart].filter(Boolean).join(', ') || timeString;
 };
 
+// --- LIFECYCLE HOOKS ---
+onMounted(() => {
+  const titles = ["What's on your mind, beautiful?", "What shall we do, my love?", "Create a new adventure..."];
+  createButtonTitle.value = titles[Math.floor(Math.random() * titles.length)];
+  if (props.user) fetchPlans();
+});
+
+watch(() => props.user, (newUser) => {
+  if (newUser) fetchPlans();
+});
 </script>
 
 <style scoped>
-/* Styles remain unchanged */
-.plans-view {
-  max-width: 600px;
-  margin: 0 auto;
-  padding: 1rem;
-}
+.plans-view { max-width: 600px; margin: 0 auto; padding: 1rem; }
+h1 { color: #42b883; text-align: center; margin-bottom: 2rem; }
+.plan-list-section { margin-bottom: 2.5rem; }
 
-h1, h2 {
-  color: #42b883;
-  text-align: center;
-  margin-bottom: 2rem;
-}
+.plan-cards-container { display: grid; gap: 1.5rem; }
+.plan-card { position: relative; background: #1e1e1e; border: 1px solid #444; border-radius: 12px; padding: 1.5rem; }
+.plan-card h3 { margin: 0 0 1rem 0; color: #42b883; font-size: 1.4em; }
+.plan-card .plan-detail { margin: 0.5rem 0; color: #ccc; }
+.plan-detail strong { color: #888; }
+.creator-info { position: absolute; bottom: 10px; right: 1.5rem; font-size: 0.8em; color: #888; }
 
-.plan-list-section, .add-plan-section {
-  margin-bottom: 2.5rem;
-}
+.card-actions { position: absolute; top: 10px; right: 10px; display: flex; gap: 0.5rem; }
+.edit-button, .delete-button { background: #444; color: #fff; border: none; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 1rem; }
+.edit-button { background: #3a5f80; }
 
-.add-plan-section {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
+.create-plan-button-section { text-align: center; margin-bottom: 2.5rem; }
+.add-plan-button { padding: 0.7em 1.4em; border-radius: 30px; border: none; background-color: #42b883; color: white; font-size: 1.1em; font-weight: 600; cursor: pointer; }
 
-.add-plan-button {
-  padding: 0.7em 1.4em;
-  border-radius: 30px;
-  border: none;
-  background-color: #42b883;
-  color: white;
-  font-size: 1.1em;
-  font-weight: 600;
-  cursor: pointer;
-}
+.hashtags-container { margin-top: 1rem; }
+.hashtag { display: inline-block; background-color: #333; color: #42b883; padding: 0.3em 0.7em; border-radius: 15px; font-size: 0.85em; margin-right: 0.5rem; margin-bottom: 0.5rem; }
 
-.plan-form-container {
-  margin-top: 2rem;
-  padding: 2rem;
-  background: #1e1e1e;
-  border-radius: 12px;
-  border: 1px solid #444;
-  width: 100%;
-}
-
-.plan-form {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-.form-group {
-  width: 90%;
-  margin: 0 auto;
-}
-
-.form-group label {
-  display: block;
-  margin-bottom: 0.5rem;
-  color: rgba(255, 255, 255, 0.7);
-  text-align: center;
-}
-
-input {
-  box-sizing: border-box;
-  width: 100%;
-  padding: 0.8em 1em;
-  border-radius: 8px;
-  border: 1px solid #444;
-  background-color: #1a1a1a;
-  color: #fff;
-  font-size: 1em;
-}
-
-.time-duration-group {
-  display: flex;
-  align-items: stretch;
-  gap: 1rem;
-}
-
-.time-duration-group input[type="time"] {
-  flex-basis: 150px;
-  flex-grow: 0;
-}
-
-.duration-buttons {
-  display: flex;
-  flex-grow: 1;
-  justify-content: center;
-  gap: 0.5rem;
-}
-
-.duration-buttons button {
-  padding: 0.8em 1.1em;
-  border-radius: 8px;
-  border: 1px solid #444;
-  background-color: #333;
-  color: #fff;
-  cursor: pointer;
-}
-
-.duration-buttons button.selected {
-  background-color: #42b883;
-  border-color: #42b883;
-  font-weight: 600;
-}
-
-.form-actions {
-  display: flex;
-  gap: 1rem;
-  margin-top: 1rem;
-  width: 90%;
-  margin-left: auto;
-  margin-right: auto;
-}
-
-.form-actions button {
-  flex-grow: 1;
-  padding: 0.7em 1.1em;
-  font-size: 1em;
-  font-weight: 600;
-  border-radius: 30px;
-  border: none;
-  cursor: pointer;
-}
-
-.form-actions .cancel-button {
-  background-color: #555;
-}
-
-.form-actions button[type="submit"] {
-  background-color: #42b883;
-  color: white;
-}
-
-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.error-message, .loading-state, .empty-state {
-  text-align: center;
-  margin-top: 1rem;
-  color: #aaa;
-}
-
+.error-message, .loading-state, .empty-state { text-align: center; margin-top: 1rem; color: #aaa; }
 .error-message { color: #ff6b6b; }
-
-.plan-cards-container {
-  display: grid;
-  gap: 1.5rem;
-}
-
-.plan-card {
-  position: relative;
-  background: #1e1e1e;
-  border: 1px solid #444;
-  border-radius: 12px;
-  padding: 1.5rem;
-  padding-bottom: 2.5rem; 
-}
-
-.delete-button {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  background: #444;
-  color: #fff;
-  border: none;
-  border-radius: 50%;
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-}
-
-.plan-card h3 {
-  margin: 0 0 1rem 0;
-  color: #42b883;
-  font-size: 1.4em;
-}
-
-.plan-card .plan-detail {
-  margin: 0.5rem 0;
-  color: #ccc;
-}
-
-.plan-detail strong {
-  color: #888;
-}
-
-.creator-info {
-  position: absolute;
-  bottom: 10px;
-  right: 1.5rem;
-  font-size: 0.8em;
-  color: #888;
-}
-
-.hashtags-container {
-  margin-top: 1rem;
-  padding-bottom: 10px; 
-}
-
-.hashtag {
-  display: inline-block;
-  background-color: #333;
-  color: #42b883;
-  padding: 0.3em 0.7em;
-  border-radius: 15px;
-  font-size: 0.85em;
-  margin-right: 0.5rem;
-  margin-bottom: 0.5rem;
-}
-
-.hashtag-selection-container {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  justify-content: center;
-}
-
-.hashtag-selection-container button {
-  padding: 0.5em 1em;
-  border-radius: 20px;
-  border: 1px solid #444;
-  background-color: #333;
-  color: #fff;
-  cursor: pointer;
-}
-
-.hashtag-selection-container button.selected {
-  background-color: #42b883;
-  border-color: #42b883;
-  font-weight: 600;
-}
-
 </style>
