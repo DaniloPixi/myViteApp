@@ -1,9 +1,10 @@
-const express = require('express');
-const serverless = require('serverless-http');
-const admin = require('firebase-admin');
-const { getMessaging } = require('firebase-admin/messaging');
-const bodyParser = require('body-parser');
-const path = require('path');
+import express from 'express';
+import serverless from 'serverless-http';
+import admin from 'firebase-admin';
+import { getMessaging } from 'firebase-admin/messaging';
+import bodyParser from 'body-parser';
+import path from 'path';
+import fs from 'fs';
 
 let db;
 
@@ -30,8 +31,10 @@ try {
     } else {
       // LOCAL DEVELOPMENT: Use the local service account key file.
       console.log("Initializing Firebase Admin with local serviceAccountKey.json (Local Mode).");
+      // process.cwd() is reliable in Netlify Dev for finding the project root.
       const keyPath = path.join(process.cwd(), 'netlify', 'functions', 'serviceAccountKey.json');
-      serviceAccount = require(keyPath);
+      const serviceAccountJson = fs.readFileSync(keyPath, 'utf8');
+      serviceAccount = JSON.parse(serviceAccountJson);
     }
 
     admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
@@ -46,6 +49,7 @@ try {
   db = null;
   console.error("❌ ❌ ❌ CRITICAL: FIREBASE ADMIN SDK INITIALIZATION FAILED. ❌ ❌ ❌");
   console.error("Error details:", error.message);
+  console.error("Full error object:", error);
 }
 
 const app = express();
@@ -61,9 +65,9 @@ const checkDb = (req, res, next) => {
 const authenticateToken = async (req, res, next) => {
   if (admin.apps.length === 0) {
     console.error("Firebase Admin SDK is not initialized. Cannot authenticate token.");
-    return res.status(503).json({ 
-        success: false, 
-        message: 'Server configuration error: Firebase not initialized. Check server logs for details.' 
+    return res.status(503).json({
+        success: false,
+        message: 'Server configuration error: Firebase not initialized. Check server logs for details.'
     });
   }
 
@@ -204,4 +208,4 @@ app.put('/api/plans/:planId', authenticateToken, checkDb, async (req, res) => {
     }
 });
 
-module.exports.handler = serverless(app);
+export const handler = serverless(app);
