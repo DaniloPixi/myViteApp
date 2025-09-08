@@ -34,7 +34,6 @@ if (process.env.FIREBASE_PRIVATE_KEY) {
 } else {
   // In local development, use the JSON file
   try {
-    // The dynamic path here prevents Netlify's bundler from trying to find the file at build time.
     const keyFileName = 'serviceAccountKey.json';
     serviceAccount = require(path.join(__dirname, keyFileName));
     console.log("Firebase credentials loaded from serviceAccountKey.json.");
@@ -76,7 +75,7 @@ const checkDb = (req, res, next) => {
   next();
 };
 
-// --- Authentication Middleware ---
+// --- Authentication Middleware --
 const authenticateToken = async (req, res, next) => {
   const idToken = req.headers.authorization?.split('Bearer ')[1];
   if (!idToken) {
@@ -140,14 +139,18 @@ app.post('/api/plans', authenticateToken, checkDb, async (req, res) => {
 
     if (tokens.length > 0) {
         const payload = {
-            notification: {
+            data: {
                 title: `New Plan from ${name || 'a user'}`,
                 body: text.substring(0, 100) + (text.length > 100 ? '...' : ''),
                 icon: '/pwa-192x192.png'
             }
         };
+        const options = {
+            priority: 'high',
+            timeToLive: 60 * 60 * 24 // 24 hours
+        };
         try {
-          await admin.messaging().sendToDevice(tokens, payload);
+          await admin.messaging().sendToDevice(tokens, payload, options);
           console.log('Successfully sent notification to', tokens.length, 'devices.');
         } catch(e) {
           console.error('Error sending notification:', e);
