@@ -1,58 +1,60 @@
 <template>
-  <div class="collapsible-filters">
-    <div class="filter-content" :class="{ 'expanded': isExpanded }">
-      <div class="content-inner">
+  <div class="collapsible-filters-container">
+    <div class="filter-wrapper">
+      <div class="filter-content" :class="{ 'expanded': isExpanded }">
+        <div class="content-inner">
 
-        <!-- Row 1: Location & Hashtags -->
-        <div class="filter-row">
-          <div class="filter-group location-group">
-            <label for="location-filter">Location</label>
-            <input id="location-filter" type="text" :value="location" @input="$emit('update:location', $event.target.value)" placeholder="Filter by location..." />
-          </div>
-          <div class="filter-group hashtags-group">
-            <label>Hashtags</label>
-            <div class="hashtag-buttons">
-              <button v-for="tag in availableHashtags" :key="tag" @click="toggleHashtagFilter(tag)" :class="{ selected: hashtags === tag }">#{{ tag }}</button>
+          <!-- Row 1: Location & Hashtags -->
+          <div class="filter-row">
+            <div class="filter-group location-group">
+              <label for="location-filter">Location</label>
+              <input id="location-filter" type="text" :value="location" @input="$emit('update:location', $event.target.value)" placeholder="Filter by location..." />
             </div>
-          </div>
-        </div>
-
-        <!-- Row 2: Date, Time & Duration -->
-        <div class="filter-row">
-          <div class="filter-group date-group">
-            <label for="date-filter">Date</label>
-            <div class="date-input-wrapper">
-              <input id="date-filter" type="date" :value="date" @input="$emit('update:date', $event.target.value)" />
-              <button v-if="date" @click="$emit('update:date', '')" class="clear-btn" title="Clear filter">×</button>
-            </div>
-          </div>
-          <div class="filter-group time-group">
-            <label>Time</label>
-            <div class="time-input-wrapper">
-              <div class="stepper-input">
-                <input type="text" class="hour-display" :value="time" @input="handleTimeInput" @blur="handleTimeBlur" maxlength="2" placeholder="--" />
-                <div class="stepper-controls">
-                  <button @click="incrementHour">▲</button>
-                  <button @click="decrementHour">▼</button>
-                </div>
+            <div class="filter-group hashtags-group">
+              <label>Hashtags</label>
+              <div class="hashtag-buttons">
+                <button v-for="tag in availableHashtags" :key="tag" @click="toggleHashtagFilter(tag)" :class="{ selected: hashtags === tag }">#{{ tag }}</button>
               </div>
-              <button v-if="time" @click="clearTimeFilter" class="clear-btn" title="Clear filter">×</button>
             </div>
           </div>
-          <div class="filter-group duration-group">
-            <label>Duration</label>
-            <div class="duration-buttons">
-              <button v-for="d in availableDurations" :key="d" @click="toggleDurationFilter(d)" :class="{ selected: duration.includes(d) }">{{ d }}</button>
+
+          <!-- Row 2: Date, Time & Duration -->
+          <div class="filter-row">
+            <div class="filter-group date-group">
+              <label for="date-filter">Date</label>
+              <div class="date-input-wrapper">
+                <input id="date-filter" type="date" :value="date" @input="$emit('update:date', $event.target.value)" />
+                <button v-if="date" @click="$emit('update:date', '')" class="clear-btn" title="Clear filter">×</button>
+              </div>
+            </div>
+            <div class="filter-group time-group">
+              <label>Time</label>
+              <div class="time-input-wrapper">
+                <div class="stepper-input">
+                  <input type="text" class="hour-display" :value="time" @input="handleTimeInput" @blur="handleTimeBlur" maxlength="2" placeholder="--" />
+                  <div class="stepper-controls">
+                    <button @click="incrementHour">▲</button>
+                    <button @click="decrementHour">▼</button>
+                  </div>
+                </div>
+                <button v-if="time" @click="clearTimeFilter" class="clear-btn" title="Clear filter">×</button>
+              </div>
+            </div>
+            <div class="filter-group duration-group">
+              <label>Duration</label>
+              <div class="duration-buttons">
+                <button v-for="d in availableDurations" :key="d" @click="toggleDurationFilter(d)" :class="{ selected: duration.includes(d) }">{{ d }}</button>
+              </div>
             </div>
           </div>
+
         </div>
-
       </div>
-    </div>
 
-    <button class="toggle-handle" @click="isExpanded = !isExpanded" :class="{ 'expanded': isExpanded }">
-      <span class="arrow">▼</span>
-    </button>
+      <button class="toggle-handle" @click="isExpanded = !isExpanded" :class="{ 'expanded': isExpanded }">
+        <span class="arrow">▼</span>
+      </button>
+    </div>
   </div>
 </template>
 
@@ -110,28 +112,38 @@ const clearTimeFilter = () => emit('update:time', '');
 </script>
 
 <style scoped>
-.collapsible-filters {
+.collapsible-filters-container {
   position: relative;
-  padding-bottom: 20px;
+  height: 26px; /* Defines the space the collapsed component takes up */
+  z-index: 11;
   margin-bottom: 2rem;
+}
+
+.filter-wrapper {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
 }
 
 .filter-content {
   max-height: 0;
   overflow: hidden;
-  transition: max-height 0.4s ease-out;
+  transition: max-height 1.2s ease-out;
   background: #1e1e1e;
   border-radius: 12px;
   border: 1px solid #444;
+  will-change: max-height;
+  transform: translateZ(0);
 }
 
 .filter-content.expanded {
-  max-height: 280px;
+  max-height: 280px; /* Adjust if content height changes */
 }
 
 .content-inner {
   padding: 0.8rem;
-  padding-bottom: 1.8rem;
 }
 
 .filter-row {
@@ -146,7 +158,7 @@ const clearTimeFilter = () => emit('update:time', '');
   flex-grow: 1;
   display: flex;
   flex-direction: column;
-  justify-content: center; /* Y-axis centering for all groups */
+  justify-content: center;
 }
 
 .location-group { flex-basis: 180px; }
@@ -175,7 +187,7 @@ const clearTimeFilter = () => emit('update:time', '');
   color: #fff;
   font-size: 0.8em;
   font-family: inherit;
-  text-align: center; /* Center text for all inputs */
+  text-align: center;
 }
 
 .hashtag-buttons, .duration-buttons {
@@ -227,6 +239,7 @@ const clearTimeFilter = () => emit('update:time', '');
   background: transparent; border: none; color: #fff; font-size: 1.1em; font-weight: 600;
   text-align: center; width: 30px; padding: 0.1em 0; margin-right: 0.2rem;
 }
+
 .hour-display:focus { outline: none; }
 .hour-display::placeholder { color: #888; }
 
@@ -244,8 +257,37 @@ const clearTimeFilter = () => emit('update:time', '');
   line-height: 1;
 }
 
-.toggle-handle { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 45px; height: 22px; background: #1e1e1e; border: 1px solid #444; border-top: none; border-bottom-left-radius: 22px; border-bottom-right-radius: 22px; cursor: pointer; display: flex; justify-content: center; align-items: center; color: #42b883; }
-.arrow { transition: transform 0.3s ease; font-size: 1em; }
-.toggle-handle.expanded .arrow { transform: rotate(180deg); }
+.toggle-handle {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 75px;
+  height: 26px;
+  margin: 0 auto;
+  background: transparent;
+  border: 1px solid magenta;
+  border-top: none;
+  border-bottom-left-radius: 35px;
+  border-bottom-right-radius: 35px;
+  cursor: pointer;
+  color: magenta;
+}
 
+.toggle-handle:hover {
+  border: 1px solid magenta;
+  border-top: none;
+}
+
+.toggle-handle:focus,
+.toggle-handle:focus-visible {
+  outline: none;
+}
+
+.arrow {
+  transition: transform 1.2s ease-out;
+}
+
+.toggle-handle.expanded .arrow {
+  transform: rotate(180deg);
+}
 </style>
