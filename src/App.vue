@@ -1,7 +1,7 @@
 
 <template>
-  <!-- The logout button remains fixed to the top left of the page -->
-  <button v-if="user" @click="logout" class="logout-button">Logout</button>
+  <!-- The logout button is fixed to the bottom left, but only shown on the Home view -->
+  <button v-if="user && currentView === 'home'" @click="logout" class="logout-button">Logout</button>
 
   <div class="sticky-header">
     <Sidebar 
@@ -55,6 +55,9 @@
       </div>
     </main>
   </div>
+
+  <!-- Global Scroll-to-Top Button -->
+  <ScrollToTopButton />
 </template>
 
 <script setup>
@@ -68,6 +71,7 @@ import NotificationControls from './components/NotificationControls.vue';
 import MemosAndMoments from './views/MemosAndMoments.vue';
 import Plans from './views/Plans.vue';
 import Sidebar from './components/Sidebar.vue';
+import ScrollToTopButton from './components/ScrollToTopButton.vue';
 
 // --- Reactive State ---
 const user = ref(null);
@@ -186,11 +190,14 @@ onUnmounted(() => {
 </script>
 
 <style>
+html {
+  scroll-behavior: smooth;
+}
+
 .sticky-header {
   position: sticky;
   top: 0;
-  z-index: 100;
-  background-color: #1a1a1a; /* Match the body background */
+  z-index: 101; /* Ensure it's above other content */
   padding-top: 1rem;
 }
 
@@ -242,7 +249,7 @@ onUnmounted(() => {
 
 .logout-button {
   position: fixed;
-  top: 1.5rem;
+  bottom: 1.5rem;
   left: 1.5rem;
   background-color: #555;
   padding: 0.7em 1.2em;

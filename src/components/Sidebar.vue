@@ -125,13 +125,22 @@ const clearTimeFilter = () => emit('update:time', '');
   left: 0;
   right: 0;
   width: 100%;
+  background-color: rgba(30, 30, 30, 0.2); /* 20% transparent background */
+  opacity: 0.5; /* 50% opacity for all elements */
+  transition: opacity 0.3s ease-in-out, background-color 0.3s ease-in-out;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.filter-wrapper:focus-within, .filter-wrapper:hover {
+  background-color: rgba(30, 30, 30, 1); /* Full opacity background on focus or hover */
+  opacity: 1; /* Full opacity for all elements on focus or hover */
 }
 
 .filter-content {
   max-height: 0;
   overflow: hidden;
   transition: max-height 1.2s ease-out;
-  background: #1e1e1e;
   border-radius: 12px;
   border: 1px solid #444;
   will-change: max-height;

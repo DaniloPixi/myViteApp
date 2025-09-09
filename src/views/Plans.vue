@@ -1,6 +1,13 @@
 <template>
   <div class="plans-view">
 
+    <!-- Create Plan Button -->
+    <section class="create-plan-button-section">
+      <button @click="openCreateModal" class="add-plan-button">
+        {{ createButtonTitle }}
+      </button>
+    </section>
+
     <!-- Plan Display List -->
     <section class="plan-list-section">
       <h1>Our Upcoming Plans</h1>
@@ -24,13 +31,6 @@
           <p class="creator-info">Created by: {{ plan.createdBy }}</p>
         </div>
       </div>
-    </section>
-
-    <!-- Create Plan Button -->
-    <section class="create-plan-button-section">
-      <button @click="openCreateModal" class="add-plan-button">
-        {{ createButtonTitle }}
-      </button>
     </section>
 
     <!-- Modals -->
