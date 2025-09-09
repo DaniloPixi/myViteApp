@@ -1,18 +1,15 @@
 // src/sw.js
 
 // --- PWA-Specific Imports ---
-// These are placeholders that vite-plugin-pwa will replace with the actual precache manifest.
 import { precacheAndRoute } from 'workbox-precaching';
 import { registerRoute } from 'workbox-routing';
 import { StaleWhileRevalidate } from 'workbox-strategies';
 
 // --- Firebase Imports ---
-// We use the same importScripts from the original Firebase service worker.
 importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-messaging-compat.js');
 
 // --- Firebase Configuration ---
-// This configuration must match your main app's configuration.
 const firebaseConfig = {
   apiKey: "AIzaSyAGxR--Jx9ELN6IZ5hb1sCD67vreCJqm-k",
   authDomain: "gruandus.firebaseapp.com",
@@ -27,24 +24,48 @@ firebase.initializeApp(firebaseConfig);
 const messaging = firebase.messaging();
 
 // --- Service Worker Lifecycle ---
-// This ensures the new service worker activates immediately.
 self.skipWaiting();
 
 // --- PWA Pre-caching ---
-// This line tells the PWA plugin where to inject its list of files to cache.
-// self.__WB_MANIFEST is a placeholder that will be replaced by the build process.
 precacheAndRoute(self.__WB_MANIFEST || []);
 
 // --- Firebase Background Message Handler ---
-// This is the same logic as before, handling incoming notifications when the app is in the background.
 messaging.onBackgroundMessage((payload) => {
   console.log('[sw.js] Received background message ', payload);
 
-  const notificationTitle = payload.data.title;
+  const notificationTitle = payload.notification.title;
   const notificationOptions = {
-    body: payload.data.body,
-    icon: '/pwa-192x192.png'
+    body: payload.notification.body,
+    icon: '/icon.svg',
+    data: { 
+        url: payload.data.url 
+    }
   };
 
   self.registration.showNotification(notificationTitle, notificationOptions);
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+
+  const urlToOpen = new URL(event.notification.data.url, self.location.origin).href;
+
+  event.waitUntil(
+    clients.matchAll({
+      type: 'window',
+      includeUncontrolled: true
+    }).then((clientList) => {
+      if (clientList.length > 0) {
+        let client = clientList[0];
+        for (let i = 0; i < clientList.length; i++) {
+          if (clientList[i].focused) {
+            client = clientList[i];
+          }
+        }
+        return client.focus().then(client => client.navigate(urlToOpen));
+      } else {
+        return clients.openWindow(urlToOpen);
+      }
+    })
+  );
 });

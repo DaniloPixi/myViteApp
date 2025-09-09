@@ -85,7 +85,7 @@ const authenticateToken = async (req, res, next) => {
 };
 
 // --- Reusable Push Notification Function ---
-async function sendPushNotification(title, body) {
+async function sendPushNotification(title, body, planId) {
   if (!db) {
     console.error("Cannot send push notification because database is not connected.");
     return;
@@ -95,10 +95,21 @@ async function sendPushNotification(title, body) {
     const tokens = tokensSnapshot.docs.map(doc => doc.id);
 
     if (tokens.length > 0) {
-      const message = {
-        notification: { title, body },
-        tokens: tokens,
-      };
+        const message = {
+            notification: { title, body },
+            webpush: {
+                notification: {
+                    icon: '/icon.svg',
+                },
+                fcm_options: {
+                    link: `/plans?planId=${planId}`
+                }
+            },
+            data: {
+                url: `/plans?planId=${planId}`
+            },
+            tokens: tokens,
+        };
 
       const response = await getMessaging().sendEachForMulticast(message);
       console.log(`Push notifications sent: ${response.successCount} success, ${response.failureCount} failure.`);
@@ -176,7 +187,8 @@ app.post('/api/plans', authenticateToken, checkDb, async (req, res) => {
     // Use the reusable notification function
     await sendPushNotification(
       `New Plan: ${text.substring(0, 30)}...`,
-      `By ${name || email} on ${date}`
+      `By ${name || email} on ${date}`,
+      newPlanRef.id
     );
 
     res.status(201).json({ success: true, planId: newPlanRef.id });
@@ -226,7 +238,8 @@ app.put('/api/plans/:planId', authenticateToken, checkDb, async (req, res) => {
         const planTitle = updateData.text || originalPlan.text;
         await sendPushNotification(
           `Plan Updated: ${planTitle.substring(0, 30)}...`,
-          `${originalPlan.createdBy} just updated a plan.`
+          `${originalPlan.createdBy} just updated a plan.`,
+          planId
         );
 
         res.status(200).json({ success: true, message: 'Plan updated successfully.' });
