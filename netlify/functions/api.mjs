@@ -31,7 +31,6 @@ try {
     } else {
       // LOCAL DEVELOPMENT: Use the local service account key file.
       console.log("Initializing Firebase Admin with local serviceAccountKey.json (Local Mode).");
-      // process.cwd() is reliable in Netlify Dev for finding the project root.
       const keyPath = path.join(process.cwd(), 'netlify', 'functions', 'serviceAccountKey.json');
       const serviceAccountJson = fs.readFileSync(keyPath, 'utf8');
       serviceAccount = JSON.parse(serviceAccountJson);
@@ -85,6 +84,48 @@ const authenticateToken = async (req, res, next) => {
   }
 };
 
+// --- Reusable Push Notification Function ---
+async function sendPushNotification(title, body) {
+  if (!db) {
+    console.error("Cannot send push notification because database is not connected.");
+    return;
+  }
+  try {
+    const tokensSnapshot = await db.collection('pushTokens').get();
+    const tokens = tokensSnapshot.docs.map(doc => doc.id);
+
+    if (tokens.length > 0) {
+      const message = {
+        notification: { title, body },
+        tokens: tokens,
+      };
+
+      const response = await getMessaging().sendEachForMulticast(message);
+      console.log(`Push notifications sent: ${response.successCount} success, ${response.failureCount} failure.`);
+
+      if (response.failureCount > 0) {
+        const invalidTokens = [];
+        response.responses.forEach((resp, idx) => {
+          if (!resp.success) {
+            const error = resp.error;
+            const failedToken = tokens[idx];
+            console.error('Failure sending notification to', failedToken, error.code);
+            if (error.code === 'messaging/invalid-registration-token' ||
+                error.code === 'messaging/registration-token-not-registered') {
+              invalidTokens.push(db.collection('pushTokens').doc(failedToken).delete());
+            }
+          }
+        });
+        await Promise.all(invalidTokens);
+        console.log(`Deleted ${invalidTokens.length} invalid tokens.`);
+      }
+    }
+  } catch (error) {
+    console.error('Error sending push notification:', error);
+  }
+}
+
+
 // --- API Endpoints ---
 
 app.post('/api/register', authenticateToken, checkDb, async (req, res) => {
@@ -132,35 +173,11 @@ app.post('/api/plans', authenticateToken, checkDb, async (req, res) => {
       createdAt: new Date().toISOString(),
     });
 
-    const tokensSnapshot = await db.collection('pushTokens').get();
-    const tokens = tokensSnapshot.docs.map(doc => doc.id);
-
-    if (tokens.length > 0) {
-        const message = {
-            notification: {
-                title: `New Plan Added: ${text}`,
-                body: `By ${name || email} on ${date}`,
-            },
-            tokens: tokens,
-        };
-
-        const response = await getMessaging().sendEachForMulticast(message);
-
-        if (response.failureCount > 0) {
-            response.responses.forEach((resp, idx) => {
-                if (!resp.success) {
-                    const error = resp.error;
-                    const failedToken = tokens[idx];
-                    console.error('Failure sending notification to', failedToken, error);
-                    if (error.code === 'messaging/invalid-registration-token' ||
-                        error.code === 'messaging/registration-token-not-registered') {
-                        console.log(`Deleting invalid token: ${failedToken}`);
-                        db.collection('pushTokens').doc(failedToken).delete();
-                    }
-                }
-            });
-        }
-    }
+    // Use the reusable notification function
+    await sendPushNotification(
+      `New Plan: ${text.substring(0, 30)}...`,
+      `By ${name || email} on ${date}`
+    );
 
     res.status(201).json({ success: true, planId: newPlanRef.id });
   } catch (error) {
@@ -194,13 +211,24 @@ app.put('/api/plans/:planId', authenticateToken, checkDb, async (req, res) => {
         if (!doc.exists) {
             return res.status(404).json({ success: false, message: 'Plan not found.' });
         }
+
+        const originalPlan = doc.data();
         const updateData = {};
         if (text !== undefined) updateData.text = text;
         if (date !== undefined) updateData.date = date;
         if (location !== undefined) updateData.location = location;
         if (time !== undefined) updateData.time = time;
         if (hashtags !== undefined) updateData.hashtags = hashtags;
+        
         await planRef.update(updateData);
+
+        // Use the reusable notification function
+        const planTitle = updateData.text || originalPlan.text;
+        await sendPushNotification(
+          `Plan Updated: ${planTitle.substring(0, 30)}...`,
+          `${originalPlan.createdBy} just updated a plan.`
+        );
+
         res.status(200).json({ success: true, message: 'Plan updated successfully.' });
     } catch (error) {
         console.error('Error in /api/plans PUT:', error);

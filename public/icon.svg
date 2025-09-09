@@ -1,0 +1,14 @@
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <!-- Stronger Hand (Turquoise) -->
+  <path d="M 20 55 C 10 50 10 30 25 20 L 45 35 L 40 60 C 35 70 25 65 20 55 Z" fill="turquoise" stroke="#1c1c1c" stroke-width="2"/>
+  
+  <!-- Gentler Hand (Magenta) -->
+  <path d="M 80 55 C 90 50 90 30 75 20 L 55 35 L 60 60 C 65 70 75 65 80 55 Z" fill="magenta" stroke="#1c1c1c" stroke-width="2"/>
+  
+  <!-- Chain Links -->
+  <g stroke="black" stroke-width="3" fill="none">
+    <ellipse cx="40" cy="62" rx="8" ry="4" transform="rotate(-20 40 62)"/>
+    <ellipse cx="60" cy="62" rx="8" ry="4" transform="rotate(20 60 62)"/>
+    <path d="M 46 60 L 54 60" stroke-width="2.5"/>
+  </g>
+</svg>
