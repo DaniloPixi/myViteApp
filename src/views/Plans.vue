@@ -242,8 +242,25 @@ h1 { color: #42b883; text-align: center; margin-bottom: 2rem; }
 .plan-list-section { margin-bottom: 2.5rem; }
 
 .plan-cards-container { display: grid; gap: 1.5rem; }
-.plan-card { position: relative; background: #1e1e1e; border: 1px solid #444; border-radius: 12px; padding: 1.5rem; }
-.plan-card h3 { margin: 0 0 1rem 0; color: #42b883; font-size: 1.4em; }
+
+.plan-card {
+  position: relative;
+  padding: 1.5rem 1.5rem 2.5rem 1.5rem; /* Increased bottom padding */
+  border-radius: 20px;
+  background: rgba(50, 50, 50, 0.5);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.25);
+}
+
+.plan-card h3 {
+  margin: 0 0 1rem 0;
+  color: #42b883;
+  font-size: 1.4em;
+  padding-right: 50px; /* Safe zone for buttons */
+}
+
 .plan-card .plan-detail { margin: 0.5rem 0; color: #ccc; }
 .plan-detail strong { color: #888; }
 .creator-info { position: absolute; bottom: 10px; right: 1.5rem; font-size: 0.8em; color: #888; }

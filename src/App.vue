@@ -62,6 +62,7 @@
 
 <script setup>
 import { ref, watch, onUnmounted } from 'vue';
+import { useRegisterSW } from 'virtual:pwa-register/vue';
 import { auth, messaging, db } from './firebase';
 
 // Import child components and views
@@ -72,6 +73,17 @@ import MemosAndMoments from './views/MemosAndMoments.vue';
 import Plans from './views/Plans.vue';
 import Sidebar from './components/Sidebar.vue';
 import ScrollToTopButton from './components/ScrollToTopButton.vue';
+
+// --- PWA Auto-Update Logic ---
+// This will automatically update the app and reload the page when a new version is detected.
+const { needRefresh, updateServiceWorker } = useRegisterSW();
+watch(needRefresh, (isUpdateAvailable) => {
+  if (isUpdateAvailable) {
+    // An update is available, so we should refresh the app immediately.
+    updateServiceWorker(); // This will trigger the service worker to update and then reload the page.
+  }
+});
+// --- End of PWA Auto-Update Logic ---
 
 // --- Reactive State ---
 const user = ref(null);
@@ -217,8 +229,14 @@ html {
   max-width: 550px;
   margin: 0 auto;
   padding: 2.5em;
-  border-radius: 12px;
-  background-color: #242424;
+  border-radius: 20px; /* Softer corners */
+
+  /* --- Glassmorphism Effect --- */
+  background: rgba(36, 36, 36, 0.6); /* Semi-transparent background */
+  backdrop-filter: blur(10px); /* The magic blur */
+  -webkit-backdrop-filter: blur(10px); /* For Safari */
+  border: 1px solid rgba(255, 255, 255, 0.1); /* Subtle edge highlight */
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37); /* Deeper shadow for depth */
 }
 
 .view-nav {

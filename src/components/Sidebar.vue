@@ -7,11 +7,9 @@
           <!-- Row 1: Location & Hashtags -->
           <div class="filter-row">
             <div class="filter-group location-group">
-              <label for="location-filter">Location</label>
-              <input id="location-filter" type="text" :value="location" @input="$emit('update:location', $event.target.value)" placeholder="Filter by location..." />
+              <input id="location-filter" type="text" :value="location" @input="$emit('update:location', $event.target.value)" placeholder="Location..." />
             </div>
             <div class="filter-group hashtags-group">
-              <label>Hashtags</label>
               <div class="hashtag-buttons">
                 <button v-for="tag in availableHashtags" :key="tag" @click="toggleHashtagFilter(tag)" :class="{ selected: hashtags === tag }">#{{ tag }}</button>
               </div>
@@ -21,14 +19,12 @@
           <!-- Row 2: Date, Time & Duration -->
           <div class="filter-row">
             <div class="filter-group date-group">
-              <label for="date-filter">Date</label>
               <div class="date-input-wrapper">
-                <input id="date-filter" type="date" :value="date" @input="$emit('update:date', $event.target.value)" />
+                <input id="date-filter" type="date" :value="date" @input="$emit('update:date', $event.target.value)" placeholder="Date..." />
                 <button v-if="date" @click="$emit('update:date', '')" class="clear-btn" title="Clear filter">×</button>
               </div>
             </div>
             <div class="filter-group time-group">
-              <label>Time</label>
               <div class="time-input-wrapper">
                 <div class="stepper-input">
                   <input type="text" class="hour-display" :value="time" @input="handleTimeInput" @blur="handleTimeBlur" maxlength="2" placeholder="--" />
@@ -41,7 +37,6 @@
               </div>
             </div>
             <div class="filter-group duration-group">
-              <label>Duration</label>
               <div class="duration-buttons">
                 <button v-for="d in availableDurations" :key="d" @click="toggleDurationFilter(d)" :class="{ selected: duration.includes(d) }">{{ d === 'Indetermined' ? '∞' : d }}</button>
               </div>
@@ -114,7 +109,7 @@ const clearTimeFilter = () => emit('update:time', '');
 <style scoped>
 .collapsible-filters-container {
   position: relative;
-  height: 26px; /* Defines the space the collapsed component takes up */
+  height: 26px;
   z-index: 11;
   margin-bottom: 2rem;
 }
@@ -125,16 +120,16 @@ const clearTimeFilter = () => emit('update:time', '');
   left: 0;
   right: 0;
   width: 100%;
-  background-color: rgba(30, 30, 30, 0.2); /* 20% transparent background */
-  opacity: 0.5; /* 50% opacity for all elements */
+  background-color: rgba(30, 30, 30, 0.2);
+  opacity: 0.5;
   transition: opacity 0.3s ease-in-out, background-color 0.3s ease-in-out;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
 }
 
 .filter-wrapper:focus-within, .filter-wrapper:hover {
-  background-color: rgba(30, 30, 30, 1); /* Full opacity background on focus or hover */
-  opacity: 1; /* Full opacity for all elements on focus or hover */
+  background-color: rgba(30, 30, 30, 1);
+  opacity: 1;
 }
 
 .filter-content {
@@ -148,7 +143,7 @@ const clearTimeFilter = () => emit('update:time', '');
 }
 
 .filter-content.expanded {
-  max-height: 280px; /* Adjust if content height changes */
+  max-height: 280px;
 }
 
 .content-inner {
@@ -160,6 +155,7 @@ const clearTimeFilter = () => emit('update:time', '');
   flex-wrap: wrap;
   gap: 0.8rem;
   margin-bottom: 0.8rem;
+  align-items: center; /* Vertically center items in the row */
 }
 .filter-row:last-child { margin-bottom: 0; }
 
@@ -175,15 +171,6 @@ const clearTimeFilter = () => emit('update:time', '');
 .date-group { flex-basis: 130px; }
 .time-group { flex-basis: 120px; }
 .duration-group { flex-basis: 220px; flex-grow: 2; }
-
-.filter-group label {
-  display: block;
-  margin-bottom: 0.3rem;
-  color: #ccc;
-  font-weight: 500;
-  font-size: 0.75em;
-  text-align: center;
-}
 
 .filter-group input[type="text"],
 .filter-group input[type="date"] {
@@ -298,5 +285,28 @@ const clearTimeFilter = () => emit('update:time', '');
 
 .toggle-handle.expanded .arrow {
   transform: rotate(180deg);
+}
+
+/* --- Mobile Responsive Adjustments --- */
+@media (max-width: 768px) {
+  .filter-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.8rem;
+  }
+
+  .filter-group {
+    flex-basis: auto !important;
+    width: 100%;
+  }
+
+  .filter-content.expanded {
+    max-height: 500px;
+  }
+
+  .hashtag-buttons,
+  .duration-buttons {
+    justify-content: center;
+  }
 }
 </style>
