@@ -1,3 +1,4 @@
+
 import express from 'express';
 import serverless from 'serverless-http';
 import admin from 'firebase-admin';
@@ -85,7 +86,7 @@ const authenticateToken = async (req, res, next) => {
 };
 
 // --- Reusable Push Notification Function ---
-async function sendPushNotification(title, body, planId) {
+async function sendPushNotification(title, body, link) {
   if (!db) {
     console.error("Cannot send push notification because database is not connected.");
     return;
@@ -98,16 +99,10 @@ async function sendPushNotification(title, body, planId) {
         const message = {
             notification: { title, body },
             webpush: {
-                notification: {
-                    icon: '/icon.svg',
-                },
-                fcm_options: {
-                    link: `/plans?planId=${planId}`
-                }
+                notification: { icon: '/icon.svg' },
+                fcm_options: { link: link }
             },
-            data: {
-                url: `/plans?planId=${planId}`
-            },
+            data: { url: link },
             tokens: tokens,
         };
 
@@ -136,21 +131,17 @@ async function sendPushNotification(title, body, planId) {
   }
 }
 
-
 // --- API Endpoints ---
 
 app.post('/api/register', authenticateToken, checkDb, async (req, res) => {
   const { token } = req.body;
   const { uid } = req.user;
-
   if (!token) {
     return res.status(400).json({ success: false, message: 'Push notification token is required.' });
   }
-
   try {
     const tokenRef = db.collection('pushTokens').doc(token);
     await tokenRef.set({ uid: uid, createdAt: new Date().toISOString() });
-    console.log(`Successfully stored push token for user: ${uid}`);
     res.status(200).json({ success: true, message: 'Token registered successfully.' });
   } catch (error) {
     console.error('Error in /api/register POST:', error);
@@ -158,6 +149,7 @@ app.post('/api/register', authenticateToken, checkDb, async (req, res) => {
   }
 });
 
+// --- Plans CRUD ---
 app.get('/api/plans', authenticateToken, checkDb, async (req, res) => {
     try {
         const plansSnapshot = await db.collection('plans').orderBy('createdAt', 'desc').get();
@@ -174,23 +166,14 @@ app.post('/api/plans', authenticateToken, checkDb, async (req, res) => {
   const { uid, name, email } = req.user;
   try {
     const newPlanRef = await db.collection('plans').add({
-      text,
-      date,
-      location,
+      text, date, location,
       time: time || '',
       hashtags: hashtags || [],
       creatorUid: uid,
       createdBy: name || email,
       createdAt: new Date().toISOString(),
     });
-
-    // Use the reusable notification function
-    await sendPushNotification(
-      `New Plan: ${text.substring(0, 30)}...`,
-      `By ${name || email} on ${date}`,
-      newPlanRef.id
-    );
-
+    await sendPushNotification(`New Plan: ${text.substring(0, 30)}...`, `By ${name || email} on ${date}`, `/plans?planId=${newPlanRef.id}`);
     res.status(201).json({ success: true, planId: newPlanRef.id });
   } catch (error) {
     console.error('Error in /api/plans POST:', error);
@@ -223,7 +206,6 @@ app.put('/api/plans/:planId', authenticateToken, checkDb, async (req, res) => {
         if (!doc.exists) {
             return res.status(404).json({ success: false, message: 'Plan not found.' });
         }
-
         const originalPlan = doc.data();
         const updateData = {};
         if (text !== undefined) updateData.text = text;
@@ -231,20 +213,82 @@ app.put('/api/plans/:planId', authenticateToken, checkDb, async (req, res) => {
         if (location !== undefined) updateData.location = location;
         if (time !== undefined) updateData.time = time;
         if (hashtags !== undefined) updateData.hashtags = hashtags;
-        
         await planRef.update(updateData);
-
-        // Use the reusable notification function
         const planTitle = updateData.text || originalPlan.text;
-        await sendPushNotification(
-          `Plan Updated: ${planTitle.substring(0, 30)}...`,
-          `${originalPlan.createdBy} just updated a plan.`,
-          planId
-        );
-
+        await sendPushNotification(`Plan Updated: ${planTitle.substring(0, 30)}...`, `${originalPlan.createdBy} just updated a plan.`, `/plans?planId=${planId}`);
         res.status(200).json({ success: true, message: 'Plan updated successfully.' });
     } catch (error) {
         console.error('Error in /api/plans PUT:', error);
+        res.status(500).json({ success: false, message: 'Internal server error.' });
+    }
+});
+
+// --- Memos CRUD ---
+app.get('/api/memos', authenticateToken, checkDb, async (req, res) => {
+    try {
+        const memosSnapshot = await db.collection('memos').orderBy('createdAt', 'desc').get();
+        const memos = memosSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        res.status(200).json(memos);
+    } catch (error) {
+        console.error('Error in /api/memos GET:', error);
+        res.status(500).json({ success: false, message: 'Internal server error.' });
+    }
+});
+
+app.post('/api/memos', authenticateToken, checkDb, async (req, res) => {
+  const { description, date, location, hashtags, photoUrls } = req.body;
+  const { uid, name, email } = req.user;
+  try {
+    const newMemoRef = await db.collection('memos').add({
+      description, date, location,
+      hashtags: hashtags || [],
+      photoUrls: photoUrls || [],
+      creatorUid: uid,
+      createdBy: name || email,
+      createdAt: new Date().toISOString(),
+    });
+    res.status(201).json({ success: true, memoId: newMemoRef.id });
+  } catch (error) {
+    console.error('Error in /api/memos POST:', error);
+    res.status(500).json({ success: false, message: 'Internal server error.' });
+  }
+});
+
+app.put('/api/memos/:memoId', authenticateToken, checkDb, async (req, res) => {
+    const { memoId } = req.params;
+    const { description, date, location, hashtags, photoUrls } = req.body;
+    try {
+        const memoRef = db.collection('memos').doc(memoId);
+        const doc = await memoRef.get();
+        if (!doc.exists) {
+            return res.status(404).json({ success: false, message: 'Memo not found.' });
+        }
+        const updateData = {};
+        if (description !== undefined) updateData.description = description;
+        if (date !== undefined) updateData.date = date;
+        if (location !== undefined) updateData.location = location;
+        if (hashtags !== undefined) updateData.hashtags = hashtags;
+        if (photoUrls !== undefined) updateData.photoUrls = photoUrls;
+        await memoRef.update(updateData);
+        res.status(200).json({ success: true, message: 'Memo updated successfully.' });
+    } catch (error) {
+        console.error('Error in /api/memos PUT:', error);
+        res.status(500).json({ success: false, message: 'Internal server error.' });
+    }
+});
+
+app.delete('/api/memos/:memoId', authenticateToken, checkDb, async (req, res) => {
+    const { memoId } = req.params;
+    try {
+        const memoRef = db.collection('memos').doc(memoId);
+        const doc = await memoRef.get();
+        if (!doc.exists) {
+            return res.status(404).json({ success: false, message: 'Memo not found.' });
+        }
+        await memoRef.delete();
+        res.status(200).json({ success: true, message: 'Memo deleted successfully.' });
+    } catch (error) {
+        console.error('Error in /api/memos DELETE:', error);
         res.status(500).json({ success: false, message: 'Internal server error.' });
     }
 });

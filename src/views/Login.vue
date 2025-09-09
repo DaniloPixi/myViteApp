@@ -37,12 +37,13 @@ const loading = ref(false); // Reactive flag for loading state
 const error = ref('');     // Reactive string for error messages
 
 const handleLogin = async () => {
-  loading.value = true; // Set loading to true when the function starts
-  error.value = '';     // Clear any previous errors
+  loading.value = true;
+  error.value = '';
 
   try {
     await auth.signInWithEmailAndPassword(email.value, password.value);
-    // On success, App.vue will handle the redirect. No need to set loading to false here.
+    // On success, App.vue will handle switching the view.
+    // The loading state is reset in the `finally` block.
   } catch (err) {
     console.error("Error during login:", err);
     // Prettify the error message for the user
@@ -57,7 +58,9 @@ const handleLogin = async () => {
         error.value = 'An unexpected error occurred. Please try again.';
         break;
     }
-    loading.value = false; // Set loading to false on failure
+  } finally {
+    // This ensures the loading state is always reset, even on success.
+    loading.value = false;
   }
 };
 
