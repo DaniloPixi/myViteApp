@@ -39,6 +39,7 @@ export default defineConfig(({ command }) => {
           short_name: 'VuePWA',
           description: 'A Vue.js PWA capable of receiving push notifications.',
           theme_color: '#42b883',
+          version: '1.1.0', // Add a version to the manifest
           icons: [
             {
               src: 'manifest-icon-192.maskable.png',
