@@ -105,8 +105,6 @@ const extractPublicId = (url) => {
     const regex = /upload\/(?:v\d+\/)?([\w\/\-]+)/;
     const match = url.match(regex);
     if (match && match[1]) {
-        // The regex now captures the full path after /upload/, which is what Cloudinary uses as the public_id
-        // We then need to remove the file extension.
         const pathWithExtension = match[1];
         const lastDotIndex = pathWithExtension.lastIndexOf('.');
         if (lastDotIndex > -1) {
@@ -117,15 +115,83 @@ const extractPublicId = (url) => {
     return null;
 };
 
-async function sendPushNotification(title, body, link) { /* ... existing push notification code ... */ }
+async function sendPushNotification(title, body, link) { 
+    if (!db) return;
+    try {
+        const tokensSnapshot = await db.collection('fcmTokens').get();
+        const tokens = tokensSnapshot.docs.map(doc => doc.id);
+        if (tokens.length === 0) return;
+        const message = {
+            notification: { title, body },
+            webpush: { fcm_options: { link } },
+            tokens: tokens,
+        };
+        await getMessaging().sendMulticast(message);
+    } catch (error) {
+        console.error('Error sending push notification:', error);
+    }
+}
 
 // --- API Endpoints ---
 
-app.post('/api/register', authenticateToken, checkDb, async (req, res) => { /* ... */ });
-app.get('/api/plans', authenticateToken, checkDb, async (req, res) => { /* ... */ });
-app.post('/api/plans', authenticateToken, checkDb, async (req, res) => { /* ... */ });
-app.delete('/api/plans/:planId', authenticateToken, checkDb, async (req, res) => { /* ... */ });
-app.put('/api/plans/:planId', authenticateToken, checkDb, async (req, res) => { /* ... */ });
+app.post('/api/register', authenticateToken, checkDb, async (req, res) => {
+  const { token } = req.body;
+  if (!token) {
+    return res.status(400).json({ success: false, message: 'FCM token is required.' });
+  }
+  try {
+    await db.collection('fcmTokens').doc(token).set({ createdAt: new Date() });
+    res.status(200).json({ success: true, message: 'Token registered successfully.' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Internal server error.' });
+  }
+});
+
+app.get('/api/plans', authenticateToken, checkDb, async (req, res) => {
+  try {
+    const plansSnapshot = await db.collection('plans').orderBy('date', 'desc').get();
+    const plans = plansSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    res.status(200).json(plans);
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Internal server error.' });
+  }
+});
+
+app.post('/api/plans', authenticateToken, checkDb, async (req, res) => {
+  try {
+    const { title, date, time, description } = req.body;
+    const { name, email } = req.user;
+    const newPlanRef = await db.collection('plans').add({
+      title, date, time, description,
+      createdBy: name || email,
+    });
+    await sendPushNotification('New Plan Added!', `"${title}" on ${date}`, '/plans');
+    res.status(201).json({ success: true, planId: newPlanRef.id });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Internal server error.' });
+  }
+});
+
+app.delete('/api/plans/:planId', authenticateToken, checkDb, async (req, res) => {
+  try {
+    const { planId } = req.params;
+    await db.collection('plans').doc(planId).delete();
+    res.status(200).json({ success: true, message: 'Plan deleted successfully.' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Internal server error.' });
+  }
+});
+
+app.put('/api/plans/:planId', authenticateToken, checkDb, async (req, res) => {
+  try {
+    const { planId } = req.params;
+    const { title, date, time, description } = req.body;
+    await db.collection('plans').doc(planId).update({ title, date, time, description });
+    res.status(200).json({ success: true, message: 'Plan updated successfully.' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Internal server error.' });
+  }
+});
 
 // --- Memos CRUD ---
 app.get('/api/memos', authenticateToken, checkDb, async (req, res) => {
