@@ -55,7 +55,8 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, watch } from 'vue';
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue';
+import { getFirestore, collection, query, orderBy, onSnapshot } from 'firebase/firestore';
 import PlanFormModal from '../components/PlanFormModal.vue';
 import ConfirmDeleteModal from '../components/ConfirmDeleteModal.vue';
 
@@ -84,6 +85,7 @@ const planToDeleteId = ref(null);
 
 // Static Data
 const createButtonTitle = ref('');
+let unsubscribeFromPlans = null;
 
 // --- COMPUTED PROPERTIES ---
 const filteredPlans = computed(() => {
@@ -112,26 +114,36 @@ const filteredPlans = computed(() => {
 // --- API HELPER ---
 const getAuthToken = async () => {
   if (!props.user) throw new Error("User not authenticated");
-  // Force refresh the token to avoid using an expired one.
   return await props.user.getIdToken(true);
 };
 
-// --- API CALLS ---
-const fetchPlans = async () => {
+// --- FIRESTORE REAL-TIME LISTENER ---
+const subscribeToPlans = () => {
+  if (unsubscribeFromPlans) unsubscribeFromPlans(); // Unsubscribe from any previous listener
+
   if (!props.user) return;
-  isLoading.value = true;
+
   try {
-    const token = await getAuthToken();
-    const response = await fetch('/api/plans', { headers: { 'Authorization': `Bearer ${token}` } });
-    if (!response.ok) throw new Error('Could not fetch plans.');
-    plans.value = await response.json();
+    const db = getFirestore();
+    const plansQuery = query(collection(db, 'plans'), orderBy('date', 'desc'));
+
+    unsubscribeFromPlans = onSnapshot(plansQuery, (snapshot) => {
+      plans.value = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      isLoading.value = false;
+    }, (error) => {
+      console.error("Error fetching plans in real-time:", error);
+      fetchError.value = "Failed to load plans. Please check your connection and try again.";
+      isLoading.value = false;
+    });
   } catch (error) {
-    fetchError.value = error.message;
-  } finally {
+    console.error("Error setting up plans subscription:", error);
+    fetchError.value = "An unexpected error occurred. Please refresh the page.";
     isLoading.value = false;
   }
 };
 
+
+// --- API CALLS (for write operations) ---
 const handleSave = async (planData) => {
   isSubmitting.value = true;
   submitError.value = '';
@@ -152,7 +164,7 @@ const handleSave = async (planData) => {
       throw new Error(errorData.details || errorData.message || 'Failed to save the plan');
     }
 
-    await fetchPlans();
+    // No need to fetchPlans() here, onSnapshot will handle it!
     closeFormModal();
 
   } catch (error) {
@@ -170,7 +182,7 @@ const handleDelete = async () => {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     if (!response.ok) throw new Error('Failed to delete plan');
-    await fetchPlans();
+    // No need to fetchPlans() here, onSnapshot will handle it!
   } catch (error) {
     console.error("Error deleting plan:", error);
   } finally {
@@ -228,11 +240,23 @@ const formatTime = (timeString) => {
 onMounted(() => {
   const titles = ["What's on your mind, beautiful?", "What shall we do, my love?", "Create a new adventure..."];
   createButtonTitle.value = titles[Math.floor(Math.random() * titles.length)];
-  if (props.user) fetchPlans();
+  if (props.user) subscribeToPlans();
+});
+
+// When the component is unmounted, we need to unsubscribe from the listener
+onUnmounted(() => {
+  if (unsubscribeFromPlans) {
+    unsubscribeFromPlans();
+  }
 });
 
 watch(() => props.user, (newUser) => {
-  if (newUser) fetchPlans();
+  if (newUser) {
+    subscribeToPlans();
+  } else {
+    if (unsubscribeFromPlans) unsubscribeFromPlans();
+    plans.value = []; // Clear data when user logs out
+  }
 });
 </script>
 
