@@ -12,8 +12,8 @@
       </div>
 
       <!-- Memos List -->
-      <div v-if="memos.length > 0" class="memos-list">
-        <div v-for="memo in memos" :key="memo.id" class="memo-card">
+      <div v-if="filteredMemos.length > 0" class="memos-list">
+        <div v-for="memo in filteredMemos" :key="memo.id" class="memo-card">
           <div v-if="memo.photoUrls && memo.photoUrls.length" class="photo-gallery">
             <div v-for="(url, index) in memo.photoUrls" :key="index" class="photo-item">
               <img :src="url" alt="Memo photo" />
@@ -26,13 +26,13 @@
               <span class="meta-item"><strong>🗓️</strong> {{ formatDate(memo.date) }}</span>
             </div>
             <div v-if="memo.hashtags && memo.hashtags.length" class="memo-hashtags">
-              <span v-for="tag in memo.hashtags" :key="tag" class="hashtag">#{{ tag }}</span>
+              <span v-for="tag in memo.hashtags" :key="tag" class="hashtag">{{ tag }}</span>
             </div>
             <div class="memo-footer">
               <span class="created-by">By: {{ memo.createdBy }}</span>
-              <div class="actions">
-                <button @click="openEditForm(memo)" class="edit-btn">Edit</button>
-                <button @click="handleDeleteMemo(memo.id)" class="delete-btn">Delete</button>
+              <div class="card-actions">
+                <button @click="openEditForm(memo)" class="edit-button">edit</button>
+                <button @click="promptDelete(memo.id)" class="delete-button">delete</button>
               </div>
             </div>
           </div>
@@ -41,12 +41,17 @@
 
       <!-- No Memos State -->
       <div v-else class="no-memos-state">
-        <h2>No Memos Yet</h2>
-        <p>Be the first to share a moment!</p>
+        <div v-if="memos.length === 0">
+          <h2>No Memos Yet</h2>
+          <p>Be the first to share a moment!</p>
+        </div>
+        <div v-else>
+          <h2>No memos match your current filters.</h2>
+        </div>
       </div>
     </div>
 
-    <!-- Memo Form Modal -->
+    <!-- Modals -->
     <MemoForm
       v-if="showForm"
       :memo="selectedMemo"
@@ -55,30 +60,52 @@
       @close="closeForm"
       @memo-saved="handleMemoSaved"
     />
+    <ConfirmDeleteModal
+      v-if="isDeleteModalVisible"
+      title="Confirm Deletion"
+      message="Are you sure you want to delete this memo? This action cannot be undone."
+      @confirm="handleDelete"
+      @close="isDeleteModalVisible = false"
+    />
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, watch } from 'vue';
+import { ref, onMounted, onUnmounted, watch, computed } from 'vue';
 import { getFirestore, collection, query, orderBy, onSnapshot } from 'firebase/firestore';
 import { auth } from '../firebase';
 import MemoForm from '../components/MemoForm.vue';
+import ConfirmDeleteModal from '../components/ConfirmDeleteModal.vue';
+
+const props = defineProps({
+  locationFilter: { type: String, default: '' },
+  hashtagFilter: { type: String, default: '' },
+  dateFilter: { type: String, default: '' },
+});
 
 const memos = ref([]);
 const loading = ref(true);
 const error = ref(null);
 const showForm = ref(false);
 const selectedMemo = ref(null);
+const isDeleteModalVisible = ref(false);
+const deletingMemoId = ref(null);
 let unsubscribeFromMemos = null;
 
-// --- FIRESTORE REAL-TIME LISTENER ---
+const filteredMemos = computed(() => {
+  return memos.value.filter(memo => {
+    const locationMatch = !props.locationFilter || (memo.location && memo.location.toLowerCase().includes(props.locationFilter.toLowerCase()));
+    const hashtagMatch = !props.hashtagFilter || (memo.hashtags && memo.hashtags.some(tag => tag.toLowerCase().includes(props.hashtagFilter.toLowerCase())));
+    const dateMatch = !props.dateFilter || memo.date === props.dateFilter;
+    return locationMatch && hashtagMatch && dateMatch;
+  });
+});
+
 const subscribeToMemos = () => {
   if (unsubscribeFromMemos) unsubscribeFromMemos();
-
   try {
     const db = getFirestore();
     const memosQuery = query(collection(db, 'memos'), orderBy('createdAt', 'desc'));
-
     unsubscribeFromMemos = onSnapshot(memosQuery, (snapshot) => {
       memos.value = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       loading.value = false;
@@ -94,12 +121,7 @@ const subscribeToMemos = () => {
   }
 };
 
-// --- API Calls (for write operations) ---
 const deleteMemo = async (memoId) => {
-  if (!confirm("Are you sure you want to delete this memo? This action cannot be undone.")) {
-    return;
-  }
-  
   try {
     if (!auth.currentUser) throw new Error('Authentication required.');
     const idToken = await auth.currentUser.getIdToken();
@@ -111,15 +133,12 @@ const deleteMemo = async (memoId) => {
       const errorData = await response.json();
       throw new Error(errorData.message || 'Failed to delete memo.');
     }
-    // No need to fetchMemos() here, onSnapshot will handle it!
   } catch (err) {
     console.error("Error deleting memo:", err);
-    error.value = err.message; // Show error to the user
+    error.value = err.message;
   }
 };
 
-
-// --- Event Handlers ---
 const openAddForm = () => {
   selectedMemo.value = null;
   showForm.value = true;
@@ -137,43 +156,45 @@ const closeForm = () => {
 
 const handleMemoSaved = () => {
   closeForm();
-  // No need to fetchMemos(), onSnapshot will handle the update.
 };
 
-const handleDeleteMemo = async (memoId) => {
-  await deleteMemo(memoId);
-  // No need to fetchMemos(), onSnapshot will handle the update.
+const promptDelete = (memoId) => {
+  deletingMemoId.value = memoId;
+  isDeleteModalVisible.value = true;
 };
 
-// --- Utility Functions ---
+const handleDelete = async () => {
+  if (deletingMemoId.value) {
+    await deleteMemo(deletingMemoId.value);
+  }
+  isDeleteModalVisible.value = false;
+  deletingMemoId.value = null;
+};
+
 const formatDate = (dateString) => {
   if (!dateString) return 'No date';
   const options = { year: 'numeric', month: 'long', day: 'numeric' };
   return new Date(dateString).toLocaleDateString(undefined, options);
 };
 
-// --- Lifecycle Hooks ---
 onMounted(() => {
-  // Subscribe when the component is mounted
   subscribeToMemos();
-
-  // Also, re-subscribe if the user logs in or out
   watch(auth, (currentUser) => {
     if (currentUser) {
       subscribeToMemos();
     } else {
       if (unsubscribeFromMemos) unsubscribeFromMemos();
-      memos.value = []; // Clear data on logout
+      memos.value = [];
     }
   });
 });
 
 onUnmounted(() => {
-  // Unsubscribe when the component is unmounted
   if (unsubscribeFromMemos) {
     unsubscribeFromMemos();
   }
 });
+
 </script>
 
 <style scoped>
@@ -220,11 +241,13 @@ onUnmounted(() => {
 }
 
 .memo-card {
-  background: rgba(36, 36, 36, 0.8);
+  background: rgba(50, 50, 50, 0.5);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
+  box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.25);
+  border-radius: 20px;
   overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
 }
 
 .photo-gallery {
@@ -289,27 +312,26 @@ onUnmounted(() => {
   color: #888;
 }
 
-.actions button {
+.card-actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.edit-button, .delete-button {
+  background: none;
   border: none;
-  padding: 0.5em 1em;
-  border-radius: 6px;
-  font-weight: 600;
+  color: #888;
   cursor: pointer;
-  transition: background-color 0.3s;
+  font-size: 0.8em;
+  text-transform: lowercase;
+  padding: 0;
 }
 
-.actions .edit-btn {
-  background-color: #555;
-  color: white;
-  margin-right: 0.5rem;
+.edit-button:hover, .delete-button:hover {
+  text-decoration: underline;
 }
 
-.actions .edit-btn:hover { background-color: #666; }
-
-.actions .delete-btn {
-  background-color: #d9534f;
-  color: white;
+.delete-button:hover {
+  color: #ff6b6b;
 }
-
-.actions .delete-btn:hover { background-color: #c9302c; }
 </style>

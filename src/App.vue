@@ -50,7 +50,11 @@
         <!-- Conditional Views -->
         
 
-        <MemosAndMoments v-if="currentView === 'memos'" />
+        <MemosAndMoments v-if="currentView === 'memos'" 
+          :location-filter="locationFilter"
+          :hashtag-filter="hashtagFilter"
+          :date-filter="dateFilter"
+        />
         <Plans 
           v-if="currentView === 'plans'" 
           :user="user"

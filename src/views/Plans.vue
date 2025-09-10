@@ -19,10 +19,6 @@
         <div v-for="plan in filteredPlans" :key="plan.id" class="plan-card">
           <div class="card-header">
             <h3>{{ plan.text }}</h3>
-            <div class="card-actions">
-              <button @click="openEditModal(plan)" class="edit-button">&#9998;</button>
-              <button @click="promptDelete(plan.id)" class="delete-button">×</button>
-            </div>
           </div>
           <p class="plan-detail"><strong>Date:</strong> {{ formatDate(plan.date) }}</p>
           <p v-if="plan.time" class="plan-detail"><strong>Time:</strong> {{ formatTime(plan.time) }}</p>
@@ -30,7 +26,13 @@
           <div v-if="plan.hashtags && plan.hashtags.length" class="hashtags-container">
             <span v-for="tag in plan.hashtags" :key="tag" class="hashtag">{{ tag }}</span>
           </div>
-          <p class="creator-info">Created by: {{ plan.createdBy }}</p>
+          <div class="card-footer">
+            <p class="creator-info">By: {{ plan.createdBy }}</p>
+            <div class="card-actions">
+                <button @click="openEditModal(plan)" class="edit-button">edit</button>
+                <button @click="promptDelete(plan.id)" class="delete-button">delete</button>
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -166,7 +168,6 @@ const handleSave = async (planData) => {
       throw new Error(errorData.details || errorData.message || 'Failed to save the plan');
     }
 
-    // No need to fetchPlans() here, onSnapshot will handle it!
     closeFormModal();
 
   } catch (error) {
@@ -184,7 +185,6 @@ const handleDelete = async () => {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     if (!response.ok) throw new Error('Failed to delete plan');
-    // No need to fetchPlans() here, onSnapshot will handle it!
   } catch (error) {
     console.error("Error deleting plan:", error);
   } finally {
@@ -208,7 +208,7 @@ const openEditModal = (plan) => {
 const closeFormModal = () => {
   isFormModalVisible.value = false;
   editingPlan.value = null;
-  submitError.value = ''; // Clear previous submission errors
+  submitError.value = '';
 };
 
 const promptDelete = (planId) => {
@@ -245,7 +245,6 @@ onMounted(() => {
   if (props.user) subscribeToPlans();
 });
 
-// When the component is unmounted, we need to unsubscribe from the listener
 onUnmounted(() => {
   if (unsubscribeFromPlans) {
     unsubscribeFromPlans();
@@ -257,7 +256,7 @@ watch(() => props.user, (newUser) => {
     subscribeToPlans();
   } else {
     if (unsubscribeFromPlans) unsubscribeFromPlans();
-    plans.value = []; // Clear data when user logs out
+    plans.value = [];
   }
 });
 </script>
@@ -281,14 +280,7 @@ h1 { color: #42b883; text-align: center; margin-bottom: 2rem; }
 }
 
 .card-header {
-  display: grid;
-  align-items: center;
   margin-bottom: 1rem;
-}
-
-.card-header > * {
-  grid-column: 1 / 2;
-  grid-row: 1 / 2;
 }
 
 .card-header h3 {
@@ -296,20 +288,52 @@ h1 { color: #42b883; text-align: center; margin-bottom: 2rem; }
   color: #42b883;
   font-size: 1.4em;
   text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .plan-card .plan-detail { margin: 0.5rem 0; color: #ccc; }
 .plan-detail strong { color: #888; }
-.creator-info { position: absolute; bottom: 10px; right: 1.5rem; font-size: 0.8em; color: #888; }
 
-.card-actions {
-  justify-self: end;
+.card-footer {
   display: flex;
-  gap: 0.5rem;
-  z-index: 1;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.edit-button, .delete-button { background: #444; color: #fff; border: none; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 1rem; }
+.creator-info {
+  font-size: 0.8em;
+  color: #888;
+  margin: 0; /* Reset margin */
+}
+
+.card-actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.edit-button, .delete-button {
+  background: none;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  font-size: 0.8em;
+  text-transform: lowercase;
+  padding: 0;
+}
+
+.edit-button:hover, .delete-button:hover {
+  text-decoration: underline;
+}
+
+.delete-button:hover {
+  color: #ff6b6b;
+}
+
 
 .create-plan-button-section { text-align: center; margin-bottom: 2.5rem; }
 .add-plan-button { padding: 0.7em 1.4em; border-radius: 30px; border: none; background-color: #42b883; color: white; font-size: 1.1em; font-weight: 600; cursor: pointer; }

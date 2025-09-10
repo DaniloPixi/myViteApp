@@ -1,5 +1,5 @@
 /* src/style.css */
-
+      
 /* --- Base Styles & Theme --- */
 :root {
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
@@ -44,7 +44,6 @@ h1 {
   font-size: 3.2em;
   line-height: 1.1;
 }
-
 button {
   border-radius: 8px;
   border: 1px solid transparent;
@@ -77,4 +76,44 @@ input[type="password"] {
     color: #fff;
     font-family: inherit;
     box-sizing: border-box;
+}
+
+/* --- Shared Card Styles --- */
+.card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.card-footer .creator-info {
+  font-size: 0.8em;
+  color: #888;
+  margin: 0;
+}
+
+.card-actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.edit-button, .delete-button {
+  background: none;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  font-size: 0.8em;
+  text-transform: lowercase;
+  padding: 0;
+  transition: color 0.2s ease-in-out;
+}
+
+.edit-button:hover, .delete-button:hover {
+  text-decoration: underline;
+}
+
+.delete-button:hover {
+  color: #ff6b6b;
 }
