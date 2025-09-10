@@ -207,7 +207,7 @@ apiRouter.use(checkDb);
 
 // Feature-specific routes
 apiRouter.use('/plans', createPlansRouter(db, sendPushNotification));
-apiRouter.use('/memos', createMemosRouter(db, cloudinary, extractPublicId));
+apiRouter.use('/memos', createMemosRouter(db, cloudinary, extractPublicId, sendPushNotification));
 
 app.use('/api', apiRouter);
 

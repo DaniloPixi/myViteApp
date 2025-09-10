@@ -2,8 +2,8 @@
 import express from 'express';
 
 // This function will set up the routes and return a router.
-// We'll pass in 'db', 'cloudinary', and 'extractPublicId' from api.mjs
-export default function(db, cloudinary, extractPublicId) {
+// We'll pass in 'db', 'cloudinary', 'extractPublicId' and 'sendPushNotification' from api.mjs
+export default function(db, cloudinary, extractPublicId, sendPushNotification) {
   const router = express.Router();
 
   router.get('/', async (req, res) => {
@@ -25,6 +25,7 @@ export default function(db, cloudinary, extractPublicId) {
         description, date, location, hashtags, photoUrls,
         creatorUid: uid, createdBy: name || email, createdAt: new Date().toISOString(),
       });
+      await sendPushNotification('New Memo Added!', `\"${description}\"`, '/#/memos', uid);
       res.status(201).json({ success: true, memoId: newMemoRef.id });
     } catch (error) {
       console.error('Error in POST /api/memos:', error);
@@ -34,6 +35,7 @@ export default function(db, cloudinary, extractPublicId) {
 
   router.put('/:memoId', async (req, res) => {
     const { memoId } = req.params;
+    const { uid } = req.user;
     const { description, date, location, hashtags, photoUrls } = req.body;
     try {
         const memoRef = db.collection('memos').doc(memoId);
@@ -56,6 +58,7 @@ export default function(db, cloudinary, extractPublicId) {
 
         const updateData = { description, date, location, hashtags, photoUrls };
         await memoRef.update(updateData);
+        await sendPushNotification('Memo Updated!', `\"${description}\"`, '/#/memos', uid);
         res.status(200).json({ success: true, message: 'Memo updated successfully.' });
     } catch (error) {
         console.error('Error in /api/memos PUT:', error);
@@ -65,12 +68,14 @@ export default function(db, cloudinary, extractPublicId) {
 
   router.delete('/:memoId', async (req, res) => {
     const { memoId } = req.params;
+    const { uid } = req.user;
     try {
         const memoRef = db.collection('memos').doc(memoId);
         const doc = await memoRef.get();
         if (!doc.exists) {
             return res.status(404).json({ success: false, message: 'Memo not found.' });
         }
+        const { description } = doc.data();
 
         const photosToDelete = doc.data().photoUrls || [];
         if (photosToDelete.length > 0 && cloudinary.config().api_key) {
@@ -82,6 +87,7 @@ export default function(db, cloudinary, extractPublicId) {
         }
 
         await memoRef.delete();
+        await sendPushNotification('Memo Deleted!', `\"${description}\" was removed`, '/#/memos', uid);
         res.status(200).json({ success: true, message: 'Memo and associated photos deleted.' });
     } catch (error) {
         console.error('Error in /api/memos DELETE:', error);
