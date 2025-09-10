@@ -124,4 +124,3 @@ serviceAccountKey.json
 
 # Local environment variables
 .env
-netlify/functions/cloudinaryCreds.json

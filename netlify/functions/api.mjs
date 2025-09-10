@@ -110,12 +110,12 @@ const extractPublicId = (url) => {
         if (lastDotIndex > -1) {
             return pathWithExtension.substring(0, lastDotIndex);
         }
-        return pathWithExtension; 
+        return pathWithExtension;
     }
     return null;
 };
 
-async function sendPushNotification(title, body, link) { 
+async function sendPushNotification(title, body, link) {
     if (!db) return;
     try {
         const tokensSnapshot = await db.collection('fcmTokens').get();
@@ -143,7 +143,8 @@ app.post('/api/register', authenticateToken, checkDb, async (req, res) => {
     await db.collection('fcmTokens').doc(token).set({ createdAt: new Date() });
     res.status(200).json({ success: true, message: 'Token registered successfully.' });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Internal server error.' });
+    console.error('Error in /api/register:', error);
+    res.status(500).json({ success: false, message: 'Internal server error.', details: error.message });
   }
 });
 
@@ -153,22 +154,30 @@ app.get('/api/plans', authenticateToken, checkDb, async (req, res) => {
     const plans = plansSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     res.status(200).json(plans);
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Internal server error.' });
+    console.error('Error in GET /api/plans:', error);
+    res.status(500).json({ success: false, message: 'Internal server error.', details: error.message });
   }
 });
 
 app.post('/api/plans', authenticateToken, checkDb, async (req, res) => {
   try {
-    const { title, date, time, description } = req.body;
-    const { name, email } = req.user;
+    const { text, date, time, location, hashtags } = req.body;
+    const { uid, name, email } = req.user;
     const newPlanRef = await db.collection('plans').add({
-      title, date, time, description,
+      text,
+      date,
+      time,
+      location,
+      hashtags,
       createdBy: name || email,
+      creatorUid: uid,
+      createdAt: new Date(),
     });
-    await sendPushNotification('New Plan Added!', `"${title}" on ${date}`, '/plans');
+    await sendPushNotification('New Plan Added!', `"${text}" on ${date}`, '/plans');
     res.status(201).json({ success: true, planId: newPlanRef.id });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Internal server error.' });
+    console.error('Error in POST /api/plans:', error);
+    res.status(500).json({ success: false, message: 'Internal server error.', details: error.message });
   }
 });
 
@@ -178,18 +187,26 @@ app.delete('/api/plans/:planId', authenticateToken, checkDb, async (req, res) =>
     await db.collection('plans').doc(planId).delete();
     res.status(200).json({ success: true, message: 'Plan deleted successfully.' });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Internal server error.' });
+    console.error('Error in DELETE /api/plans/:planId:', error);
+    res.status(500).json({ success: false, message: 'Internal server error.', details: error.message });
   }
 });
 
 app.put('/api/plans/:planId', authenticateToken, checkDb, async (req, res) => {
   try {
     const { planId } = req.params;
-    const { title, date, time, description } = req.body;
-    await db.collection('plans').doc(planId).update({ title, date, time, description });
+    const { text, date, time, location, hashtags } = req.body;
+    await db.collection('plans').doc(planId).update({
+      text,
+      date,
+      time,
+      location,
+      hashtags
+    });
     res.status(200).json({ success: true, message: 'Plan updated successfully.' });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Internal server error.' });
+    console.error('Error in PUT /api/plans/:planId:', error);
+    res.status(500).json({ success: false, message: 'Internal server error.', details: error.message });
   }
 });
 
@@ -200,7 +217,8 @@ app.get('/api/memos', authenticateToken, checkDb, async (req, res) => {
         const memos = memosSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         res.status(200).json(memos);
     } catch (error) {
-        res.status(500).json({ success: false, message: 'Internal server error.' });
+        console.error('Error in GET /api/memos:', error);
+        res.status(500).json({ success: false, message: 'Internal server error.', details: error.message });
     }
 });
 
@@ -214,7 +232,8 @@ app.post('/api/memos', authenticateToken, checkDb, async (req, res) => {
     });
     res.status(201).json({ success: true, memoId: newMemoRef.id });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Internal server error.' });
+    console.error('Error in POST /api/memos:', error);
+    res.status(500).json({ success: false, message: 'Internal server error.', details: error.message });
   }
 });
 

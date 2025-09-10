@@ -45,6 +45,13 @@ const handleRegister = async () => {
   loading.value = true;
   error.value = '';
 
+  // --- VALIDATION ---
+  if (!nickname.value.trim()) {
+    error.value = 'Please enter a nickname.';
+    loading.value = false;
+    return;
+  }
+
   try {
     const userCredential = await auth.createUserWithEmailAndPassword(email.value, password.value);
     await userCredential.user.updateProfile({ 
@@ -60,6 +67,9 @@ const handleRegister = async () => {
         break;
       case 'auth/weak-password':
         error.value = 'The password is too weak. Please choose a stronger one.';
+        break;
+      case 'auth/invalid-display-name':
+        error.value = 'The nickname is not valid. Please try another one.';
         break;
       default:
         error.value = 'An unexpected error occurred during registration.';

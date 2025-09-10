@@ -149,7 +149,7 @@ const handleSave = async (planData) => {
 
     if (!response.ok) {
       const errorData = await response.json();
-      throw new Error(errorData.message || 'Failed to save the plan');
+      throw new Error(errorData.details || errorData.message || 'Failed to save the plan');
     }
 
     await fetchPlans();
