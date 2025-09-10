@@ -115,32 +115,88 @@ const extractPublicId = (url) => {
     return null;
 };
 
-async function sendPushNotification(title, body, link) {
-    if (!db) return;
+async function sendPushNotification(title, body, link, excludeUid) {
+    if (!db) {
+        console.log("sendPushNotification: DB not available. Aborting.");
+        return;
+    }
+    console.log(`--- Starting push notification process ---`);
+    console.log(`Triggered by UID: ${excludeUid}`);
+    console.log(`Notification Title: ${title}`);
+
     try {
         const tokensSnapshot = await db.collection('fcmTokens').get();
-        const tokens = tokensSnapshot.docs.map(doc => doc.id);
-        if (tokens.length === 0) return;
+        if (tokensSnapshot.empty) {
+            console.log("No FCM tokens found in the database.");
+            return;
+        }
+
+        const allTokens = tokensSnapshot.docs.map(doc => ({ token: doc.id, uid: doc.data().uid }));
+        console.log(`Found ${allTokens.length} total tokens in DB.`);
+
+        const isLocalEnv = !process.env.FIREBASE_PROJECT_ID;
+        console.log(`Running in local environment: ${isLocalEnv}`);
+
+        const recipientTokens = isLocalEnv
+            ? allTokens.map(t => t.token)
+            : allTokens
+                .filter(t => t.uid !== excludeUid)
+                .map(t => t.token);
+        
+        console.log(`Found ${recipientTokens.length} tokens to send to.`);
+
+        if (recipientTokens.length === 0) {
+            console.log("No recipient tokens after filtering. Aborting send.");
+            console.log(`--- Push notification process finished ---`);
+            return;
+        }
+
         const message = {
             notification: { title, body },
             webpush: { fcm_options: { link } },
-            tokens: tokens,
+            tokens: recipientTokens,
         };
-        await getMessaging().sendMulticast(message);
+        
+        const response = await getMessaging().sendEachForMulticast(message);
+        console.log(`Successfully sent ${response.successCount} messages.`);
+
+        if (response.failureCount > 0) {
+            console.warn(`Failed to send ${response.failureCount} messages.`);
+            const tokensToDelete = [];
+            response.responses.forEach((resp, idx) => {
+                if (!resp.success) {
+                    console.error(`  - Token[${idx}]: ${recipientTokens[idx]}`, resp.error);
+                    const errorCode = resp.error?.errorInfo?.code;
+                    if (errorCode === 'messaging/registration-token-not-registered') {
+                        const invalidToken = recipientTokens[idx];
+                        console.log(`Scheduling token for deletion: ${invalidToken}`);
+                        tokensToDelete.push(db.collection('fcmTokens').doc(invalidToken).delete());
+                    }
+                }
+            });
+            if (tokensToDelete.length > 0) {
+                await Promise.all(tokensToDelete);
+                console.log(`Successfully deleted ${tokensToDelete.length} invalid tokens.`);
+            }
+        }
+        console.log(`--- Push notification process finished ---`);
+
     } catch (error) {
-        console.error('Error sending push notification:', error);
+        console.error('Error during sendPushNotification function:', error);
     }
 }
+
 
 // --- API Endpoints ---
 
 app.post('/api/register', authenticateToken, checkDb, async (req, res) => {
   const { token } = req.body;
+  const { uid } = req.user;
   if (!token) {
     return res.status(400).json({ success: false, message: 'FCM token is required.' });
   }
   try {
-    await db.collection('fcmTokens').doc(token).set({ createdAt: new Date() });
+    await db.collection('fcmTokens').doc(token).set({ uid, createdAt: new Date() });
     res.status(200).json({ success: true, message: 'Token registered successfully.' });
   } catch (error) {
     console.error('Error in /api/register:', error);
@@ -173,7 +229,7 @@ app.post('/api/plans', authenticateToken, checkDb, async (req, res) => {
       creatorUid: uid,
       createdAt: new Date(),
     });
-    await sendPushNotification('New Plan Added!', `"${text}" on ${date}`, '/plans');
+    await sendPushNotification('New Plan Added!', `"${text}" on ${date}`, '/plans', uid);
     res.status(201).json({ success: true, planId: newPlanRef.id });
   } catch (error) {
     console.error('Error in POST /api/plans:', error);
@@ -184,7 +240,18 @@ app.post('/api/plans', authenticateToken, checkDb, async (req, res) => {
 app.delete('/api/plans/:planId', authenticateToken, checkDb, async (req, res) => {
   try {
     const { planId } = req.params;
-    await db.collection('plans').doc(planId).delete();
+    const { uid } = req.user;
+    const planRef = db.collection('plans').doc(planId);
+    const doc = await planRef.get();
+    if (!doc.exists) {
+      return res.status(404).json({ success: false, message: 'Plan not found.' });
+    }
+    const { text, date } = doc.data();
+
+    await planRef.delete();
+
+    await sendPushNotification('Plan Deleted!', `"${text}" on ${date} was removed`, '/plans', uid);
+
     res.status(200).json({ success: true, message: 'Plan deleted successfully.' });
   } catch (error) {
     console.error('Error in DELETE /api/plans/:planId:', error);
@@ -195,6 +262,7 @@ app.delete('/api/plans/:planId', authenticateToken, checkDb, async (req, res) =>
 app.put('/api/plans/:planId', authenticateToken, checkDb, async (req, res) => {
   try {
     const { planId } = req.params;
+    const { uid } = req.user;
     const { text, date, time, location, hashtags } = req.body;
     await db.collection('plans').doc(planId).update({
       text,
@@ -203,6 +271,7 @@ app.put('/api/plans/:planId', authenticateToken, checkDb, async (req, res) => {
       location,
       hashtags
     });
+    await sendPushNotification('Plan Updated!', `"${text}" on ${date}`, '/plans', uid);
     res.status(200).json({ success: true, message: 'Plan updated successfully.' });
   } catch (error) {
     console.error('Error in PUT /api/plans/:planId:', error);

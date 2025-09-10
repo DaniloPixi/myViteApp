@@ -26,8 +26,19 @@ const messaging = firebase.messaging();
 // --- Service Worker Lifecycle ---
 self.skipWaiting();
 
-// --- PWA Pre-caching ---
+// --- PWA Pre-caching and Runtime Caching ---
 precacheAndRoute(self.__WB_MANIFEST || []);
+
+// Runtime caching for Firebase libraries
+registerRoute(
+  /^https:\/\/www\.gstatic\.com\/firebasejs\/.*/,
+  new StaleWhileRevalidate({
+    cacheName: 'firebase-js-cache',
+    plugins: [
+      // Any additional plugins, like ExpirationPlugin, can be added here
+    ]
+  })
+);
 
 // --- Firebase Background Message Handler ---
 messaging.onBackgroundMessage((payload) => {
@@ -38,7 +49,7 @@ messaging.onBackgroundMessage((payload) => {
     body: payload.notification.body,
     icon: '/icon.svg',
     data: { 
-        url: payload.data.url 
+        url: payload.fcmOptions.link 
     }
   };
 
