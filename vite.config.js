@@ -18,32 +18,26 @@ export default defineConfig({
       srcDir: 'src',
       filename: 'sw.js',
       manifest: {
-        name: 'Vue PWA with Push Notifications',
-        short_name: 'VuePWA',
-        description: 'A Vue.js PWA capable of receiving push notifications.',
-        theme_color: '#42b883',
-        version: '1.1.0', // Add a version to the manifest
+        name: "Grus Corner",
+        short_name: "GrusCorner",
+        start_url: "/",
+        display: "standalone",
+        background_color: "#ffffff",
+        theme_color: "#000000",
         icons: [
           {
-            src: 'manifest-icon-192.maskable.png',
-            sizes: '192x192',
-            type: 'image/png'
+            src: "/manifest-icon-192.maskable.png",
+            sizes: "192x192",
+            type: "image/png",
+            purpose: "any maskable"
           },
           {
-            src: 'manifest-icon-512.maskable.png',
-            sizes: '512x512',
-            type: 'image/png'
-          },
-          {
-            src: 'manifest-icon-512.maskable.png',
-            sizes: '512x512',
-            type: 'image/png',
-            purpose: 'any maskable'
+            src: "/manifest-icon-512.maskable.png",
+            sizes: "512x512",
+            type: "image/png",
+            purpose: "any maskable"
           }
-        ],
-        start_url: '.',
-        display: 'standalone',
-        background_color: '#ffffff'
+        ]
       }
     })
   ]

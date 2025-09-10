@@ -48,6 +48,13 @@ messaging.onBackgroundMessage((payload) => {
   const notificationOptions = {
     body: payload.notification.body,
     icon: '/icon.svg',
+    badge: '/icon.svg',
+    actions: [
+      {
+        action: 'open',
+        title: 'Open'
+      }
+    ],
     data: { 
         url: payload.fcmOptions.link 
     }
