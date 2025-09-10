@@ -59,7 +59,8 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onUnmounted, watch } from 'vue';
+import { getFirestore, collection, query, orderBy, onSnapshot } from 'firebase/firestore';
 import { auth } from '../firebase';
 import MemoForm from '../components/MemoForm.vue';
 
@@ -68,30 +69,32 @@ const loading = ref(true);
 const error = ref(null);
 const showForm = ref(false);
 const selectedMemo = ref(null);
+let unsubscribeFromMemos = null;
 
-// --- API Calls ---
-const fetchMemos = async () => {
-  loading.value = true;
-  error.value = null;
+// --- FIRESTORE REAL-TIME LISTENER ---
+const subscribeToMemos = () => {
+  if (unsubscribeFromMemos) unsubscribeFromMemos();
+
   try {
-    if (!auth.currentUser) throw new Error('You must be logged in to view memos.');
-    const idToken = await auth.currentUser.getIdToken();
-    const response = await fetch('/api/memos', {
-      headers: { 'Authorization': `Bearer ${idToken}` },
+    const db = getFirestore();
+    const memosQuery = query(collection(db, 'memos'), orderBy('createdAt', 'desc'));
+
+    unsubscribeFromMemos = onSnapshot(memosQuery, (snapshot) => {
+      memos.value = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      loading.value = false;
+    }, (err) => {
+      console.error("Error fetching memos in real-time:", err);
+      error.value = "Failed to load memos. Please check your connection.";
+      loading.value = false;
     });
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || 'Failed to fetch memos.');
-    }
-    memos.value = await response.json();
   } catch (err) {
-    console.error("Error fetching memos:", err);
-    error.value = err.message;
-  } finally {
+    console.error("Error setting up memos subscription:", err);
+    error.value = "An unexpected error occurred.";
     loading.value = false;
   }
 };
 
+// --- API Calls (for write operations) ---
 const deleteMemo = async (memoId) => {
   if (!confirm("Are you sure you want to delete this memo? This action cannot be undone.")) {
     return;
@@ -108,11 +111,10 @@ const deleteMemo = async (memoId) => {
       const errorData = await response.json();
       throw new Error(errorData.message || 'Failed to delete memo.');
     }
-    return true;
+    // No need to fetchMemos() here, onSnapshot will handle it!
   } catch (err) {
     console.error("Error deleting memo:", err);
     error.value = err.message; // Show error to the user
-    return false;
   }
 };
 
@@ -135,14 +137,12 @@ const closeForm = () => {
 
 const handleMemoSaved = () => {
   closeForm();
-  fetchMemos(); // Refresh the list
+  // No need to fetchMemos(), onSnapshot will handle the update.
 };
 
 const handleDeleteMemo = async (memoId) => {
-  const success = await deleteMemo(memoId);
-  if (success) {
-    fetchMemos(); // Refresh the list
-  }
+  await deleteMemo(memoId);
+  // No need to fetchMemos(), onSnapshot will handle the update.
 };
 
 // --- Utility Functions ---
@@ -154,7 +154,25 @@ const formatDate = (dateString) => {
 
 // --- Lifecycle Hooks ---
 onMounted(() => {
-  fetchMemos();
+  // Subscribe when the component is mounted
+  subscribeToMemos();
+
+  // Also, re-subscribe if the user logs in or out
+  watch(auth, (currentUser) => {
+    if (currentUser) {
+      subscribeToMemos();
+    } else {
+      if (unsubscribeFromMemos) unsubscribeFromMemos();
+      memos.value = []; // Clear data on logout
+    }
+  });
+});
+
+onUnmounted(() => {
+  // Unsubscribe when the component is unmounted
+  if (unsubscribeFromMemos) {
+    unsubscribeFromMemos();
+  }
 });
 </script>
 
