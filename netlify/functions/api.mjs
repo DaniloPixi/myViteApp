@@ -8,6 +8,10 @@ import path from 'path';
 import fs from 'fs';
 import { v2 as cloudinary } from 'cloudinary';
 
+// Import route handlers
+import createPlansRouter from './routes/plans.mjs';
+import createMemosRouter from './routes/memos.mjs';
+
 let db;
 
 // --- Dual-Environment Firebase Initialization ---
@@ -192,9 +196,22 @@ async function sendPushNotification(title, body, link, excludeUid) {
     }
 }
 
-
 // --- API Endpoints ---
+const apiRouter = express.Router();
 
+// Non-authenticated or general routes can go here
+
+// Authenticated routes
+apiRouter.use(authenticateToken);
+apiRouter.use(checkDb);
+
+// Feature-specific routes
+apiRouter.use('/plans', createPlansRouter(db, sendPushNotification));
+apiRouter.use('/memos', createMemosRouter(db, cloudinary, extractPublicId));
+
+app.use('/api', apiRouter);
+
+// Standalone registration endpoint (can be kept here or moved)
 app.post('/api/register', authenticateToken, checkDb, async (req, res) => {
   const { token } = req.body;
   const { uid } = req.user;
@@ -208,165 +225,6 @@ app.post('/api/register', authenticateToken, checkDb, async (req, res) => {
     console.error('Error in /api/register:', error);
     res.status(500).json({ success: false, message: 'Internal server error.', details: error.message });
   }
-});
-
-app.get('/api/plans', authenticateToken, checkDb, async (req, res) => {
-  try {
-    const plansSnapshot = await db.collection('plans').orderBy('date', 'desc').get();
-    const plans = plansSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    res.status(200).json(plans);
-  } catch (error) {
-    console.error('Error in GET /api/plans:', error);
-    res.status(500).json({ success: false, message: 'Internal server error.', details: error.message });
-  }
-});
-
-app.post('/api/plans', authenticateToken, checkDb, async (req, res) => {
-  try {
-    const { text, date, time, location, hashtags } = req.body;
-    const { uid, name, email } = req.user;
-    const newPlanRef = await db.collection('plans').add({
-      text,
-      date,
-      time,
-      location,
-      hashtags,
-      createdBy: name || email,
-      creatorUid: uid,
-      createdAt: new Date(),
-    });
-    await sendPushNotification('New Plan Added!', `"${text}" on ${date}`, '/#/plans', uid);
-    res.status(201).json({ success: true, planId: newPlanRef.id });
-  } catch (error) {
-    console.error('Error in POST /api/plans:', error);
-    res.status(500).json({ success: false, message: 'Internal server error.', details: error.message });
-  }
-});
-
-app.delete('/api/plans/:planId', authenticateToken, checkDb, async (req, res) => {
-  try {
-    const { planId } = req.params;
-    const { uid } = req.user;
-    const planRef = db.collection('plans').doc(planId);
-    const doc = await planRef.get();
-    if (!doc.exists) {
-      return res.status(404).json({ success: false, message: 'Plan not found.' });
-    }
-    const { text, date } = doc.data();
-
-    await planRef.delete();
-
-    await sendPushNotification('Plan Deleted!', `"${text}" on ${date} was removed`, '/#/plans', uid);
-
-    res.status(200).json({ success: true, message: 'Plan deleted successfully.' });
-  } catch (error) {
-    console.error('Error in DELETE /api/plans/:planId:', error);
-    res.status(500).json({ success: false, message: 'Internal server error.', details: error.message });
-  }
-});
-
-app.put('/api/plans/:planId', authenticateToken, checkDb, async (req, res) => {
-  try {
-    const { planId } = req.params;
-    const { uid } = req.user;
-    const { text, date, time, location, hashtags } = req.body;
-    await db.collection('plans').doc(planId).update({
-      text,
-      date,
-      time,
-      location,
-      hashtags
-    });
-    await sendPushNotification('Plan Updated!', `"${text}" on ${date}`, '/#/plans', uid);
-    res.status(200).json({ success: true, message: 'Plan updated successfully.' });
-  } catch (error) {
-    console.error('Error in PUT /api/plans/:planId:', error);
-    res.status(500).json({ success: false, message: 'Internal server error.', details: error.message });
-  }
-});
-
-// --- Memos CRUD ---
-app.get('/api/memos', authenticateToken, checkDb, async (req, res) => {
-    try {
-        const memosSnapshot = await db.collection('memos').orderBy('createdAt', 'desc').get();
-        const memos = memosSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        res.status(200).json(memos);
-    } catch (error) {
-        console.error('Error in GET /api/memos:', error);
-        res.status(500).json({ success: false, message: 'Internal server error.', details: error.message });
-    }
-});
-
-app.post('/api/memos', authenticateToken, checkDb, async (req, res) => {
-  const { description, date, location, hashtags, photoUrls } = req.body;
-  const { uid, name, email } = req.user;
-  try {
-    const newMemoRef = await db.collection('memos').add({
-      description, date, location, hashtags, photoUrls,
-      creatorUid: uid, createdBy: name || email, createdAt: new Date().toISOString(),
-    });
-    res.status(201).json({ success: true, memoId: newMemoRef.id });
-  } catch (error) {
-    console.error('Error in POST /api/memos:', error);
-    res.status(500).json({ success: false, message: 'Internal server error.', details: error.message });
-  }
-});
-
-app.put('/api/memos/:memoId', authenticateToken, checkDb, async (req, res) => {
-    const { memoId } = req.params;
-    const { description, date, location, hashtags, photoUrls } = req.body;
-    try {
-        const memoRef = db.collection('memos').doc(memoId);
-        const doc = await memoRef.get();
-        if (!doc.exists) {
-            return res.status(404).json({ success: false, message: 'Memo not found.' });
-        }
-
-        const originalPhotoUrls = doc.data().photoUrls || [];
-        const newPhotoUrls = photoUrls || [];
-        const photosToDelete = originalPhotoUrls.filter(url => !newPhotoUrls.includes(url));
-
-        if (photosToDelete.length > 0 && cloudinary.config().api_key) {
-            const publicIdsToDelete = photosToDelete.map(extractPublicId).filter(id => id);
-            if (publicIdsToDelete.length > 0) {
-                console.log(`Deleting ${publicIdsToDelete.length} photos from Cloudinary...`);
-                await cloudinary.api.delete_resources(publicIdsToDelete);
-            }
-        }
-
-        const updateData = { description, date, location, hashtags, photoUrls };
-        await memoRef.update(updateData);
-        res.status(200).json({ success: true, message: 'Memo updated successfully.' });
-    } catch (error) {
-        console.error('Error in /api/memos PUT:', error);
-        res.status(500).json({ success: false, message: 'Internal server error.', details: error.message });
-    }
-});
-
-app.delete('/api/memos/:memoId', authenticateToken, checkDb, async (req, res) => {
-    const { memoId } = req.params;
-    try {
-        const memoRef = db.collection('memos').doc(memoId);
-        const doc = await memoRef.get();
-        if (!doc.exists) {
-            return res.status(404).json({ success: false, message: 'Memo not found.' });
-        }
-
-        const photosToDelete = doc.data().photoUrls || [];
-        if (photosToDelete.length > 0 && cloudinary.config().api_key) {
-            const publicIdsToDelete = photosToDelete.map(extractPublicId).filter(id => id);
-            if (publicIdsToDelete.length > 0) {
-                console.log(`Deleting ${publicIdsToDelete.length} photos from Cloudinary...`);
-                await cloudinary.api.delete_resources(publicIdsToDelete);
-            }
-        }
-
-        await memoRef.delete();
-        res.status(200).json({ success: true, message: 'Memo and associated photos deleted.' });
-    } catch (error) {
-        console.error('Error in /api/memos DELETE:', error);
-        res.status(500).json({ success: false, message: 'Internal server error.', details: error.message });
-    }
 });
 
 export const handler = serverless(app);
