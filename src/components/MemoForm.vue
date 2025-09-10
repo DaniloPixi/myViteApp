@@ -25,19 +25,24 @@
 
         <!-- Hashtags -->
         <div class="form-group">
-          <label for="hashtags">Hashtags (comma-separated)</label>
-          <input type="text" id="hashtags" v-model="rawHashtags" />
+          <div class="hashtag-selection-container">
+            <button v-for="tag in availableHashtags" :key="tag" @click.prevent="toggleHashtag(tag)" :class="{ selected: formData.hashtags.includes(tag) }">
+              #{{ tag }}
+            </button>
+          </div>
         </div>
 
         <!-- Photo Uploader -->
         <div class="form-group">
-          <label>Photos (up to 10)</label>
-          <input type="file" @change="handleFileChange" multiple accept="image/*" :disabled="isUploading" />
+          <input type="file" id="file-upload" @change="handleFileChange" multiple accept="image/*" :disabled="isUploading" class="file-input-hidden" />
+          <label for="file-upload" class="file-upload-label" :class="{ 'disabled': isUploading }">
+            + Add Photos
+          </label>
           <div v-if="isUploading" class="upload-status">Uploading... {{ uploadProgress }}%</div>
         </div>
 
         <!-- Image Previews -->
-        <div class="image-previews">
+        <div class="image-previews" v-if="imagePreviews.length > 0">
           <div v-for="(preview, index) in imagePreviews" :key="index" class="preview-item">
             <img :src="preview.url" />
             <button @click.prevent="removeImage(index)" class="remove-btn">×</button>
@@ -71,9 +76,9 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'memo-saved']);
 
+const availableHashtags = ref(['date', 'party', 'food', '18+', 'travel', 'weekend', 'chill', 'friends', 'love', 'random']);
 const isEditing = computed(() => !!props.memo);
-const formData = ref({});
-const rawHashtags = ref('');
+const formData = ref({ hashtags: [] });
 const selectedFiles = ref([]);
 const imagePreviews = ref([]);
 const isUploading = ref(false);
@@ -81,19 +86,30 @@ const isSubmitting = ref(false);
 const uploadProgress = ref(0);
 const error = ref(null);
 
-// Initialize form data when the component loads or the memo prop changes
 watch(() => props.memo, (newMemo) => {
   if (newMemo) {
     formData.value = { ...newMemo };
-    rawHashtags.value = newMemo.hashtags ? newMemo.hashtags.join(', ') : '';
+    if (newMemo.hashtags && Array.isArray(newMemo.hashtags)) {
+        formData.value.hashtags = newMemo.hashtags.map(t => t.startsWith('#') ? t.substring(1) : t);
+    } else {
+        formData.value.hashtags = [];
+    }
     imagePreviews.value = newMemo.photoUrls ? newMemo.photoUrls.map(url => ({ url, source: 'existing' })) : [];
   } else {
-    formData.value = { description: '', location: '', date: new Date().toISOString().split('T')[0] };
-    rawHashtags.value = '';
+    formData.value = { description: '', location: '', date: new Date().toISOString().split('T')[0], hashtags: [] };
     imagePreviews.value = [];
   }
   selectedFiles.value = [];
 }, { immediate: true });
+
+const toggleHashtag = (tag) => {
+  const index = formData.value.hashtags.indexOf(tag);
+  if (index > -1) {
+    formData.value.hashtags.splice(index, 1);
+  } else if (formData.value.hashtags.length < 3) {
+    formData.value.hashtags.push(tag);
+  }
+};
 
 const handleFileChange = (event) => {
   const files = Array.from(event.target.files);
@@ -101,6 +117,7 @@ const handleFileChange = (event) => {
 
   if (files.length > availableSlots) {
     error.value = `You can only add ${availableSlots} more photos.`;
+    event.target.value = null;
     return;
   }
   error.value = null;
@@ -109,6 +126,7 @@ const handleFileChange = (event) => {
     selectedFiles.value.push(file);
     imagePreviews.value.push({ url: URL.createObjectURL(file), source: 'new' });
   }
+  event.target.value = null;
 };
 
 const removeImage = (index) => {
@@ -153,7 +171,7 @@ const uploadImages = async () => {
     } catch (err) {
       error.value = `Upload failed for one or more images: ${err.message}`;
       isUploading.value = false;
-      return null; // Indicates a failure
+      return null;
     }
   }
 
@@ -165,24 +183,21 @@ const submitForm = async () => {
   isSubmitting.value = true;
   error.value = null;
 
-  // 1. Upload any new images
   const newImageUrls = await uploadImages();
-  if (newImageUrls === null) { // Check for upload failure
+  if (newImageUrls === null) {
     isSubmitting.value = false;
     return;
   }
 
-  // 2. Combine with existing image URLs
   const existingImageUrls = imagePreviews.value
     .filter(p => p.source === 'existing')
     .map(p => p.url);
   
   const finalPhotoUrls = [...existingImageUrls, ...newImageUrls];
 
-  // 3. Prepare the final payload
   const payload = {
     ...formData.value,
-    hashtags: rawHashtags.value ? rawHashtags.value.split(',').map(h => h.trim()).filter(h => h) : [],
+    hashtags: formData.value.hashtags.map(tag => `#${tag}`),
     photoUrls: finalPhotoUrls,
   };
 
@@ -269,10 +284,41 @@ textarea {
   min-height: 100px;
   resize: vertical;
 }
-.upload-status {
-  margin-top: 0.5rem;
-  color: #42b883;
+
+.hashtag-selection-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
+.hashtag-selection-container button {
+  padding: 0.5em 1em;
+  border-radius: 20px;
+  border: 1px solid #444;
+  background-color: #333;
+  color: #fff;
+  cursor: pointer;
+}
+.hashtag-selection-container button.selected {
+  background-color: #42b883;
+  border-color: #42b883;
+}
+
+.file-input-hidden { display: none; }
+.file-upload-label {
+  display: inline-block;
+  padding: 0.7em 1.5em;
+  background-color: #555;
+  color: white;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background-color 0.3s;
+}
+.file-upload-label:hover { background-color: #666; }
+.file-upload-label.disabled { opacity: 0.5; cursor: not-allowed; }
+
+.upload-status { margin-top: 0.5rem; color: #42b883; }
+
 .image-previews {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
@@ -282,31 +328,36 @@ textarea {
 .preview-item {
   position: relative;
 }
+
 .preview-item img {
   width: 100%;
   height: 80px;
   object-fit: cover;
   border-radius: 6px;
+  display: block;
 }
+
+/* Exact style from Plans.vue, but smaller */
 .remove-btn {
   position: absolute;
-  top: -5px;
-  right: -5px;
-  background: #d9534f;
-  color: white;
+  top: 5px;
+  right: 5px;
+  background: #444;
+  color: #fff;
   border: none;
   border-radius: 50%;
-  width: 20px;
-  height: 20px;
-  font-size: 14px;
-  line-height: 20px;
-  text-align: center;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
+  font-size: 0.9rem;
+  line-height: 1;
 }
-.error-message {
-  color: #ff6b6b;
-  margin-bottom: 1rem;
-}
+
+.error-message { color: #ff6b6b; margin-bottom: 1rem; }
+
 .form-actions {
   display: flex;
   justify-content: flex-end;
@@ -320,16 +371,7 @@ textarea {
   font-weight: 600;
   cursor: pointer;
 }
-.btn-cancel {
-  background-color: #555;
-  color: white;
-}
-.btn-submit {
-  background-color: #42b883;
-  color: white;
-}
-.btn-submit:disabled {
-  background-color: #36a473;
-  opacity: 0.6;
-}
+.btn-cancel { background-color: #555; color: white; }
+.btn-submit { background-color: #42b883; color: white; }
+.btn-submit:disabled { background-color: #36a473; opacity: 0.6; }
 </style>

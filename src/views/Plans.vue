@@ -17,11 +17,13 @@
       <div v-else-if="!filteredPlans.length" class="empty-state"><p>No plans match your current filters.</p></div>
       <div v-else class="plan-cards-container">
         <div v-for="plan in filteredPlans" :key="plan.id" class="plan-card">
-          <div class="card-actions">
-            <button @click="openEditModal(plan)" class="edit-button">&#9998;</button>
-            <button @click="promptDelete(plan.id)" class="delete-button">×</button>
+          <div class="card-header">
+            <h3>{{ plan.text }}</h3>
+            <div class="card-actions">
+              <button @click="openEditModal(plan)" class="edit-button">&#9998;</button>
+              <button @click="promptDelete(plan.id)" class="delete-button">×</button>
+            </div>
           </div>
-          <h3>{{ plan.text }}</h3>
           <p class="plan-detail"><strong>Date:</strong> {{ formatDate(plan.date) }}</p>
           <p v-if="plan.time" class="plan-detail"><strong>Time:</strong> {{ formatTime(plan.time) }}</p>
           <p class="plan-detail"><strong>Location:</strong> {{ plan.location }}</p>
@@ -269,7 +271,7 @@ h1 { color: #42b883; text-align: center; margin-bottom: 2rem; }
 
 .plan-card {
   position: relative;
-  padding: 1.5rem 1.5rem 2.5rem 1.5rem; /* Increased bottom padding */
+  padding: 1.5rem;
   border-radius: 20px;
   background: rgba(50, 50, 50, 0.5);
   backdrop-filter: blur(8px);
@@ -278,18 +280,35 @@ h1 { color: #42b883; text-align: center; margin-bottom: 2rem; }
   box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.25);
 }
 
-.plan-card h3 {
-  margin: 0 0 1rem 0;
+.card-header {
+  display: grid;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.card-header > * {
+  grid-column: 1 / 2;
+  grid-row: 1 / 2;
+}
+
+.card-header h3 {
+  margin: 0;
   color: #42b883;
   font-size: 1.4em;
-  padding-right: 50px; /* Safe zone for buttons */
+  text-align: center;
 }
 
 .plan-card .plan-detail { margin: 0.5rem 0; color: #ccc; }
 .plan-detail strong { color: #888; }
 .creator-info { position: absolute; bottom: 10px; right: 1.5rem; font-size: 0.8em; color: #888; }
 
-.card-actions { position: absolute; top: 10px; right: 10px; display: flex; gap: 0.5rem; }
+.card-actions {
+  justify-self: end;
+  display: flex;
+  gap: 0.5rem;
+  z-index: 1;
+}
+
 .edit-button, .delete-button { background: #444; color: #fff; border: none; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 1rem; }
 
 .create-plan-button-section { text-align: center; margin-bottom: 2.5rem; }
