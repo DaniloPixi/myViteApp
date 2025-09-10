@@ -34,9 +34,7 @@ registerRoute(
   /^https:\/\/www\.gstatic\.com\/firebasejs\/.*/,
   new StaleWhileRevalidate({
     cacheName: 'firebase-js-cache',
-    plugins: [
-      // Any additional plugins, like ExpirationPlugin, can be added here
-    ]
+    plugins: []
   })
 );
 
@@ -44,19 +42,18 @@ registerRoute(
 messaging.onBackgroundMessage((payload) => {
   console.log('[sw.js] Received background message ', payload);
 
-  // Manually display the notification to add vibration and require interaction
   const notificationTitle = payload.notification.title;
   const notificationOptions = {
     body: payload.notification.body,
-    icon: '/manifest-icon-192.maskable.png', // Using an icon from the PWA manifest
-    vibrate: [200, 100, 200], // Vibration pattern to hint for a heads-up notification
-    requireInteraction: true, // Notification will stay until interacted with
-    data: payload.data // Pass along the original data, including the URL
+    icon: '/manifest-icon-192.maskable.png',
+    vibrate: [200, 100, 200], // Vibration pattern
+    requireInteraction: true, // Keep notification until interacted with
+    priority: 2, // Highest priority for heads-up display
+    data: payload.data
   };
 
   return self.registration.showNotification(notificationTitle, notificationOptions);
 });
-
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
