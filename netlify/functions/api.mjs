@@ -164,6 +164,23 @@ async function sendPushNotification(title, body, link, excludeUid) {
                     badge: '/manifest-icon-192.maskable.png'
                 }
             },
+            android: {
+                priority: 'high',
+                notification: {
+                    channel_id: 'high_priority_notifications'
+                }
+            },
+            apns: {
+                headers: {
+                    'apns-push-type': 'alert',
+                    'apns-priority': '10'
+                },
+                payload: {
+                    aps: {
+                        sound: 'default'
+                    }
+                }
+            },
             tokens: recipientTokens,
         };
         
