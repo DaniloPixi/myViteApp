@@ -182,13 +182,13 @@ async function sendTokenToServer(token) {
 // --- Foreground Message Handling ---
 messaging.onMessage((payload) => {
   console.log('Foreground message received.', payload);
-  const notificationTitle = payload.notification?.title || payload.data?.title;
+  const { title, body } = payload.data;
   const notificationOptions = {
-    body: payload.notification?.body || payload.data?.body,
-    icon: '/pwa-192x192.png'
+    body,
+    icon: '/manifest-icon-192.maskable.png'
   };
-  if (notificationTitle) {
-      new Notification(notificationTitle, notificationOptions);
+  if (title) {
+      new Notification(title, notificationOptions);
   } else {
       console.warn("Received foreground message without a title.", payload);
   }

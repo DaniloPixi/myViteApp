@@ -152,8 +152,7 @@ async function sendPushNotification(title, body, link, excludeUid) {
         }
 
         const message = {
-            notification: { title, body },
-            webpush: { fcm_options: { link } },
+            data: { title, body, link }, // Changed from 'notification' to 'data'
             tokens: recipientTokens,
         };
         

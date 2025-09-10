@@ -44,9 +44,10 @@ registerRoute(
 messaging.onBackgroundMessage((payload) => {
   console.log('[sw.js] Received background message ', payload);
 
-  const notificationTitle = payload.notification.title;
+  const { title, body, link } = payload.data;
+
   const notificationOptions = {
-    body: payload.notification.body,
+    body,
     icon: '/manifest-icon-192.maskable.png',
     badge: '/manifest-icon-192.maskable.png',
     actions: [
@@ -56,11 +57,11 @@ messaging.onBackgroundMessage((payload) => {
       }
     ],
     data: { 
-        url: payload.fcmOptions.link 
+        url: link
     }
   };
 
-  self.registration.showNotification(notificationTitle, notificationOptions);
+  self.registration.showNotification(title, notificationOptions);
 });
 
 self.addEventListener('notificationclick', (event) => {
