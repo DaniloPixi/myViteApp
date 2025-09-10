@@ -1,5 +1,12 @@
 
 <template>
+  <!-- In-App Notification Banner -->
+  <InAppNotification
+    :title="inAppNotification.title"
+    :body="inAppNotification.body"
+    v-model:visible="inAppNotification.visible"
+  />
+
   <!-- Fixed Notification Controls -->
   <div v-if="user && currentView === 'home' && supportsNotifications" class="notification-control-fixed">
     <button v-if="notificationPermission === 'granted'" class="notification-btn granted" disabled>
@@ -68,9 +75,9 @@
 </template>
 
 <script setup>
-import { ref, watch, onUnmounted, onMounted } from 'vue';
+import { ref, watch, onUnmounted, onMounted, reactive } from 'vue';
 import { useRegisterSW } from 'virtual:pwa-register/vue';
-import { auth, messaging, db } from './firebase';
+import { auth, messaging } from './firebase';
 
 // Import child components and views
 import Login from './views/Login.vue';
@@ -79,6 +86,7 @@ import MemosAndMoments from './views/MemosAndMoments.vue';
 import Plans from './views/Plans.vue';
 import Sidebar from './components/Sidebar.vue';
 import ScrollToTopButton from './components/ScrollToTopButton.vue';
+import InAppNotification from './components/InAppNotification.vue'; // New component
 
 // --- PWA Auto-Update Logic ---
 const { needRefresh, updateServiceWorker } = useRegisterSW();
@@ -95,6 +103,13 @@ const isRegistering = ref(false);
 const notificationPermission = ref(null);
 const supportsNotifications = ref(false);
 const currentView = ref(localStorage.getItem('currentView') || 'home');
+
+// In-app notification state
+const inAppNotification = reactive({
+  visible: false,
+  title: '',
+  body: ''
+});
 
 // --- Filter State ---
 const locationFilter = ref('');
@@ -182,17 +197,17 @@ async function sendTokenToServer(token) {
 // --- Foreground Message Handling ---
 messaging.onMessage((payload) => {
   console.log('Foreground message received.', payload);
-  const { title, body } = payload.data;
-  const notificationOptions = {
-    body,
-    icon: '/manifest-icon-192.maskable.png'
-  };
-  if (title) {
-      new Notification(title, notificationOptions);
+  const { notification } = payload;
+  
+  if (notification && notification.title && notification.body) {
+    inAppNotification.title = notification.title;
+    inAppNotification.body = notification.body;
+    inAppNotification.visible = true;
   } else {
-      console.warn("Received foreground message without a title.", payload);
+      console.warn("Received foreground message with incomplete data.", payload);
   }
 });
+
 
 // --- Lifecycle Hooks ---
 onMounted(() => {
