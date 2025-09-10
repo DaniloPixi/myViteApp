@@ -152,7 +152,14 @@ async function sendPushNotification(title, body, link, excludeUid) {
         }
 
         const message = {
-            data: { title, body, link }, // Changed from 'notification' to 'data'
+            notification: { title, body },
+            webpush: { 
+                fcm_options: { link },
+                notification: {
+                    icon: '/manifest-icon-192.maskable.png',
+                    badge: '/manifest-icon-192.maskable.png'
+                }
+            },
             tokens: recipientTokens,
         };
         

@@ -44,24 +44,8 @@ registerRoute(
 messaging.onBackgroundMessage((payload) => {
   console.log('[sw.js] Received background message ', payload);
 
-  const { title, body, link } = payload.data;
-
-  const notificationOptions = {
-    body,
-    icon: '/manifest-icon-192.maskable.png',
-    badge: '/manifest-icon-192.maskable.png',
-    actions: [
-      {
-        action: 'open',
-        title: 'Open'
-      }
-    ],
-    data: { 
-        url: link
-    }
-  };
-
-  self.registration.showNotification(title, notificationOptions);
+  // We are using a hybrid payload, so the notification is already displayed.
+  // We just need to handle the click action.
 });
 
 self.addEventListener('notificationclick', (event) => {
