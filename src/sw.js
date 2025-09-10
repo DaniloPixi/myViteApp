@@ -44,9 +44,19 @@ registerRoute(
 messaging.onBackgroundMessage((payload) => {
   console.log('[sw.js] Received background message ', payload);
 
-  // We are using a hybrid payload, so the notification is already displayed.
-  // We just need to handle the click action.
+  // Manually display the notification to add vibration and require interaction
+  const notificationTitle = payload.notification.title;
+  const notificationOptions = {
+    body: payload.notification.body,
+    icon: '/manifest-icon-192.maskable.png', // Using an icon from the PWA manifest
+    vibrate: [200, 100, 200], // Vibration pattern to hint for a heads-up notification
+    requireInteraction: true, // Notification will stay until interacted with
+    data: payload.data // Pass along the original data, including the URL
+  };
+
+  return self.registration.showNotification(notificationTitle, notificationOptions);
 });
+
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
