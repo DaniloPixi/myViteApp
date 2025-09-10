@@ -47,8 +47,8 @@ messaging.onBackgroundMessage((payload) => {
   const notificationTitle = payload.notification.title;
   const notificationOptions = {
     body: payload.notification.body,
-    icon: '/icon.svg',
-    badge: '/icon.svg',
+    icon: '/manifest-icon-192.maskable.png',
+    badge: '/manifest-icon-192.maskable.png',
     actions: [
       {
         action: 'open',

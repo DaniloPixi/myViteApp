@@ -229,7 +229,7 @@ app.post('/api/plans', authenticateToken, checkDb, async (req, res) => {
       creatorUid: uid,
       createdAt: new Date(),
     });
-    await sendPushNotification('New Plan Added!', `"${text}" on ${date}`, '/plans', uid);
+    await sendPushNotification('New Plan Added!', `"${text}" on ${date}`, '/#/plans', uid);
     res.status(201).json({ success: true, planId: newPlanRef.id });
   } catch (error) {
     console.error('Error in POST /api/plans:', error);
@@ -250,7 +250,7 @@ app.delete('/api/plans/:planId', authenticateToken, checkDb, async (req, res) =>
 
     await planRef.delete();
 
-    await sendPushNotification('Plan Deleted!', `"${text}" on ${date} was removed`, '/plans', uid);
+    await sendPushNotification('Plan Deleted!', `"${text}" on ${date} was removed`, '/#/plans', uid);
 
     res.status(200).json({ success: true, message: 'Plan deleted successfully.' });
   } catch (error) {
@@ -271,7 +271,7 @@ app.put('/api/plans/:planId', authenticateToken, checkDb, async (req, res) => {
       location,
       hashtags
     });
-    await sendPushNotification('Plan Updated!', `"${text}" on ${date}`, '/plans', uid);
+    await sendPushNotification('Plan Updated!', `"${text}" on ${date}`, '/#/plans', uid);
     res.status(200).json({ success: true, message: 'Plan updated successfully.' });
   } catch (error) {
     console.error('Error in PUT /api/plans/:planId:', error);
