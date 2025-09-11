@@ -42,15 +42,17 @@ registerRoute(
 messaging.onBackgroundMessage((payload) => {
   console.log('[sw.js] Received background message ', payload);
 
-  const notificationTitle = payload.notification.title;
+  const notificationTitle = payload.data.title;
   const notificationOptions = {
-    body: payload.notification.body,
+    body: payload.data.body,
     icon: '/manifest-icon-192.maskable.png',
     badge: '/manifest-icon-192.maskable.png',
     vibrate: [200, 100, 200], // Vibration pattern
     requireInteraction: true, // Keep notification until interacted with
     priority: 2, // Highest priority for heads-up display
-    data: payload.data,
+    data: {
+        url: payload.data.url
+    },
     actions: [
       { action: 'view', title: 'View' },
       { action: 'dismiss', title: 'Dismiss' }
