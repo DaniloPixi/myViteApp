@@ -46,10 +46,15 @@ messaging.onBackgroundMessage((payload) => {
   const notificationOptions = {
     body: payload.notification.body,
     icon: '/manifest-icon-192.maskable.png',
+    badge: '/manifest-icon-192.maskable.png',
     vibrate: [200, 100, 200], // Vibration pattern
     requireInteraction: true, // Keep notification until interacted with
     priority: 2, // Highest priority for heads-up display
-    data: payload.data
+    data: payload.data,
+    actions: [
+      { action: 'view', title: 'View' },
+      { action: 'dismiss', title: 'Dismiss' }
+    ]
   };
 
   return self.registration.showNotification(notificationTitle, notificationOptions);
@@ -57,6 +62,10 @@ messaging.onBackgroundMessage((payload) => {
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
+
+  if (event.action === 'dismiss') {
+    return;
+  }
 
   const urlToOpen = new URL(event.notification.data.url, self.location.origin).href;
 
