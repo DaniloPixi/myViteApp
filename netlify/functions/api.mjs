@@ -156,21 +156,19 @@ async function sendPushNotification(title, body, link, excludeUid) {
         }
 
         const message = {
-            data: {
-                title,
-                body,
-                url: link
-            },
-            webpush: {
-                headers: {
-                    'Urgency': 'high'
-                },
-                fcm_options: {
-                    link
-                },
+            notification: { title, body },
+            webpush: { 
+                fcm_options: { link },
+                notification: {
+                    icon: '/manifest-icon-192.maskable.png',
+                    badge: '/manifest-icon-192.maskable.png'
+                }
             },
             android: {
                 priority: 'high',
+                notification: {
+                    channel_id: 'high_priority_notifications'
+                }
             },
             apns: {
                 headers: {
@@ -179,8 +177,7 @@ async function sendPushNotification(title, body, link, excludeUid) {
                 },
                 payload: {
                     aps: {
-                        sound: 'default',
-                        badge: 1
+                        sound: 'default'
                     }
                 }
             },
