@@ -1,6 +1,10 @@
 <template>
   <div v-if="isVisible" class="image-modal-overlay" @click.self="close" @keydown.esc="close" @keydown.left="prevImage" @keydown.right="nextImage" tabindex="0" ref="modal">
-    <div class="image-modal-content">
+    <div class="image-modal-content" 
+         @touchstart="handleTouchStart"
+         @touchmove="handleTouchMove"
+         @touchend="handleTouchEnd">
+
       <!-- Close Button -->
       <button @click="close" class="close-btn">&times;</button>
 
@@ -34,6 +38,7 @@ const emit = defineEmits(['close']);
 
 const currentIndex = ref(0);
 const modal = ref(null);
+const touchStartX = ref(0);
 
 // Computed properties
 const hasMultipleImages = computed(() => props.imageUrls.length > 1);
@@ -65,6 +70,32 @@ const nextImage = () => {
     currentIndex.value++;
   }
 };
+
+// --- Touch Swipe Logic ---
+const handleTouchStart = (event) => {
+  touchStartX.value = event.touches[0].clientX;
+};
+
+const handleTouchMove = (event) => {
+  // Prevent page scroll while swiping
+  event.preventDefault();
+};
+
+const handleTouchEnd = (event) => {
+  if (touchStartX.value === 0) return;
+
+  const touchEndX = event.changedTouches[0].clientX;
+  const diffX = touchStartX.value - touchEndX;
+
+  if (diffX > 50) { // Swiped left
+    nextImage();
+  } else if (diffX < -50) { // Swiped right
+    prevImage();
+  }
+
+  touchStartX.value = 0; // Reset
+};
+
 </script>
 
 <style scoped>
@@ -89,6 +120,7 @@ const nextImage = () => {
   display: flex;
   align-items: center;
   justify-content: center;
+  user-select: none; /* Prevent text selection during swipe */
 }
 
 .image-container {
@@ -105,6 +137,7 @@ const nextImage = () => {
   object-fit: contain;
   display: block;
   border-radius: 8px;
+  pointer-events: none; /* Prevent image drag interfering with swipe */
 }
 
 .close-btn {
@@ -134,6 +167,13 @@ const nextImage = () => {
   cursor: pointer;
   z-index: 5;
   transition: background 0.2s;
+}
+
+/* Hide nav buttons on touch devices */
+@media (pointer: coarse) {
+  .nav-btn {
+    display: none;
+  }
 }
 
 .nav-btn:hover:not(:disabled) {
