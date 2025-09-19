@@ -137,10 +137,6 @@ input { box-sizing: border-box; width: 100%; padding: 0.8em 1em; border-radius: 
 .duration-buttons button { padding: 0.8em 1.1em; border-radius: 8px; border: 1px solid #444; background-color: #333; color: #fff; cursor: pointer; flex-grow: 1; }
 .duration-buttons button.selected { background-color: #42b883; border-color: #42b883; }
 
-/* Hashtag selection */
-.hashtag-selection-container { display: flex; flex-wrap: wrap; gap: 0.5rem; }
-.hashtag-selection-container button { padding: 0.5em 1em; border-radius: 20px; border: 1px solid #444; background-color: #333; color: #fff; cursor: pointer; }
-.hashtag-selection-container button.selected { background-color: #42b883; border-color: #42b883; }
 
 /* Modal actions */
 .modal-actions { display: flex; justify-content: center; gap: 1rem; margin-top: 1.5rem; }

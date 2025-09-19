@@ -229,11 +229,7 @@ onUnmounted(() => {
 });
 </script>
 
-<style>
-html {
-  scroll-behavior: smooth;
-}
-
+<style scoped>
 .sticky-header {
   position: sticky;
   top: 0;
@@ -251,16 +247,6 @@ html {
   color: #42b883;
   margin: 0;
   font-weight: 600;
-}
-
-.card {
-  max-width: 550px;
-  margin: 0 auto;
-  padding: 2.5em;
-  border-radius: 20px;
-  background: rgba(36, 36, 36, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
 }
 
 .view-nav {
@@ -339,11 +325,6 @@ html {
 
 .logout-button:hover {
     background-color: #666;
-}
-
-.error {
-  color: #ff6b6b;
-  margin-top: 1rem;
 }
 
 /* New Home View Styles */

@@ -45,7 +45,7 @@
         <div class="image-previews" v-if="imagePreviews.length > 0">
           <div v-for="(preview, index) in imagePreviews" :key="index" class="preview-item">
             <img :src="preview.url" />
-            <button @click.prevent="removeImage(index)" class="remove-btn">×</button>
+            <button @click.prevent="removeImage(index)" class="remove-image-btn">×</button>
           </div>
         </div>
 
@@ -285,24 +285,6 @@ textarea {
   resize: vertical;
 }
 
-.hashtag-selection-container {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-.hashtag-selection-container button {
-  padding: 0.5em 1em;
-  border-radius: 20px;
-  border: 1px solid #444;
-  background-color: #333;
-  color: #fff;
-  cursor: pointer;
-}
-.hashtag-selection-container button.selected {
-  background-color: #42b883;
-  border-color: #42b883;
-}
-
 .file-input-hidden { display: none; }
 .file-upload-label {
   display: inline-block;
@@ -335,25 +317,6 @@ textarea {
   object-fit: cover;
   border-radius: 6px;
   display: block;
-}
-
-/* Exact style from Plans.vue, but smaller */
-.remove-btn {
-  position: absolute;
-  top: 5px;
-  right: 5px;
-  background: #444;
-  color: #fff;
-  border: none;
-  border-radius: 50%;
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  font-size: 0.9rem;
-  line-height: 1;
 }
 
 .error-message { color: #ff6b6b; margin-bottom: 1rem; }

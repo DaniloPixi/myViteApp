@@ -16,6 +16,10 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   margin: 0;
   min-width: 320px;
@@ -78,6 +82,16 @@ input[type="password"] {
     box-sizing: border-box;
 }
 
+.card {
+  max-width: 550px;
+  margin: 0 auto;
+  padding: 2.5em;
+  border-radius: 20px;
+  background: rgba(36, 36, 36, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
 /* --- Shared Card Styles --- */
 .card-footer {
   display: flex;
@@ -116,4 +130,45 @@ input[type="password"] {
 
 .delete-button:hover {
   color: #ff6b6b;
+}
+
+.error {
+  color: #ff6b6b;
+  margin-top: 1rem;
+}
+
+.remove-image-btn {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  background: #444;
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.9rem;
+  line-height: 1;
+}
+
+.hashtag-selection-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.hashtag-selection-container button {
+  padding: 0.5em 1em;
+  border-radius: 20px;
+  border: 1px solid #444;
+  background-color: #333;
+  color: #fff;
+  cursor: pointer;
+}
+.hashtag-selection-container button.selected {
+  background-color: #42b883;
+  border-color: #42b883;
 }

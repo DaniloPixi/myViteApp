@@ -14,9 +14,23 @@
       <!-- Memos List -->
       <div v-if="filteredMemos.length > 0" class="memos-list">
         <div v-for="memo in filteredMemos" :key="memo.id" class="memo-card">
-          <div v-if="memo.photoUrls && memo.photoUrls.length" class="photo-gallery">
-            <div v-for="(url, index) in memo.photoUrls" :key="index" class="photo-item">
-              <img :src="url" alt="Memo photo" />
+          <div v-if="memo.photoUrls && memo.photoUrls.length" class="gallery-container">
+            <div class="photo-gallery" 
+                 @touchstart="handleTouchStart(memo.id, $event)"
+                 @touchmove="handleTouchMove(memo.id, $event)"
+                 @touchend="handleTouchEnd(memo.id, $event)">
+              <div v-for="(url, index) in memo.photoUrls" 
+                   :key="index" 
+                   class="photo-item" 
+                   :style="{ transform: `translateX(-${galleryState[memo.id]?.currentIndex * 100}%)` }" 
+                   @click="openImageModal(memo.photoUrls, index)">
+                <img :src="url" alt="Memo photo" />
+              </div>
+            </div>
+            <button v-if="memo.photoUrls.length > 1 && galleryState[memo.id]?.currentIndex > 0" @click.stop="prevImage(memo.id)" class="gallery-nav prev-btn">&lsaquo;</button>
+            <button v-if="memo.photoUrls.length > 1 && galleryState[memo.id]?.currentIndex < memo.photoUrls.length - 1" @click.stop="nextImage(memo.id)" class="gallery-nav next-btn">&rsaquo;</button>
+            <div class="gallery-dots" v-if="memo.photoUrls.length > 1">
+              <span v-for="(url, index) in memo.photoUrls" :key="index" class="dot" :class="{ active: galleryState[memo.id]?.currentIndex === index }"></span>
             </div>
           </div>
           <div class="memo-content">
@@ -67,6 +81,12 @@
       @confirm="handleDelete"
       @close="isDeleteModalVisible = false"
     />
+    <ImageModal 
+      :is-visible="isImageModalVisible"
+      :image-urls="selectedImageUrls"
+      :start-index="selectedImageIndex"
+      @close="closeImageModal"
+    />
   </div>
 </template>
 
@@ -76,6 +96,7 @@ import { getFirestore, collection, query, orderBy, onSnapshot } from 'firebase/f
 import { auth } from '../firebase';
 import MemoForm from '../components/MemoForm.vue';
 import ConfirmDeleteModal from '../components/ConfirmDeleteModal.vue';
+import ImageModal from '../components/ImageModal.vue';
 
 const props = defineProps({
   locationFilter: { type: String, default: '' },
@@ -90,7 +111,23 @@ const showForm = ref(false);
 const selectedMemo = ref(null);
 const isDeleteModalVisible = ref(false);
 const deletingMemoId = ref(null);
+const isImageModalVisible = ref(false);
+const selectedImageUrls = ref([]);
+const selectedImageIndex = ref(0);
+const galleryState = ref({});
 let unsubscribeFromMemos = null;
+
+const openImageModal = (urls, index) => {
+  selectedImageUrls.value = urls;
+  selectedImageIndex.value = index;
+  isImageModalVisible.value = true;
+};
+
+const closeImageModal = () => {
+  isImageModalVisible.value = false;
+  selectedImageUrls.value = [];
+  selectedImageIndex.value = 0;
+};
 
 const filteredMemos = computed(() => {
   return memos.value.filter(memo => {
@@ -177,6 +214,42 @@ const formatDate = (dateString) => {
   return new Date(dateString).toLocaleDateString(undefined, options);
 };
 
+const prevImage = (memoId) => {
+  if (galleryState.value[memoId].currentIndex > 0) {
+    galleryState.value[memoId].currentIndex--;
+  }
+};
+
+const nextImage = (memoId) => {
+  const memo = memos.value.find(m => m.id === memoId);
+  if (memo && galleryState.value[memoId].currentIndex < memo.photoUrls.length - 1) {
+    galleryState.value[memoId].currentIndex++;
+  }
+};
+
+const handleTouchStart = (memoId, event) => {
+  galleryState.value[memoId].touchStartX = event.touches[0].clientX;
+};
+
+const handleTouchMove = (memoId, event) => {
+  if (galleryState.value[memoId].touchStartX === 0) return;
+  // Optional: Add visual feedback during swipe if desired
+};
+
+const handleTouchEnd = (memoId, event) => {
+  if (galleryState.value[memoId].touchStartX === 0) return;
+  const touchEndX = event.changedTouches[0].clientX;
+  const diffX = galleryState.value[memoId].touchStartX - touchEndX;
+
+  if (diffX > 50) { // Swipe left
+    nextImage(memoId);
+  } else if (diffX < -50) { // Swipe right
+    prevImage(memoId);
+  }
+
+  galleryState.value[memoId].touchStartX = 0;
+};
+
 onMounted(() => {
   subscribeToMemos();
   watch(auth, (currentUser) => {
@@ -187,6 +260,14 @@ onMounted(() => {
       memos.value = [];
     }
   });
+
+  watch(memos, (newMemos) => {
+    newMemos.forEach(memo => {
+      if (!galleryState.value[memo.id]) {
+        galleryState.value[memo.id] = { currentIndex: 0, touchStartX: 0 };
+      }
+    });
+  }, { deep: true });
 });
 
 onUnmounted(() => {
@@ -250,21 +331,76 @@ onUnmounted(() => {
   overflow: hidden;
 }
 
+.gallery-container {
+  position: relative;
+  overflow: hidden;
+}
+
 .photo-gallery {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-  gap: 5px;
-  padding: 5px;
-  background: rgba(0,0,0,0.2);
+  display: flex;
+  transition: transform 0.3s ease-in-out;
+}
+
+.photo-item {
+  flex: 0 0 100%;
 }
 
 .photo-item img {
   width: 100%;
-  height: 100px;
+  height: 300px;
   object-fit: cover;
-  border-radius: 8px;
   display: block;
+  cursor: pointer;
 }
+
+.gallery-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background-color: rgba(0, 0, 0, 0.5);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  font-size: 20px;
+  cursor: pointer;
+  z-index: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.prev-btn {
+  left: 10px;
+}
+
+.next-btn {
+  right: 10px;
+}
+
+.gallery-dots {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+  z-index: 1;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.6);
+  transition: background-color 0.3s;
+}
+
+.dot.active {
+  background-color: white;
+}
+
 
 .memo-content {
   padding: 1.2rem;
@@ -317,7 +453,7 @@ onUnmounted(() => {
   gap: 1rem;
 }
 
-.edit-button, .delete-button {
+.edit-.delete-button {
   background: none;
   border: none;
   color: #888;
