@@ -2,8 +2,8 @@
   <div v-if="isVisible" class="image-modal-overlay" @click.self="close" @keydown.esc="close" @keydown.left="prevImage" @keydown.right="nextImage" tabindex="0" ref="modal">
     <div class="modal-container">
       <div class="image-modal-content"
-           @touchstart="handleTouchStart"
-           @touchmove="handleTouchMove"
+           @touchstart.passive="handleTouchStart"
+           @touchmove.passive="handleTouchMove"
            @touchend="handleTouchEnd">
 
         <!-- Navigation Buttons -->
