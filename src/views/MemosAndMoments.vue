@@ -16,13 +16,13 @@
         <div v-for="memo in filteredMemos" :key="memo.id" class="memo-card">
           <div v-if="memo.photoUrls && memo.photoUrls.length" class="gallery-container">
             <div class="photo-gallery" 
+                 :style="{ transform: `translateX(-${galleryState[memo.id]?.currentIndex * 100}%)` }"
                  @touchstart="handleTouchStart(memo.id, $event)"
                  @touchmove="handleTouchMove(memo.id, $event)"
                  @touchend="handleTouchEnd(memo.id, $event)">
               <div v-for="(url, index) in memo.photoUrls" 
                    :key="index" 
                    class="photo-item" 
-                   :style="{ transform: `translateX(-${galleryState[memo.id]?.currentIndex * 100}%)` }" 
                    @click="openImageModal(memo.photoUrls, index)">
                 <img :src="url" alt="Memo photo" />
               </div>

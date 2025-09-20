@@ -1,25 +1,33 @@
 <template>
   <div v-if="isVisible" class="image-modal-overlay" @click.self="close" @keydown.esc="close" @keydown.left="prevImage" @keydown.right="nextImage" tabindex="0" ref="modal">
-    <div class="image-modal-content" 
-         @touchstart="handleTouchStart"
-         @touchmove="handleTouchMove"
-         @touchend="handleTouchEnd">
+    <div class="modal-container">
+      <div class="image-modal-content"
+           @touchstart="handleTouchStart"
+           @touchmove="handleTouchMove"
+           @touchend="handleTouchEnd">
 
-      <!-- Close Button -->
-      <button @click="close" class="close-btn">&times;</button>
+        <!-- Navigation Buttons -->
+        <button v-if="hasMultipleImages" @click.stop="prevImage" class="nav-btn prev-btn" :disabled="isFirstImage">&lsaquo;</button>
+        <button v-if="hasMultipleImages" @click.stop="nextImage" class="nav-btn next-btn" :disabled="isLastImage">&rsaquo;</button>
 
-      <!-- Navigation Buttons -->
-      <button v-if="hasMultipleImages" @click.stop="prevImage" class="nav-btn prev-btn" :disabled="isFirstImage">&lsaquo;</button>
-      <button v-if="hasMultipleImages" @click.stop="nextImage" class="nav-btn next-btn" :disabled="isLastImage">&rsaquo;</button>
-
-      <!-- Image Display -->
-      <div class="image-container">
-        <img :src="currentImageUrl" alt="Enlarged photo" />
+        <!-- Image Slider -->
+        <div class="image-slider" :style="{ transform: `translateX(-${currentIndex * 100}%)` }">
+          <div v-for="(url, index) in imageUrls" :key="index" class="slide">
+            <div class="image-container">
+              <img :src="url" alt="Enlarged photo" />
+            </div>
+          </div>
+        </div>
       </div>
 
-      <!-- Dots Indicator -->
-      <div v-if="hasMultipleImages" class="dots-indicator">
-        <span v-for="(_, index) in imageUrls" :key="index" class="dot" :class="{ active: currentIndex === index }"></span>
+      <!-- Bottom Controls -->
+      <div class="bottom-controls">
+        <!-- Dots Indicator -->
+        <div v-if="hasMultipleImages" class="dots-indicator">
+          <span v-for="(_, index) in imageUrls" :key="index" class="dot" :class="{ active: currentIndex === index }"></span>
+        </div>
+        <!-- New Bottom Close Button -->
+        <button @click="close" class="close-btn-bottom">Close</button>
       </div>
     </div>
   </div>
@@ -42,7 +50,6 @@ const touchStartX = ref(0);
 
 // Computed properties
 const hasMultipleImages = computed(() => props.imageUrls.length > 1);
-const currentImageUrl = computed(() => props.imageUrls[currentIndex.value] || '');
 const isFirstImage = computed(() => currentIndex.value === 0);
 const isLastImage = computed(() => currentIndex.value === props.imageUrls.length - 1);
 
@@ -77,8 +84,7 @@ const handleTouchStart = (event) => {
 };
 
 const handleTouchMove = (event) => {
-  // Prevent page scroll while swiping
-  event.preventDefault();
+  // We leave this function empty on purpose.
 };
 
 const handleTouchEnd = (event) => {
@@ -105,7 +111,7 @@ const handleTouchEnd = (event) => {
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.85);
+  background: rgba(0, 0, 0, 0.9);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -113,14 +119,34 @@ const handleTouchEnd = (event) => {
   outline: none;
 }
 
+.modal-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
 .image-modal-content {
   position: relative;
   width: 90vw;
   height: 90vh;
+  overflow: hidden;
+  user-select: none;
+}
+
+.image-slider {
+  display: flex;
+  height: 100%;
+  width: 100%;
+  transition: transform 0.3s ease-in-out;
+}
+
+.slide {
+  flex: 0 0 100%;
+  width: 100%;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  user-select: none; /* Prevent text selection during swipe */
 }
 
 .image-container {
@@ -137,27 +163,14 @@ const handleTouchEnd = (event) => {
   object-fit: contain;
   display: block;
   border-radius: 8px;
-  pointer-events: none; /* Prevent image drag interfering with swipe */
-}
-
-.close-btn {
-  position: absolute;
-  top: -45px;
-  right: -15px;
-  background: none;
-  border: none;
-  color: white;
-  font-size: 3rem;
-  cursor: pointer;
-  z-index: 10;
-  line-height: 1;
+  pointer-events: none;
 }
 
 .nav-btn {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  background: rgba(0,0,0,0.4);
+  background: rgba(0,0,0,0.3);
   color: white;
   border: none;
   border-radius: 50%;
@@ -169,7 +182,7 @@ const handleTouchEnd = (event) => {
   transition: background 0.2s;
 }
 
-/* Hide nav buttons on touch devices */
+/* Hide nav buttons on touch devices to encourage swiping */
 @media (pointer: coarse) {
   .nav-btn {
     display: none;
@@ -177,7 +190,7 @@ const handleTouchEnd = (event) => {
 }
 
 .nav-btn:hover:not(:disabled) {
-  background: rgba(0,0,0,0.7);
+  background: rgba(0,0,0,0.6);
 }
 
 .nav-btn:disabled {
@@ -186,21 +199,23 @@ const handleTouchEnd = (event) => {
 }
 
 .nav-btn:focus,
-.nav-btn:focus-visible,
-.close-btn:focus,
-.close-btn:focus-visible {
+.nav-btn:focus-visible {
   outline: none;
   box-shadow: none;
 }
 
-.prev-btn { left: -60px; }
-.next-btn { right: -60px; }
+.prev-btn { left: 15px; }
+.next-btn { right: 15px; }
+
+.bottom-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+  margin-top: 10px;
+}
 
 .dots-indicator {
-  position: absolute;
-  bottom: -30px;
-  left: 50%;
-  transform: translateX(-50%);
   display: flex;
   gap: 10px;
 }
@@ -209,10 +224,27 @@ const handleTouchEnd = (event) => {
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.4);
 }
 
 .dot.active {
   background: white;
+}
+
+.close-btn-bottom {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  color: white;
+  padding: 8px 24px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.close-btn-bottom:hover {
+  background: white;
+  color: black;
 }
 </style>
