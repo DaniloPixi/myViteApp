@@ -6,6 +6,19 @@ import express from 'express';
 export default function(db, cloudinary, extractPublicId, sendPushNotification) {
   const router = express.Router();
 
+  // Helper to robustly get photos from a memo, supporting both old and new data structures.
+  const getMemoPhotos = (memo) => {
+    if (memo.photos && Array.isArray(memo.photos)) {
+      return memo.photos; // New format: [{url, isAdult}]
+    }
+    if (memo.photoUrls && Array.isArray(memo.photoUrls)) {
+      // Old format: [url1, url2]
+      const isAdult = memo.hashtags && memo.hashtags.includes('#18+');
+      return memo.photoUrls.map(url => ({ url, isAdult }));
+    }
+    return [];
+  };
+
   router.get('/', async (req, res) => {
     try {
         const memosSnapshot = await db.collection('memos').orderBy('createdAt', 'desc').get();
@@ -18,11 +31,11 @@ export default function(db, cloudinary, extractPublicId, sendPushNotification) {
   });
 
   router.post('/', async (req, res) => {
-    const { description, date, location, hashtags, photoUrls } = req.body;
+    const { description, date, location, hashtags, photos } = req.body;
     const { uid, name, email } = req.user;
     try {
       const newMemoRef = await db.collection('memos').add({
-        description, date, location, hashtags, photoUrls,
+        description, date, location, hashtags, photos: photos || [],
         creatorUid: uid, createdBy: name || email, createdAt: new Date().toISOString(),
       });
       await sendPushNotification('New Memo Added!', `\"${description}\"`, '/#/memos', uid);
@@ -36,7 +49,7 @@ export default function(db, cloudinary, extractPublicId, sendPushNotification) {
   router.put('/:memoId', async (req, res) => {
     const { memoId } = req.params;
     const { uid } = req.user;
-    const { description, date, location, hashtags, photoUrls } = req.body;
+    const { description, date, location, hashtags, photos } = req.body;
     try {
         const memoRef = db.collection('memos').doc(memoId);
         const doc = await memoRef.get();
@@ -44,8 +57,8 @@ export default function(db, cloudinary, extractPublicId, sendPushNotification) {
             return res.status(404).json({ success: false, message: 'Memo not found.' });
         }
 
-        const originalPhotoUrls = doc.data().photoUrls || [];
-        const newPhotoUrls = photoUrls || [];
+        const originalPhotoUrls = getMemoPhotos(doc.data()).map(p => p.url);
+        const newPhotoUrls = photos ? photos.map(p => p.url) : [];
         const photosToDelete = originalPhotoUrls.filter(url => !newPhotoUrls.includes(url));
 
         if (photosToDelete.length > 0 && cloudinary.config().api_key) {
@@ -56,8 +69,8 @@ export default function(db, cloudinary, extractPublicId, sendPushNotification) {
             }
         }
 
-        const updateData = { description, date, location, hashtags, photoUrls };
-        await memoRef.update(updateData);
+        const updateData = { description, date, location, hashtags, photos };
+        await memoRef.set(updateData, { merge: true });
         await sendPushNotification('Memo Updated!', `\"${description}\"`, '/#/memos', uid);
         res.status(200).json({ success: true, message: 'Memo updated successfully.' });
     } catch (error) {
@@ -77,9 +90,9 @@ export default function(db, cloudinary, extractPublicId, sendPushNotification) {
         }
         const { description } = doc.data();
 
-        const photosToDelete = doc.data().photoUrls || [];
-        if (photosToDelete.length > 0 && cloudinary.config().api_key) {
-            const publicIdsToDelete = photosToDelete.map(extractPublicId).filter(id => id);
+        const photoUrlsToDelete = getMemoPhotos(doc.data()).map(p => p.url);
+        if (photoUrlsToDelete.length > 0 && cloudinary.config().api_key) {
+            const publicIdsToDelete = photoUrlsToDelete.map(extractPublicId).filter(id => id);
             if (publicIdsToDelete.length > 0) {
                 console.log(`Deleting ${publicIdsToDelete.length} photos from Cloudinary...`);
                 await cloudinary.api.delete_resources(publicIdsToDelete);

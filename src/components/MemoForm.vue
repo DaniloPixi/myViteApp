@@ -44,8 +44,9 @@
         <!-- Image Previews -->
         <div class="image-previews" v-if="imagePreviews.length > 0">
           <div v-for="(preview, index) in imagePreviews" :key="index" class="preview-item">
-            <img :src="preview.url" />
+            <img :src="preview.url" :class="{'adult-preview-blur': preview.isAdult}" />
             <button @click.prevent="removeImage(index)" class="remove-image-btn">×</button>
+            <button @click.prevent="toggleAdultFlag(index)" class="adult-flag" :class="{'adult-flag-selected': preview.isAdult}">18+</button>
           </div>
         </div>
 
@@ -79,7 +80,6 @@ const emit = defineEmits(['close', 'memo-saved']);
 const availableHashtags = ref(['date', 'party', 'food', '18+', 'travel', 'weekend', 'chill', 'friends', 'love', 'random']);
 const isEditing = computed(() => !!props.memo);
 const formData = ref({ hashtags: [] });
-const selectedFiles = ref([]);
 const imagePreviews = ref([]);
 const isUploading = ref(false);
 const isSubmitting = ref(false);
@@ -94,19 +94,26 @@ watch(() => props.memo, (newMemo) => {
     } else {
         formData.value.hashtags = [];
     }
-    imagePreviews.value = newMemo.photoUrls ? newMemo.photoUrls.map(url => ({ url, source: 'existing' })) : [];
+
+    if (newMemo.photos && Array.isArray(newMemo.photos)) {
+        imagePreviews.value = newMemo.photos.map(photo => ({ ...photo, source: 'existing' }));
+    } else if (newMemo.photoUrls && Array.isArray(newMemo.photoUrls)) {
+        const contains18plus = newMemo.hashtags && newMemo.hashtags.includes('#18+');
+        imagePreviews.value = newMemo.photoUrls.map(url => ({ url, isAdult: contains18plus, source: 'existing' }));
+    } else {
+        imagePreviews.value = [];
+    }
   } else {
     formData.value = { description: '', location: '', date: new Date().toISOString().split('T')[0], hashtags: [] };
     imagePreviews.value = [];
   }
-  selectedFiles.value = [];
 }, { immediate: true });
 
 const toggleHashtag = (tag) => {
   const index = formData.value.hashtags.indexOf(tag);
   if (index > -1) {
     formData.value.hashtags.splice(index, 1);
-  } else if (formData.value.hashtags.length < 3) {
+  } else if (formData.value.hashtags.length < 3 || tag === '18+') {
     formData.value.hashtags.push(tag);
   }
 };
@@ -123,37 +130,39 @@ const handleFileChange = (event) => {
   error.value = null;
 
   for (const file of files) {
-    selectedFiles.value.push(file);
-    imagePreviews.value.push({ url: URL.createObjectURL(file), source: 'new' });
+    imagePreviews.value.push({
+      url: URL.createObjectURL(file),
+      file: file,
+      isAdult: false,
+      source: 'new'
+    });
   }
   event.target.value = null;
 };
 
 const removeImage = (index) => {
-  const removed = imagePreviews.value.splice(index, 1)[0];
-  if (removed.source === 'new') {
-    const fileIndex = selectedFiles.value.findIndex(f => URL.createObjectURL(f) === removed.url);
-    if (fileIndex > -1) {
-      selectedFiles.value.splice(fileIndex, 1);
-    }
-  }
+  imagePreviews.value.splice(index, 1);
+};
+
+const toggleAdultFlag = (index) => {
+  imagePreviews.value[index].isAdult = !imagePreviews.value[index].isAdult;
 };
 
 const uploadImages = async () => {
   isUploading.value = true;
   uploadProgress.value = 0;
-  const uploadedUrls = [];
+  const uploadedPhotos = [];
 
-  const filesToUpload = selectedFiles.value;
+  const filesToUpload = imagePreviews.value.filter(p => p.source === 'new');
   if (filesToUpload.length === 0) {
     isUploading.value = false;
     return [];
   }
 
   for (let i = 0; i < filesToUpload.length; i++) {
-    const file = filesToUpload[i];
+    const preview = filesToUpload[i];
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('file', preview.file);
     formData.append('upload_preset', props.cloudinaryUploadPreset);
 
     try {
@@ -163,7 +172,7 @@ const uploadImages = async () => {
       });
       const data = await response.json();
       if (data.secure_url) {
-        uploadedUrls.push(data.secure_url);
+        uploadedPhotos.push({ url: data.secure_url, isAdult: preview.isAdult });
         uploadProgress.value = Math.round(((i + 1) / filesToUpload.length) * 100);
       } else {
         throw new Error('Image upload failed.');
@@ -176,30 +185,38 @@ const uploadImages = async () => {
   }
 
   isUploading.value = false;
-  return uploadedUrls;
+  return uploadedPhotos;
 };
 
 const submitForm = async () => {
   isSubmitting.value = true;
   error.value = null;
 
-  const newImageUrls = await uploadImages();
-  if (newImageUrls === null) {
+  const newPhotos = await uploadImages();
+  if (newPhotos === null) {
     isSubmitting.value = false;
     return;
   }
 
-  const existingImageUrls = imagePreviews.value
+  const existingPhotos = imagePreviews.value
     .filter(p => p.source === 'existing')
-    .map(p => p.url);
-  
-  const finalPhotoUrls = [...existingImageUrls, ...newImageUrls];
+    .map(({url, isAdult}) => ({url, isAdult}));
+
+  const finalPhotos = [...existingPhotos, ...newPhotos];
+
+  const memoHashtags = new Set(formData.value.hashtags);
+  const hasAdultContent = finalPhotos.some(p => p.isAdult);
+
+  if (hasAdultContent) {
+    memoHashtags.add('18+');
+  }
 
   const payload = {
     ...formData.value,
-    hashtags: formData.value.hashtags.map(tag => `#${tag}`),
-    photoUrls: finalPhotoUrls,
+    hashtags: Array.from(memoHashtags).map(tag => `#${tag}`),
+    photos: finalPhotos,
   };
+  delete payload.photoUrls;
 
   try {
     if (!auth.currentUser) throw new Error('Authentication required.');
@@ -317,6 +334,46 @@ textarea {
   object-fit: cover;
   border-radius: 6px;
   display: block;
+  transition: filter 0.3s ease;
+}
+
+.adult-preview-blur {
+  filter: blur(8px);
+}
+
+.remove-image-btn {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  background: rgba(0,0,0,0.6);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  font-size: 14px;
+  line-height: 20px;
+  text-align: center;
+  cursor: pointer;
+}
+
+.adult-flag {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  background: rgba(0,0,0,0.6);
+  color: white;
+  border: 1px solid white;
+  border-radius: 4px;
+  padding: 1px 4px;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.adult-flag-selected {
+  background: #ff6b6b;
+  color: black;
+  border-color: #ff6b6b;
 }
 
 .error-message { color: #ff6b6b; margin-bottom: 1rem; }

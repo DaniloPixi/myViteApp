@@ -14,23 +14,23 @@
       <!-- Memos List -->
       <div v-if="filteredMemos.length > 0" class="memos-list">
         <div v-for="memo in filteredMemos" :key="memo.id" class="memo-card">
-          <div v-if="memo.photoUrls && memo.photoUrls.length" class="gallery-container">
+          <div v-if="getMemoPhotos(memo).length" class="gallery-container">
             <div class="photo-gallery" 
                  :style="{ transform: `translateX(-${galleryState[memo.id]?.currentIndex * 100}%)` }"
                  @touchstart="handleTouchStart(memo.id, $event)"
                  @touchmove="handleTouchMove(memo.id, $event)"
                  @touchend="handleTouchEnd(memo.id, $event)">
-              <div v-for="(url, index) in memo.photoUrls" 
+              <div v-for="(photo, index) in getMemoPhotos(memo)" 
                    :key="index" 
                    class="photo-item" 
-                   @click="openImageModal(memo.photoUrls, index)">
-                <img :src="url" alt="Memo photo" />
+                   @click="openImageModal(getMemoPhotos(memo).map(p => p.url), index)">
+                <img :src="photo.url" alt="Memo photo" :class="{'adult-content-blur': photo.isAdult }"/>
               </div>
             </div>
-            <button v-if="memo.photoUrls.length > 1 && galleryState[memo.id]?.currentIndex > 0" @click.stop="prevImage(memo.id)" class="gallery-nav prev-btn">&lsaquo;</button>
-            <button v-if="memo.photoUrls.length > 1 && galleryState[memo.id]?.currentIndex < memo.photoUrls.length - 1" @click.stop="nextImage(memo.id)" class="gallery-nav next-btn">&rsaquo;</button>
-            <div class="gallery-dots" v-if="memo.photoUrls.length > 1">
-              <span v-for="(url, index) in memo.photoUrls" :key="index" class="dot" :class="{ active: galleryState[memo.id]?.currentIndex === index }"></span>
+            <button v-if="getMemoPhotos(memo).length > 1 && galleryState[memo.id]?.currentIndex > 0" @click.stop="prevImage(memo.id)" class="gallery-nav prev-btn">&lsaquo;</button>
+            <button v-if="getMemoPhotos(memo).length > 1 && galleryState[memo.id]?.currentIndex < getMemoPhotos(memo).length - 1" @click.stop="nextImage(memo.id)" class="gallery-nav next-btn">&rsaquo;</button>
+            <div class="gallery-dots" v-if="getMemoPhotos(memo).length > 1">
+              <span v-for="(photo, index) in getMemoPhotos(memo)" :key="index" class="dot" :class="{ active: galleryState[memo.id]?.currentIndex === index }"></span>
             </div>
           </div>
           <div class="memo-content">
@@ -116,6 +116,17 @@ const selectedImageUrls = ref([]);
 const selectedImageIndex = ref(0);
 const galleryState = ref({});
 let unsubscribeFromMemos = null;
+
+const getMemoPhotos = (memo) => {
+  if (memo.photos && Array.isArray(memo.photos)) {
+    return memo.photos;
+  }
+  if (memo.photoUrls && Array.isArray(memo.photoUrls)) {
+    const isAdult = memo.hashtags && memo.hashtags.includes('#18+');
+    return memo.photoUrls.map(url => ({ url, isAdult }));
+  }
+  return [];
+};
 
 const openImageModal = (urls, index) => {
   selectedImageUrls.value = urls;
@@ -222,7 +233,7 @@ const prevImage = (memoId) => {
 
 const nextImage = (memoId) => {
   const memo = memos.value.find(m => m.id === memoId);
-  if (memo && galleryState.value[memoId].currentIndex < memo.photoUrls.length - 1) {
+  if (memo && galleryState.value[memoId].currentIndex < getMemoPhotos(memo).length - 1) {
     galleryState.value[memoId].currentIndex++;
   }
 };
@@ -351,6 +362,15 @@ onUnmounted(() => {
   object-fit: cover;
   display: block;
   cursor: pointer;
+  transition: filter 0.3s ease;
+}
+
+.photo-item .adult-content-blur {
+  filter: blur(16px);
+}
+
+.photo-item:hover .adult-content-blur {
+  filter: blur(0px);
 }
 
 .gallery-nav {
