@@ -369,10 +369,6 @@ onUnmounted(() => {
   filter: blur(16px);
 }
 
-.photo-item:hover .adult-content-blur {
-  filter: blur(0px);
-}
-
 .gallery-nav {
   position: absolute;
   top: 50%;
