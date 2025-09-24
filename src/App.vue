@@ -9,16 +9,15 @@
 
   <!-- Fixed Notification Controls -->
   <div v-if="user && currentView === 'home' && supportsNotifications" class="notification-control-fixed">
-    <button v-if="notificationPermission === 'granted'" class="notification-btn granted" disabled>
-      ✓ Notifs On
-    </button>
-    <button v-else @click="enableNotifications" class="notification-btn enable">
+    <button v-if="notificationPermission !== 'granted'" @click="enableNotifications" class="notification-btn enable">
       Enable Notifs
     </button>
   </div>
 
   <!-- The logout button is fixed to the bottom left, but only shown on the Home view -->
-  <button v-if="user && currentView === 'home'" @click="logout" class="logout-button">Logout</button>
+  <button v-if="user && currentView === 'home'" @click="logout" class="logout-button">
+    <LogOut color="magenta" :size="32" />
+  </button>
 
   <div class="sticky-header">
     <Sidebar 
@@ -82,6 +81,7 @@
 import { ref, watch, onUnmounted, onMounted, reactive } from 'vue';
 import { useRegisterSW } from 'virtual:pwa-register/vue';
 import { auth, messaging } from './firebase';
+import { LogOut } from 'lucide-vue-next';
 
 // Import child components and views
 import Login from './views/Login.vue';
@@ -312,19 +312,20 @@ onUnmounted(() => {
   position: fixed;
   bottom: 1.5rem;
   left: 1.5rem;
-  background-color: #555;
-  padding: 0.7em 1.2em;
-  border-radius: 8px;
+  background-color: transparent;
+  padding: 0.5rem;
+  border-radius: 50%;
   border: none;
-  color: white;
-  font-weight: 500;
   cursor: pointer;
   transition: background-color 0.3s;
   z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .logout-button:hover {
-    background-color: #666;
+    background-color: rgba(255, 0, 255, 0.1);
 }
 
 /* New Home View Styles */
