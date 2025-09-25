@@ -39,6 +39,7 @@
     <main>
       <!-- Logged-in Content -->
       <div v-if="user">
+        
         <!-- View Navigation -->
         <nav class="view-nav">
           <a @click="currentView = 'home'" :class="{ active: currentView === 'home' }">Home</a>
@@ -82,7 +83,6 @@ import { ref, watch, onUnmounted, onMounted, reactive } from 'vue';
 import { useRegisterSW } from 'virtual:pwa-register/vue';
 import { auth, messaging } from './firebase';
 import { LogOut } from 'lucide-vue-next';
-
 // Import child components and views
 import Login from './views/Login.vue';
 import Register from './views/Register.vue';

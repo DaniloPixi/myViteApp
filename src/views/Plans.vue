@@ -296,45 +296,6 @@ h1 { color: #42b883; text-align: center; margin-bottom: 2rem; }
 .plan-card .plan-detail { margin: 0.5rem 0; color: #ccc; }
 .plan-detail strong { color: #888; }
 
-.card-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 1.5rem;
-  padding-top: 1rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.creator-info {
-  font-size: 0.8em;
-  color: #888;
-  margin: 0; /* Reset margin */
-}
-
-.card-actions {
-  display: flex;
-  gap: 1rem;
-}
-
-.edit-button, .delete-button {
-  background: none;
-  border: none;
-  color: #888;
-  cursor: pointer;
-  font-size: 0.8em;
-  text-transform: lowercase;
-  padding: 0;
-}
-
-.edit-button:hover, .delete-button:hover {
-  text-decoration: underline;
-}
-
-.delete-button:hover {
-  color: #ff6b6b;
-}
-
-
 .create-plan-button-section { text-align: center; margin-bottom: 2.5rem; }
 .add-plan-button { padding: 0.7em 1.4em; border-radius: 30px; border: none; background-color: #42b883; color: white; font-size: 1.1em; font-weight: 600; cursor: pointer; }
 
