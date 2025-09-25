@@ -34,13 +34,17 @@
     </header>
   </div>
   
+
   <!-- The main content card -->
   <AnimatedBorder :max-width="animatedBorderMaxWidth">
     <div class="card">
       <main>
         <!-- Logged-in Content -->
         <div v-if="user">
-          
+        
+  <div class="h-screen w-screen relative">
+    <FluidEffect class="full-page-background" />
+  </div>
           <!-- View Navigation -->
           <nav class="view-nav">
             <a @click="currentView = 'home'" :class="{ active: currentView === 'home' }">Home</a>
@@ -96,7 +100,7 @@ import Sidebar from './components/Sidebar.vue';
 import ScrollToTopButton from './components/ScrollToTopButton.vue';
 import InAppNotification from './components/InAppNotification.vue'; // New component
 import AnimatedBorder from './components/AnimatedBorder.vue';
-
+import FluidEffect from './components/FluidEffect.vue';
 // --- PWA Auto-Update Logic ---
 const { needRefresh, updateServiceWorker } = useRegisterSW();
 watch(needRefresh, (isUpdateAvailable) => {
@@ -344,5 +348,14 @@ onUnmounted(() => {
 }
 
 /* New Home View Styles */
-
+.full-page-background {
+  display: block !important;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: -1; /* Puts the element behind all other content */
+  pointer-events: none; /* Allows mouse events to pass through */
+}
 </style>
