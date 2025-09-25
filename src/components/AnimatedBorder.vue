@@ -1,5 +1,10 @@
 <template>
-  <div class="animated-border">
+  <div
+    class="animated-border"
+    @mousemove="handlePointerMove"
+    @touchmove="handlePointerMove"
+    ref="borderContainer"
+  >
     <div class="animated-border-glow" :style="{ opacity: opacity1 }"></div>
     <div class="animated-border-glow-secondary" :style="{ opacity: opacity2 }"></div>
     <div class="animated-border-content">
@@ -9,43 +14,14 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref } from 'vue';
+import { useCursorTrail } from '../composables/useCursorTrail';
+import { useShimmeringOpacity } from '../composables/useShimmeringOpacity';
 
-const opacity1 = ref(0.8);
-const opacity2 = ref(0.8);
-let intervalId = null;
+const borderContainer = ref(null);
 
-// This function creates a "walker" that randomly moves a value up and down within a range.
-const createNoiseGenerator = (initialValue, min, max, step) => {
-  let value = initialValue;
-  return () => {
-    // Move the value by a random amount in a random direction
-    const direction = Math.random() > 0.5 ? 1 : -1;
-    value += direction * Math.random() * step;
-
-    // Clamp the value to the min/max range
-    if (value > max) value = max;
-    if (value < min) value = min;
-    
-    return value;
-  };
-};
-
-const generateOpacity1 = createNoiseGenerator(0.8, 0.3, 1.0, 0.15);
-const generateOpacity2 = createNoiseGenerator(0.8, 0.3, 1.0, 0.15);
-
-onMounted(() => {
-  intervalId = setInterval(() => {
-    opacity1.value = generateOpacity1();
-    opacity2.value = generateOpacity2();
-  }, 100); // The opacity will update every 100ms
-});
-
-onUnmounted(() => {
-  if (intervalId) {
-    clearInterval(intervalId);
-  }
-});
+const { handlePointerMove } = useCursorTrail(borderContainer);
+const { opacity1, opacity2 } = useShimmeringOpacity();
 </script>
 
 <style scoped>
@@ -58,6 +34,33 @@ onUnmounted(() => {
   overflow: hidden;
 }
 
+:deep(.cursor-trail-particle) {
+  position: absolute;
+  width: var(--particle-width, 1.5px);
+  height: var(--particle-height, 25px);
+  background: var(--particle-color, white);
+  border-radius: 2px;
+
+  pointer-events: none;
+  transform-origin: 50% 0%;
+
+  animation: cursor-trail-fade var(--particle-lifetime, 0.5s) forwards;
+  z-index: 2;
+  filter: blur(4px);
+}
+
+/* Updated to start at full opacity */
+@keyframes cursor-trail-fade {
+  from {
+    transform: translate(-50%, 0) rotate(var(--angle-deg, 90deg)) scaleY(1);
+    opacity: 1; /* Start at full opacity */
+  }
+  to {
+    transform: translate(-50%, 0) rotate(var(--angle-deg, 90deg)) scaleY(0);
+    opacity: 0;
+  }
+}
+
 .animated-border-glow,
 .animated-border-glow-secondary {
   position: absolute;
@@ -66,7 +69,6 @@ onUnmounted(() => {
   width: 200%;
   height: 200%;
   animation: star-trail 4s linear infinite;
-  /* This transition will smooth out the opacity changes */
   transition: opacity 0.7s ease-in-out;
 }
 
@@ -88,18 +90,14 @@ onUnmounted(() => {
 }
 
 @keyframes star-trail {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
-  }
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 .animated-border-content {
   position: relative;
   z-index: 1;
-  background-color: transparent;
+  background-color: #1a1a1a;
   border-radius: 18px;
 }
 </style>
