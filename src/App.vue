@@ -35,7 +35,7 @@
   </div>
   
   <!-- The main content card -->
-  <div class="card">
+  <div class="card animate-glow">
     <main>
       <!-- Logged-in Content -->
       <div v-if="user">
@@ -136,7 +136,11 @@ const handleSwitchForm = (formName) => {
 async function registerDeviceForNotifications() {
   if (notificationPermission.value !== 'granted' || !user.value) return;
   try {
-    const currentToken = await messaging.getToken({ vapidKey: 'BPACu3jz1Y3_bB4VPwO96LkPua-bJKVXBOioaf75Gc7xQQ-aqZ04a0qBSbxuX6ZW6KcPB1Lcv68zGP5qrM2q9dU' });
+    const swRegistration = await navigator.serviceWorker.ready;
+    const currentToken = await messaging.getToken({
+      vapidKey: 'BPACu3jz1Y3_bB4VPwO96LkPua-bJKVXBOioaf75Gc7xQQ-aqZ04a0qBSbxuX6ZW6KcPB1Lcv68zGP5qrM2q9dU',
+      serviceWorkerRegistration: swRegistration
+    });
     if (currentToken) {
       await sendTokenToServer(currentToken);
     } else {
