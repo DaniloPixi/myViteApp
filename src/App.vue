@@ -35,51 +35,55 @@
   </div>
   
   <!-- The main content card -->
-  <div class="card animate-glow">
-    <main>
-      <!-- Logged-in Content -->
-      <div v-if="user">
-        
-        <!-- View Navigation -->
-        <nav class="view-nav">
-          <a @click="currentView = 'home'" :class="{ active: currentView === 'home' }">Home</a>
-          <a @click="currentView = 'memos'" :class="{ active: currentView === 'memos' }">Memos and Moments</a>
-          <a @click="currentView = 'plans'" :class="{ active: currentView === 'plans' }">Plans</a>
-        </nav>
+  <AnimatedBorder :max-width="animatedBorderMaxWidth">
+    <div class="card">
+      <main>
+        <!-- Logged-in Content -->
+        <div v-if="user">
+          
+          <!-- View Navigation -->
+          <nav class="view-nav">
+            <a @click="currentView = 'home'" :class="{ active: currentView === 'home' }">Home</a>
+            <a @click="currentView = 'memos'" :class="{ active: currentView === 'memos' }">Memos and Moments</a>
+            <a @click="currentView = 'plans'" :class="{ active: currentView === 'plans' }">Plans</a>
+          </nav>
 
-        <!-- Conditional Views -->
-        
+          <!-- Conditional Views -->
+          <div v-if="currentView === 'home'">
+             <!--Placeholder for a real home screen component -->
+          </div>
 
-        <MemosAndMoments v-if="currentView === 'memos'" 
-          :location-filter="locationFilter"
-          :hashtag-filter="hashtagFilter"
-          :date-filter="dateFilter"
-        />
-        <Plans 
-          v-if="currentView === 'plans'" 
-          :user="user"
-          :location-filter="locationFilter"
-          :hashtag-filter="hashtagFilter"
-          :date-filter="dateFilter"
-          :time-filter="timeFilter"
-          :duration-filter="durationFilter" 
-        />
-      </div>
+          <MemosAndMoments v-if="currentView === 'memos'" 
+            :location-filter="locationFilter"
+            :hashtag-filter="hashtagFilter"
+            :date-filter="dateFilter"
+          />
+          <Plans 
+            v-if="currentView === 'plans'" 
+            :user="user"
+            :location-filter="locationFilter"
+            :hashtag-filter="hashtagFilter"
+            :date-filter="dateFilter"
+            :time-filter="timeFilter"
+            :duration-filter="durationFilter" 
+          />
+        </div>
 
-      <!-- Authentication Views (Logged-out) -->
-      <div v-else>
-        <Login v-if="!isRegistering" @switch-form="handleSwitchForm" />
-        <Register v-else @switch-form="handleSwitchForm" />
-      </div>
-    </main>
-  </div>
+        <!-- Authentication Views (Logged-out) -->
+        <div v-else>
+          <Login v-if="!isRegistering" @switch-form="handleSwitchForm" />
+          <Register v-else @switch-form="handleSwitchForm" />
+        </div>
+      </main>
+    </div>
+  </AnimatedBorder>
 
   <!-- Global Scroll-to-Top Button -->
   <ScrollToTopButton />
 </template>
 
 <script setup>
-import { ref, watch, onUnmounted, onMounted, reactive } from 'vue';
+import { ref, watch, onUnmounted, onMounted, reactive, computed } from 'vue';
 import { useRegisterSW } from 'virtual:pwa-register/vue';
 import { auth, messaging } from './firebase';
 import { LogOut } from 'lucide-vue-next';
@@ -91,6 +95,7 @@ import Plans from './views/Plans.vue';
 import Sidebar from './components/Sidebar.vue';
 import ScrollToTopButton from './components/ScrollToTopButton.vue';
 import InAppNotification from './components/InAppNotification.vue'; // New component
+import AnimatedBorder from './components/AnimatedBorder.vue';
 
 // --- PWA Auto-Update Logic ---
 const { needRefresh, updateServiceWorker } = useRegisterSW();
@@ -107,6 +112,12 @@ const isRegistering = ref(false);
 const notificationPermission = ref(null);
 const supportsNotifications = ref(false);
 const currentView = ref(localStorage.getItem('currentView') || 'home');
+
+// Compute dynamic max-width for the animated border
+const animatedBorderMaxWidth = computed(() => {
+  return currentView.value === 'home' ? '550px' : '100%';
+});
+
 
 // In-app notification state
 const inAppNotification = reactive({

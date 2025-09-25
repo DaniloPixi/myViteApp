@@ -1,28 +1,5 @@
 /* src/style.css */
 
-/* --- Keyframes for Animation --- */
-@keyframes glow {
-  0%, 100% {
-    box-shadow: 
-      /* Top inset glow (dimmed) */
-      inset 0 10px 15px -10px rgba(243, 15, 205, 0.2),
-      /* Bottom drop shadow (dimmed) */
-      0 15px 20px -15px rgba(0, 153, 255, 0.1);
-  }
-  50% {
-    box-shadow: 
-      /* Top inset glow (bright) */
-      inset 0 15px 20px -10px rgba(243, 15, 205, 0.7),
-      /* Bottom drop shadow (bright) */
-      0 25px 30px -15px rgba(0, 153, 255, 0.6);
-  }
-}
-
-/* --- Reusable Animations --- */
-.animate-glow {
-  animation: glow 3s ease-in-out infinite;
-}
-      
 /* --- Base Styles & Theme --- */
 :root {
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
@@ -107,11 +84,11 @@ input[type="password"] {
 
 .card {
   max-width: 550px;
-  margin: 0 auto;
   padding: 2.5em;
   border-radius: 20px;
-  background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  /* The background is now handled by the .animate-glow::after pseudo-element */
+  background: black;
+  border: 1px solid rgba(255, 255, 255, 0);
 }
 
 /* --- Shared Card Styles --- */
