@@ -30,14 +30,13 @@ const props = defineProps({
 
 const canvasRef = ref(null);
 
-// Simplified from the original to remove TypeScript-specifics
 class Wave {
   constructor(options = {}) {
     this.phase = options.phase || 0;
     this.offset = options.offset || 0;
     this.frequency = options.frequency || 0.001;
     this.amplitude = options.amplitude || 1;
-    this.e = 0; // internal value
+    this.e = 0;
   }
 
   update() {
@@ -138,8 +137,8 @@ const E = {
 };
 
 if (typeof window !== 'undefined' && window.matchMedia("(max-width: 768px)").matches) {
-    E.trails = 10; // Halve the trails on mobile
-    E.size = 40;   // Reduce the trail size
+    E.trails = 10;
+    E.size = 40;
 }
 
 function createLines() {
@@ -150,24 +149,17 @@ function createLines() {
 }
 
 function updatePosition(e) {
-  if (e.touches) {
-    pos.x = e.touches[0].pageX;
-    pos.y = e.touches[0].pageY;
-  } else {
+  if (e.touches && e.touches.length > 0) {
+    pos.x = e.touches[0].clientX;
+    pos.y = e.touches[0].clientY;
+  } else if (e.clientX !== undefined) {
     pos.x = e.clientX;
     pos.y = e.clientY;
   }
 }
 
-function handleTouchMove(e) {
-  if (e.touches.length === 1) {
-    pos.x = e.touches[0].pageX;
-    pos.y = e.touches[0].pageY;
-  }
-}
-
 function render() {
-  if (ctx.running) {
+  if (ctx && ctx.running) {
     ctx.globalCompositeOperation = "source-over";
     ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
     ctx.globalCompositeOperation = "lighter";
@@ -190,26 +182,31 @@ function resizeCanvas() {
   }
 }
 
-function onMouseMove(e) {
-  document.removeEventListener("mousemove", onMouseMove);
-  document.removeEventListener("touchstart", onMouseMove);
-  document.addEventListener("mousemove", updatePosition);
-  document.addEventListener("touchmove", updatePosition);
-  document.addEventListener("touchstart", handleTouchMove);
+// One-time setup function
+function onInteraction(e) {
+  document.removeEventListener('mousemove', onInteraction);
+  document.removeEventListener('touchstart', onInteraction);
+
+  document.addEventListener('mousemove', updatePosition);
+  document.addEventListener('touchmove', updatePosition);
+  document.addEventListener('touchstart', updatePosition);
+
   updatePosition(e);
   createLines();
   render();
 }
 
 function handleFocus() {
-  if (!ctx.running) {
+  if (ctx && !ctx.running) {
     ctx.running = true;
     render();
   }
 }
 
 function handleBlur() {
-  ctx.running = false;
+  if (ctx) {
+    ctx.running = false;
+  }
 }
 
 function initCanvas() {
@@ -226,8 +223,8 @@ function initCanvas() {
     offset: 285,
   });
 
-  document.addEventListener("mousemove", onMouseMove);
-  document.addEventListener("touchstart", onMouseMove);
+  document.addEventListener('mousemove', onInteraction);
+  document.addEventListener('touchstart', onInteraction);
   document.body.addEventListener("orientationchange", resizeCanvas);
   window.addEventListener("resize", resizeCanvas);
   window.addEventListener("focus", handleFocus);
@@ -241,11 +238,11 @@ function cleanup() {
     ctx.running = false;
   }
 
-  document.removeEventListener("mousemove", onMouseMove);
-  document.removeEventListener("mousemove", updatePosition);
-  document.removeEventListener("touchstart", onMouseMove);
-  document.removeEventListener("touchstart", handleTouchMove);
-  document.removeEventListener("touchmove", updatePosition);
+  document.removeEventListener('mousemove', onInteraction);
+  document.removeEventListener('touchstart', onInteraction);
+  document.removeEventListener('mousemove', updatePosition);
+  document.removeEventListener('touchmove', updatePosition);
+  document.removeEventListener('touchstart', updatePosition);
   document.body.removeEventListener("orientationchange", resizeCanvas);
   window.removeEventListener("resize", resizeCanvas);
   window.removeEventListener("focus", handleFocus);
@@ -259,6 +256,7 @@ onMounted(() => {
 onUnmounted(() => {
   cleanup();
 });
+
 </script>
 
 <style scoped>
