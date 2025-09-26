@@ -137,6 +137,11 @@ const E = {
   tension: props.tension,
 };
 
+if (typeof window !== 'undefined' && window.matchMedia("(max-width: 768px)").matches) {
+    E.trails = 10; // Halve the trails on mobile
+    E.size = 40;   // Reduce the trail size
+}
+
 function createLines() {
   lines = [];
   for (let e = 0; e < E.trails; e++) {
@@ -152,7 +157,6 @@ function updatePosition(e) {
     pos.x = e.clientX;
     pos.y = e.clientY;
   }
-  e.preventDefault();
 }
 
 function handleTouchMove(e) {
