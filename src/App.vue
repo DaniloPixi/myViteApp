@@ -41,10 +41,6 @@
       <main>
         <!-- Logged-in Content -->
         <div v-if="user">
-        
-  <div class="h-screen w-screen relative">
-    <FluidEffect class="full-page-background" />
-  </div>
           <!-- View Navigation -->
           <nav class="view-nav">
             <a @click="currentView = 'home'" :class="{ active: currentView === 'home' }">Home</a>
@@ -70,7 +66,7 @@
             :date-filter="dateFilter"
             :time-filter="timeFilter"
             :duration-filter="durationFilter" 
-          />
+          /> 
         </div>
 
         <!-- Authentication Views (Logged-out) -->
@@ -100,7 +96,7 @@ import Sidebar from './components/Sidebar.vue';
 import ScrollToTopButton from './components/ScrollToTopButton.vue';
 import InAppNotification from './components/InAppNotification.vue'; // New component
 import AnimatedBorder from './components/AnimatedBorder.vue';
-import FluidEffect from './components/FluidEffect.vue';
+
 // --- PWA Auto-Update Logic ---
 const { needRefresh, updateServiceWorker } = useRegisterSW();
 watch(needRefresh, (isUpdateAvailable) => {
