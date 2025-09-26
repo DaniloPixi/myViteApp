@@ -1,5 +1,6 @@
 
 <template>
+  <CursorTrail />
   <!-- In-App Notification Banner -->
   <InAppNotification
     :title="inAppNotification.title"
@@ -29,8 +30,8 @@
       v-model:duration="durationFilter" 
     />
     <header class="page-header">
-        <h1 v-if="user">Welcome, {{ user.displayName || user.email }}</h1>
-        <h1 v-else>Auth Portal</h1>
+        <h1 v-if="user" class="bounce-in">Welcome, {{ user.displayName || user.email }}</h1>
+        <h1 v-else class="bounce-in">Auth Portal</h1>
     </header>
   </div>
   
@@ -94,8 +95,9 @@ import MemosAndMoments from './views/MemosAndMoments.vue';
 import Plans from './views/Plans.vue';
 import Sidebar from './components/Sidebar.vue';
 import ScrollToTopButton from './components/ScrollToTopButton.vue';
-import InAppNotification from './components/InAppNotification.vue'; // New component
+import InAppNotification from './components/InAppNotification.vue';
 import AnimatedBorder from './components/AnimatedBorder.vue';
+import CursorTrail from './components/CursorTrail.vue';
 
 // --- PWA Auto-Update Logic ---
 const { needRefresh, updateServiceWorker } = useRegisterSW();
@@ -245,6 +247,21 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+@keyframes bounce-in {
+  0% {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.bounce-in {
+  animation: bounce-in 1s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
 .sticky-header {
   position: sticky;
   top: 0;
@@ -317,12 +334,6 @@ onUnmounted(() => {
   background-color: #36a473;
 }
 
-.notification-btn.granted {
-  background-color: #555;
-  color: #ccc;
-  cursor: default;
-}
-
 .logout-button {
   position: fixed;
   bottom: 1.5rem;
@@ -343,15 +354,4 @@ onUnmounted(() => {
     background-color: rgba(255, 0, 255, 0.1);
 }
 
-/* New Home View Styles */
-.full-page-background {
-  display: block !important;
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  z-index: -1; /* Puts the element behind all other content */
-  pointer-events: none; /* Allows mouse events to pass through */
-}
 </style>
