@@ -333,12 +333,11 @@ onUnmounted(() => {
 
 .add-memo-btn .add-memo-icon {
   width: 3.4rem;
-  height: 3.6rem;
+  height: 4rem;
   fill: currentColor;
 }
 
 .add-memo-btn:hover {
-  
   color: turquoise;
 }
 
@@ -348,7 +347,7 @@ onUnmounted(() => {
 }
 
 .memo-card {
-  background: rgba(50, 50, 50, 0.5);
+  background: rgba(0, 0, 0, 0);
   backdrop-filter: blur(0.5rem);
   -webkit-backdrop-filter: blur(0.5rem);
   border: 0.0625rem solid rgba(255, 255, 255, 0.1);
@@ -440,7 +439,7 @@ onUnmounted(() => {
 .memo-description {
   font-size: 1.1em;
   line-height: 1.6;
-  color: #e0e0e0;
+  color: #0cbbf0;
   margin-bottom: 1rem;
 }
 
@@ -449,24 +448,25 @@ onUnmounted(() => {
   flex-wrap: wrap;
   gap: 1rem;
   font-size: 0.9em;
-  color: #aaa;
+  color: #cc0bac;
   margin-bottom: 1rem;
 }
 
 .memo-hashtags {
   margin-bottom: 1rem;
+  
 }
 
 .hashtag {
   display: inline-block;
-  background-color: #333;
-  color: #42b883;
+  background-color: rgba(0, 0, 0, 0);
+  color: #07b2e6;
   padding: 0.3em 0.8em;
   border-radius: 0.9375rem;
   margin-right: 0.5rem;
   margin-bottom: 0.5rem;
-  font-size: 0.85em;
-  font-weight: 500;
+  font-size: 1em;
+  font-weight: 700;
 }
 
 .memo-footer {
@@ -475,13 +475,13 @@ onUnmounted(() => {
   align-items: center;
   padding-top: 1rem;
   border-top: 0.0625rem solid #444;
-  font-size: 0.8em;
-  color: #888;
+  font-size: 1em;
+  color: #eb03b1;
 }
 
 .card-actions {
   display: flex;
-  gap: 1rem;
+  gap: 2rem;
 }
 
 .edit-.delete-button {
