@@ -8,7 +8,13 @@
     <!-- Main Content -->
     <div v-if="!loading && !error">
       <div class="add-memo-section">
-        <button @click="openAddForm" class="add-memo-btn">+ Add New Memo</button>
+        <button @click="openAddForm" class="add-memo-btn">
+          <svg class="add-memo-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z"></path>
+            <line x1="16" y1="8" x2="2" y2="22"></line>
+            <line x1="17.5" y1="15" x2="9" y2="15"></line>
+          </svg>
+        </button>
       </div>
 
       <!-- Memos List -->
@@ -307,24 +313,35 @@ onUnmounted(() => {
 }
 
 .add-memo-section {
-  text-align: center;
+  display: flex;
+  justify-content: center;
   margin-bottom: 2rem;
 }
 
 .add-memo-btn {
-  background-color: #42b883;
-  color: white;
-  border: none;
-  padding: 0.8em 1.5em;
-  border-radius: 8px;
-  font-size: 1em;
-  font-weight: 600;
+  background-color: transparent;
+  border: 0.0625rem solid rgba(255, 0, 255, 0);
+  color: magenta;
+  padding: 0;
+  border-radius: 50%;
+  width: 3.125rem;
+  height: 3.125rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
   cursor: pointer;
-  transition: background-color 0.3s;
+  transition: all 0.3s ease;
+}
+
+.add-memo-btn .add-memo-icon {
+  width: 1.5rem;
+  height: 1.75rem;
 }
 
 .add-memo-btn:hover {
-  background-color: #36a473;
+  border-color: turquoise;
+  background-color: rgba(0, 255, 255, 0.1);
+  color: turquoise;
 }
 
 .memos-list {
@@ -334,11 +351,11 @@ onUnmounted(() => {
 
 .memo-card {
   background: rgba(50, 50, 50, 0.5);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.25);
-  border-radius: 20px;
+  backdrop-filter: blur(0.5rem);
+  -webkit-backdrop-filter: blur(0.5rem);
+  border: 0.0625rem solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 0.25rem 1.25rem 0 rgba(0, 0, 0, 0.25);
+  border-radius: 1.25rem;
   overflow: hidden;
 }
 
@@ -358,7 +375,7 @@ onUnmounted(() => {
 
 .photo-item img {
   width: 100%;
-  height: 300px;
+  height: 18.75rem;
   object-fit: cover;
   display: block;
   cursor: pointer;
@@ -366,7 +383,7 @@ onUnmounted(() => {
 }
 
 .photo-item .adult-content-blur {
-  filter: blur(16px);
+  filter: blur(1rem);
 }
 
 .gallery-nav {
@@ -377,9 +394,9 @@ onUnmounted(() => {
   color: white;
   border: none;
   border-radius: 50%;
-  width: 36px;
-  height: 36px;
-  font-size: 20px;
+  width: 2.25rem;
+  height: 2.25rem;
+  font-size: 1.25rem;
   cursor: pointer;
   z-index: 1;
   display: flex;
@@ -388,26 +405,26 @@ onUnmounted(() => {
 }
 
 .prev-btn {
-  left: 10px;
+  left: 0.625rem;
 }
 
 .next-btn {
-  right: 10px;
+  right: 0.625rem;
 }
 
 .gallery-dots {
   position: absolute;
-  bottom: 10px;
+  bottom: 0.625rem;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
-  gap: 8px;
+  gap: 0.5rem;
   z-index: 1;
 }
 
 .dot {
-  width: 8px;
-  height: 8px;
+  width: 0.5rem;
+  height: 0.5rem;
   border-radius: 50%;
   background-color: rgba(255, 255, 255, 0.6);
   transition: background-color 0.3s;
@@ -447,7 +464,7 @@ onUnmounted(() => {
   background-color: #333;
   color: #42b883;
   padding: 0.3em 0.8em;
-  border-radius: 15px;
+  border-radius: 0.9375rem;
   margin-right: 0.5rem;
   margin-bottom: 0.5rem;
   font-size: 0.85em;
@@ -459,7 +476,7 @@ onUnmounted(() => {
   justify-content: space-between;
   align-items: center;
   padding-top: 1rem;
-  border-top: 1px solid #444;
+  border-top: 0.0625rem solid #444;
   font-size: 0.8em;
   color: #888;
 }
