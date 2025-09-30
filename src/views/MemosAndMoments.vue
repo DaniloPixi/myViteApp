@@ -343,7 +343,14 @@ onUnmounted(() => {
 
 .memos-list {
   display: grid;
+  grid-template-columns: 1fr;
   gap: 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .memos-list {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
 
 .memo-card {
@@ -354,6 +361,8 @@ onUnmounted(() => {
   box-shadow: 0 0.25rem 1.25rem 0 rgba(0, 0, 0, 0.25);
   border-radius: 1.25rem;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .gallery-container {
@@ -423,17 +432,20 @@ onUnmounted(() => {
   width: 0.5rem;
   height: 0.5rem;
   border-radius: 50%;
-  background-color: rgba(255, 255, 255, 0.6);
+  background-color: rgba(248, 24, 200, 0.6);
   transition: background-color 0.3s;
 }
 
 .dot.active {
-  background-color: white;
+  background-color: rgb(21, 209, 223);
 }
 
 
 .memo-content {
   padding: 1.2rem;
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
 }
 
 .memo-description {
@@ -477,6 +489,7 @@ onUnmounted(() => {
   border-top: 0.0625rem solid #444;
   font-size: 1em;
   color: #eb03b1;
+  margin-top: auto;
 }
 
 .card-actions {
@@ -484,7 +497,7 @@ onUnmounted(() => {
   gap: 2rem;
 }
 
-.edit-.delete-button {
+.edit-button, .delete-button {
   background: none;
   border: none;
   color: #888;

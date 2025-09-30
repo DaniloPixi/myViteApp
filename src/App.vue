@@ -343,7 +343,7 @@ onUnmounted(() => {
   border-radius: 50%;
   border: none;
   cursor: pointer;
-  transition: background-color 0.3s;
+  transition: background-color 1s;
   z-index: 10;
   display: flex;
   align-items: center;
@@ -351,7 +351,7 @@ onUnmounted(() => {
 }
 
 .logout-button:hover {
-    background-color: rgba(255, 0, 255, 0.1);
+    background-color: rgba(245, 8, 245, 0.356);
 }
 
 </style>
