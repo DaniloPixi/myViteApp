@@ -377,12 +377,13 @@ onUnmounted(() => {
 
 .photo-item {
   flex: 0 0 100%;
+  background-color: #000;
 }
 
 .photo-item img {
   width: 100%;
-  height: 18.75rem;
-  object-fit: cover;
+  height: 11rem;
+  object-fit: cover, contain;
   display: block;
   cursor: pointer;
   transition: filter 0.3s ease;
