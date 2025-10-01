@@ -18,25 +18,23 @@
       <!-- Memos List -->
       <div v-if="filteredMemos.length > 0" class="memos-list">
         <div v-for="memo in filteredMemos" :key="memo.id" class="memo-card">
-          <div v-if="getMemoPhotos(memo).length" class="gallery-container">
-            <div class="photo-gallery" 
+          <!-- Layer 1: Background Gallery -->
+          <div class="gallery-container">
+            <div class="photo-gallery"
                  :style="{ transform: `translateX(-${galleryState[memo.id]?.currentIndex * 100}%)` }"
                  @touchstart="handleTouchStart(memo.id, $event)"
                  @touchmove="handleTouchMove(memo.id, $event)"
                  @touchend="handleTouchEnd(memo.id, $event)">
-              <div v-for="(photo, index) in getMemoPhotos(memo)" 
-                   :key="index" 
-                   class="photo-item" 
+              <div v-for="(photo, index) in getMemoPhotos(memo)"
+                   :key="index"
+                   class="photo-item"
                    @click="openImageModal(getMemoPhotos(memo).map(p => p.url), index)">
                 <img :src="photo.url" alt="Memo photo" :class="{'adult-content-blur': photo.isAdult }"/>
               </div>
             </div>
-            <button v-if="getMemoPhotos(memo).length > 1 && galleryState[memo.id]?.currentIndex > 0" @click.stop="prevImage(memo.id)" class="gallery-nav prev-btn">&lsaquo;</button>
-            <button v-if="getMemoPhotos(memo).length > 1 && galleryState[memo.id]?.currentIndex < getMemoPhotos(memo).length - 1" @click.stop="nextImage(memo.id)" class="gallery-nav next-btn">&rsaquo;</button>
-            <div class="gallery-dots" v-if="getMemoPhotos(memo).length > 1">
-              <span v-for="(photo, index) in getMemoPhotos(memo)" :key="index" class="dot" :class="{ active: galleryState[memo.id]?.currentIndex === index }"></span>
-            </div>
           </div>
+
+          <!-- Layer 2: Text Content Overlay -->
           <div class="memo-content">
             <p class="memo-description">{{ memo.description }}</p>
             <div class="memo-meta">
@@ -54,6 +52,15 @@
               </div>
             </div>
           </div>
+
+          <!-- Layer 3: Gallery Controls -->
+          <template v-if="getMemoPhotos(memo).length > 1">
+            <button @click.stop="prevImage(memo.id)" class="gallery-nav prev-btn" :class="{ 'visible': galleryState[memo.id]?.currentIndex > 0 }">&lsaquo;</button>
+            <button @click.stop="nextImage(memo.id)" class="gallery-nav next-btn" :class="{ 'visible': galleryState[memo.id]?.currentIndex < getMemoPhotos(memo).length - 1 }">&rsaquo;</button>
+            <div class="gallery-dots">
+              <span v-for="(photo, index) in getMemoPhotos(memo)" :key="index" class="dot" :class="{ active: galleryState[memo.id]?.currentIndex === index }"></span>
+            </div>
+          </template>
         </div>
       </div>
 
@@ -85,7 +92,7 @@
       @confirm="handleDelete"
       @close="isDeleteModalVisible = false"
     />
-    <ImageModal 
+    <ImageModal
       :is-visible="isImageModalVisible"
       :image-urls="selectedImageUrls"
       :start-index="selectedImageIndex"
@@ -248,7 +255,6 @@ const handleTouchStart = (memoId, event) => {
 
 const handleTouchMove = (memoId, event) => {
   if (galleryState.value[memoId].touchStartX === 0) return;
-  // Optional: Add visual feedback during swipe if desired
 };
 
 const handleTouchEnd = (memoId, event) => {
@@ -256,10 +262,12 @@ const handleTouchEnd = (memoId, event) => {
   const touchEndX = event.changedTouches[0].clientX;
   const diffX = galleryState.value[memoId].touchStartX - touchEndX;
 
-  if (diffX > 50) { // Swipe left
-    nextImage(memoId);
-  } else if (diffX < -50) { // Swipe right
-    prevImage(memoId);
+  if (Math.abs(diffX) > 50) { // Threshold for swipe
+      if (diffX > 0) { // Swipe left
+          nextImage(memoId);
+      } else { // Swipe right
+          prevImage(memoId);
+      }
   }
 
   galleryState.value[memoId].touchStartX = 0;
@@ -267,7 +275,7 @@ const handleTouchEnd = (memoId, event) => {
 
 onMounted(() => {
   subscribeToMemos();
-  watch(auth, (currentUser) => {
+  watch(() => auth.currentUser, (currentUser) => {
     if (currentUser) {
       subscribeToMemos();
     } else {
@@ -344,47 +352,49 @@ onUnmounted(() => {
 .memos-list {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 1.5rem;
-}
-
-@media (min-width: 768px) {
-  .memos-list {
-    grid-template-columns: repeat(3, 1fr);
-  }
+  gap: 2rem;
 }
 
 .memo-card {
-  background: rgba(0, 0, 0, 0);
-  backdrop-filter: blur(0.5rem);
-  -webkit-backdrop-filter: blur(0.5rem);
-  border: 0.0625rem solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 0.25rem 1.25rem 0 rgba(0, 0, 0, 0.25);
+  position: relative;
+  height: 25rem;
   border-radius: 1.25rem;
   overflow: hidden;
-  display: flex;
-  flex-direction: column;
+  box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+/* Layer 1: Gallery Container */
 .gallery-container {
-  position: relative;
-  overflow: hidden;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+.photo-gallery,
+.photo-item {
+  height: 100%;
 }
 
 .photo-gallery {
-  display: flex;
-  transition: transform 0.3s ease-in-out;
+    display: flex;
+    transition: transform 0.3s ease-in-out;
 }
 
 .photo-item {
-  flex: 0 0 100%;
-  background-color: #000;
+    flex: 0 0 100%;
 }
 
 .photo-item img {
   width: 100%;
-  height: 11rem;
-  object-fit: cover, contain;
+  height: 100%;
+  object-fit: cover;
   display: block;
+  /* Clicks on image are handled by parent @click */
+  /* Remove pointer-events: none; if you want image-specific events */
   cursor: pointer;
   transition: filter 0.3s ease;
 }
@@ -393,8 +403,102 @@ onUnmounted(() => {
   filter: blur(1rem);
 }
 
-.gallery-nav {
+/* Layer 2: Memo Content */
+.memo-content {
   position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 2;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.7) 50%, transparent 100%);
+  padding: 4rem 1.2rem 1.2rem;
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  /* Make container transparent to clicks, but children clickable */
+  pointer-events: none;
+}
+
+.memo-content > * {
+    pointer-events: auto;
+}
+
+.memo-description {
+  font-size: 1.1em;
+  line-height: 1.6;
+  color: #f0f0f0;
+  margin-bottom: 1rem;
+}
+
+.memo-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  font-size: 0.9em;
+  color: #00d9ff;
+  margin-bottom: 1rem;
+}
+
+.memo-hashtags {
+  margin-bottom: 1rem;
+}
+
+.hashtag {
+  display: inline-block;
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #f0f0f0;
+  padding: 0.3em 0.8em;
+  border-radius: 0.9375rem;
+  margin-right: 0.5rem;
+  margin-bottom: 0.5rem;
+  font-size: 1em;
+  font-weight: 700;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.memo-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 1rem;
+  border-top: 0.0625rem solid #444;
+  font-size: 1em;
+  color: #f595ff;
+  margin-top: auto;
+}
+
+.card-actions {
+  display: flex;
+  gap: 2rem;
+}
+
+.edit-button, .delete-button {
+  background: none;
+  border: none;
+  color: #aaa;
+  cursor: pointer;
+  font-size: 0.9em;
+  text-transform: lowercase;
+  padding: 0;
+  transition: color 0.3s;
+}
+
+.edit-button:hover, .delete-button:hover {
+  text-decoration: none;
+  color: #fff;
+}
+
+.delete-button:hover {
+  color: #ff6b6b;
+}
+
+/* Layer 3: Gallery Controls */
+.gallery-nav, .gallery-dots {
+    position: absolute;
+    z-index: 3; /* Highest layer */
+}
+
+.gallery-nav {
   top: 50%;
   transform: translateY(-50%);
   background-color: rgba(0, 0, 0, 0.5);
@@ -405,10 +509,15 @@ onUnmounted(() => {
   height: 2.25rem;
   font-size: 1.25rem;
   cursor: pointer;
-  z-index: 1;
   display: flex;
   justify-content: center;
   align-items: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.gallery-nav.visible {
+    opacity: 1;
 }
 
 .prev-btn {
@@ -420,13 +529,11 @@ onUnmounted(() => {
 }
 
 .gallery-dots {
-  position: absolute;
   bottom: 0.625rem;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
   gap: 0.5rem;
-  z-index: 1;
 }
 
 .dot {
@@ -441,78 +548,4 @@ onUnmounted(() => {
   background-color: rgb(21, 209, 223);
 }
 
-
-.memo-content {
-  padding: 1.2rem;
-  display: flex;
-  flex-direction: column;
-  flex-grow: 1;
-}
-
-.memo-description {
-  font-size: 1.1em;
-  line-height: 1.6;
-  color: #0cbbf0;
-  margin-bottom: 1rem;
-}
-
-.memo-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-  font-size: 0.9em;
-  color: #cc0bac;
-  margin-bottom: 1rem;
-}
-
-.memo-hashtags {
-  margin-bottom: 1rem;
-  
-}
-
-.hashtag {
-  display: inline-block;
-  background-color: rgba(0, 0, 0, 0);
-  color: #07b2e6;
-  padding: 0.3em 0.8em;
-  border-radius: 0.9375rem;
-  margin-right: 0.5rem;
-  margin-bottom: 0.5rem;
-  font-size: 1em;
-  font-weight: 700;
-}
-
-.memo-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding-top: 1rem;
-  border-top: 0.0625rem solid #444;
-  font-size: 1em;
-  color: #eb03b1;
-  margin-top: auto;
-}
-
-.card-actions {
-  display: flex;
-  gap: 2rem;
-}
-
-.edit-button, .delete-button {
-  background: none;
-  border: none;
-  color: #888;
-  cursor: pointer;
-  font-size: 0.8em;
-  text-transform: lowercase;
-  padding: 0;
-}
-
-.edit-button:hover, .delete-button:hover {
-  text-decoration: underline;
-}
-
-.delete-button:hover {
-  color: #ff6b6b;
-}
 </style>
