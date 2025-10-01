@@ -393,8 +393,6 @@ onUnmounted(() => {
   height: 100%;
   object-fit: cover;
   display: block;
-  /* Clicks on image are handled by parent @click */
-  /* Remove pointer-events: none; if you want image-specific events */
   cursor: pointer;
   transition: filter 0.3s ease;
 }
@@ -411,11 +409,10 @@ onUnmounted(() => {
   right: 0;
   z-index: 2;
   background: linear-gradient(to top, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.7) 50%, transparent 100%);
-  padding: 4rem 1.2rem 1.2rem;
+  padding: 3rem 1.2rem 1.2rem;
   display: flex;
   flex-direction: column;
   flex-grow: 1;
-  /* Make container transparent to clicks, but children clickable */
   pointer-events: none;
 }
 
@@ -427,7 +424,7 @@ onUnmounted(() => {
   font-size: 1.1em;
   line-height: 1.6;
   color: #f0f0f0;
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
 }
 
 .memo-meta {
@@ -436,24 +433,24 @@ onUnmounted(() => {
   gap: 1rem;
   font-size: 0.9em;
   color: #00d9ff;
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
 }
 
 .memo-hashtags {
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
 }
 
 .hashtag {
   display: inline-block;
   background-color: rgba(255, 255, 255, 0.1);
   color: #f0f0f0;
-  padding: 0.3em 0.8em;
+  padding: 0.2em 0.5em;
   border-radius: 0.9375rem;
-  margin-right: 0.5rem;
-  margin-bottom: 0.5rem;
-  font-size: 1em;
+  font-size: 0.75em;
   font-weight: 700;
   border: 1px solid rgba(255, 255, 255, 0.2);
+  margin-right: 0.5rem;
+  margin-bottom: 0.5rem;
 }
 
 .memo-footer {
