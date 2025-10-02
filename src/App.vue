@@ -354,4 +354,8 @@ onUnmounted(() => {
     background-color: rgba(245, 8, 245, 0.356);
 }
 
+.card.is-full-width {
+  max-width: 90%;
+  width: 90%;
+}
 </style>

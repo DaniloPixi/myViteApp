@@ -351,18 +351,21 @@ onUnmounted(() => {
 
 .memos-list {
   display: grid;
-  width:800px;
-  grid-template-columns:repeat(3, 1fr);
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
 .memo-card {
   position: relative;
-  height: 25rem;
+  min-height: 25rem;
   border-radius: 1.25rem;
   overflow: hidden;
   box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.4);
   border: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  flex-direction: column;
 }
 
 /* Layer 1: Gallery Container */
@@ -546,4 +549,38 @@ onUnmounted(() => {
   background-color: rgb(21, 209, 223);
 }
 
+@media (max-width: 600px) {
+  .memos-moments-view {
+    padding: 0.5rem;
+  }
+
+  .memos-list {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+
+  .memo-card {
+    min-height: 22rem;
+  }
+
+  .memo-content {
+    padding: 2rem 1rem 1rem;
+  }
+
+  .memo-description {
+    font-size: 1em;
+  }
+
+  .memo-footer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .card-actions {
+    width: 100%;
+    justify-content: flex-end;
+    gap: 1.5rem;
+  }
+}
 </style>
