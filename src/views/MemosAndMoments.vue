@@ -17,7 +17,7 @@
 
       <!-- Memos List -->
       <div v-if="filteredMemos.length > 0" class="memos-list">
-        <div v-for="memo in filteredMemos" :key="memo.id" class="memo-card">
+        <div v-for="memo in filteredMemos" :key="memo.id" class="memo-card" tabindex="0">
           <!-- Layer 1: Background Gallery -->
           <div class="gallery-container">
             <div class="photo-gallery"
@@ -36,13 +36,15 @@
 
           <!-- Layer 2: Text Content Overlay -->
           <div class="memo-content">
-            <p class="memo-description">{{ memo.description }}</p>
-            <div class="memo-meta">
-              <span class="meta-item"><strong>📍</strong> {{ memo.location || 'No location' }}</span>
-              <span class="meta-item"><strong>🗓️</strong> {{ formatDate(memo.date) }}</span>
-            </div>
-            <div v-if="memo.hashtags && memo.hashtags.length" class="memo-hashtags">
-              <span v-for="tag in memo.hashtags" :key="tag" class="hashtag">{{ tag }}</span>
+            <div class="memo-details-tooltip">
+              <p class="memo-description">{{ memo.description }}</p>
+              <div class="memo-meta">
+                <span class="meta-item"><strong>📍</strong> {{ memo.location || 'No location' }}</span>
+                <span class="meta-item"><strong>🗓️</strong> {{ formatDate(memo.date) }}</span>
+              </div>
+              <div v-if="memo.hashtags && memo.hashtags.length" class="memo-hashtags">
+                <span v-for="tag in memo.hashtags" :key="tag" class="hashtag">{{ tag }}</span>
+              </div>
             </div>
             <div class="memo-footer">
               <span class="created-by">By: {{ memo.createdBy }}</span>
@@ -422,6 +424,16 @@ onUnmounted(() => {
 
 .memo-content > * {
     pointer-events: auto;
+}
+
+.memo-details-tooltip {
+  opacity: 0;
+  transition: opacity 0.3s ease-in-out;
+}
+
+.memo-card:hover .memo-details-tooltip,
+.memo-card:focus .memo-details-tooltip {
+  opacity: 1;
 }
 
 .memo-description {
