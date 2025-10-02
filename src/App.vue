@@ -38,7 +38,7 @@
 
   <!-- The main content card -->
   <AnimatedBorder :max-width="animatedBorderMaxWidth">
-    <div class="card">
+    <div class="card" :class="{ 'is-full-width': currentView === 'memos' || currentView === 'plans' }">
       <main>
         <!-- Logged-in Content -->
         <div v-if="user">
@@ -117,7 +117,7 @@ const currentView = ref(localStorage.getItem('currentView') || 'home');
 
 // Compute dynamic max-width for the animated border
 const animatedBorderMaxWidth = computed(() => {
-  return currentView.value === 'home' ? '550px' : '100%';
+  return '100%';
 });
 
 

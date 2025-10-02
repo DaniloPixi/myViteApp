@@ -351,8 +351,9 @@ onUnmounted(() => {
 
 .memos-list {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 2rem;
+  width:800px;
+  grid-template-columns:repeat(3, 1fr);
+  gap: 1rem;
 }
 
 .memo-card {
