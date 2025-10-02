@@ -413,7 +413,7 @@ onUnmounted(() => {
   right: 0;
   z-index: 2;
   background: linear-gradient(to top, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.7) 50%, transparent 100%);
-  padding: 3rem 1.2rem 1.2rem;
+  padding: 1rem 1rem 1rem;
   display: flex;
   flex-direction: column;
   flex-grow: 1;
@@ -428,20 +428,21 @@ onUnmounted(() => {
   font-size: 1.1em;
   line-height: 1.6;
   color: #f0f0f0;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.15rem;
 }
 
 .memo-meta {
   display: flex;
   flex-wrap: wrap;
+  justify-content:center;
   gap: 1rem;
   font-size: 0.9em;
   color: #00d9ff;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.25rem;
 }
 
 .memo-hashtags {
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.25rem;
 }
 
 .hashtag {
@@ -461,11 +462,12 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-top: 1rem;
+  padding-top: 0.25rem;
+  padding-right:0.25rem;
+  padding-left:0.25rem;
   border-top: 0.0625rem solid #444;
   font-size: 1em;
   color: #f595ff;
-  margin-top: auto;
 }
 
 .card-actions {
@@ -549,13 +551,12 @@ onUnmounted(() => {
   background-color: rgb(21, 209, 223);
 }
 
-@media (max-width: 600px) {
+@media (max-width: 760px) {
   .memos-moments-view {
     padding: 0.5rem;
   }
 
   .memos-list {
-    grid-template-columns: repeat(2, 1fr);
     gap: 1rem;
   }
 
@@ -564,7 +565,7 @@ onUnmounted(() => {
   }
 
   .memo-content {
-    padding: 2rem 1rem 1rem;
+    padding: 0.2rem 0.1rem 0.1rem;
   }
 
   .memo-description {
@@ -572,15 +573,10 @@ onUnmounted(() => {
   }
 
   .memo-footer {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.5rem;
-  }
-
-  .card-actions {
-    width: 100%;
-    justify-content: flex-end;
-    gap: 1.5rem;
+    display:flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
   }
 }
 </style>
