@@ -160,8 +160,8 @@ async function sendPushNotification(title, body, link, excludeUid) {
             webpush: { 
                 fcm_options: { link },
                 notification: {
-                    icon: '/manifest-icon-192.maskable.png',
-                    badge: '/manifest-icon-192.maskable.png'
+                    icon: '/icon.svg',
+                    badge: '/icon.svg'
                 }
             },
             android: {

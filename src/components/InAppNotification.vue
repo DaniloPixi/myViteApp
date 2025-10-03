@@ -2,7 +2,7 @@
   <div v-if="visible" class="in-app-notification" @click="dismiss">
     <div class="notification-content">
       <div class="notification-icon">
-        <img src="/manifest-icon-192.maskable.png" alt="icon" />
+        <img src="/icon.svg" alt="icon" />
       </div>
       <div class="notification-text">
         <h5 class="notification-title">{{ title }}</h5>
