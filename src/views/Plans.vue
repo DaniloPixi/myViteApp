@@ -276,7 +276,13 @@ h1 { color: #42b883; text-align: center; margin-bottom: 2rem; }
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.25);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.1), 0 8px 16px rgba(0, 0, 0, 0.3), 0 4px 8px rgba(0, 0, 0, 0.4);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.plan-card:hover {
+  transform: translateY(-10px) scale(1.03);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.2), 0 12px 24px rgba(0, 0, 0, 0.4), 0 8px 12px rgba(0, 0, 0, 0.5);
 }
 
 .card-header {

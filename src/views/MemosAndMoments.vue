@@ -364,11 +364,18 @@ onUnmounted(() => {
   min-height: 25rem;
   border-radius: 1.25rem;
   overflow: hidden;
-  box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.4);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.1), 0 8px 16px rgba(0, 0, 0, 0.3), 0 4px 8px rgba(0, 0, 0, 0.4);
   border: 1px solid rgba(255, 255, 255, 0.1);
   display: flex;
   flex-direction: column;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
+
+.memo-card:hover {
+  transform: translateY(-10px) scale(1.03);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.2), 0 12px 24px rgba(0, 0, 0, 0.4), 0 8px 12px rgba(0, 0, 0, 0.5);
+}
+
 
 /* Layer 1: Gallery Container */
 .gallery-container {
