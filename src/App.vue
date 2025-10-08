@@ -269,18 +269,6 @@ onUnmounted(() => {
   padding-top: 1rem;
 }
 
-.page-header {
-  text-align: center;
-  margin: 1rem 0 2rem;
-}
-
-.page-header h1 {
-  font-size: 2.2em;
-  color: #42b883;
-  margin: 0;
-  font-weight: 600;
-}
-
 .view-nav {
   display: flex;
   justify-content: center;
