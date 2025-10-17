@@ -346,4 +346,10 @@ onUnmounted(() => {
   max-width: 90%;
   width: 90%;
 }
+
+@media (max-width: 768px) {
+  .view-nav a {
+    font-size: 1.2rem; 
+  }
+}
 </style>

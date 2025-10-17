@@ -307,18 +307,20 @@ watch(() => props.user, (newUser) => {
 .plan-detail strong { color: #aaa; }
 
 .create-plan-button-section { text-align: center; margin-bottom: 2.5rem; }
+
 .add-plan-button {
-  background: linear-gradient(45deg, hsl(0, 0%, 0%), #f00472);
-  color: white;
-  padding: 1rem 2rem;
+  background: linear-gradient(45deg, #0f0f0f, #f3099270,#360101);
+  color: rgb(95, 213, 243);
+  padding: 0.8rem 2.5rem;
   border: none;
   border-radius: 50px;
-  font-family: 'Montserrat', sans-serif;
-  font-weight: 600;
-  font-size: 1.1em;
+  font-family: 'Great Vibes', cursive;
+  font-weight: normal;
+  font-size: 2em;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(255, 88, 88, 0.4);
+  box-shadow: 0 4px 15px rgba(240, 6, 134, 0.26);
+  line-height: 1;
 }
 
 .add-plan-button:hover {
