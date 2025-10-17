@@ -321,6 +321,7 @@ watch(() => props.user, (newUser) => {
   transition: all 0.3s ease;
   box-shadow: 0 4px 15px rgba(240, 6, 134, 0.26);
   line-height: 1;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .add-plan-button:hover {
