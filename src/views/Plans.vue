@@ -295,19 +295,37 @@ watch(() => props.user, (newUser) => {
 
 .card-header h3 {
   margin: 0;
-  color: #42b883;
-  font-size: 1.4em;
+  color: turquoise;
+  font-family: 'Great Vibes', cursive;
+  font-size: 2.5em;
   text-align: center;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-weight: normal;
+  line-height: 1.2;
 }
 
-.plan-card .plan-detail { margin: 0.5rem 0; color: #ccc; }
-.plan-detail strong { color: #888; }
+.plan-card .plan-detail { margin: 0.5rem 0; color: #ddd; }
+.plan-detail strong { color: #aaa; }
 
 .create-plan-button-section { text-align: center; margin-bottom: 2.5rem; }
-.add-plan-button { padding: 0.7em 1.4em; border-radius: 30px; border: none; background-color: #42b883; color: white; font-size: 1.1em; font-weight: 600; cursor: pointer; }
+.add-plan-button {
+  background: linear-gradient(45deg, hsl(0, 0%, 0%), #f00472);
+  color: white;
+  padding: 1rem 2rem;
+  border: none;
+  border-radius: 50px;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 600;
+  font-size: 1.1em;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(255, 88, 88, 0.4);
+}
+
+.add-plan-button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 7px 20px rgba(248, 87, 166, 0.5);
+}
+
 
 .hashtags-container { margin-top: 1rem; }
 .hashtag { display: inline-block; background-color: #333; color: #42b883; padding: 0.3em 0.7em; border-radius: 15px; font-size: 0.85em; margin-right: 0.5rem; margin-bottom: 0.5rem; }

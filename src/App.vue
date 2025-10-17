@@ -29,7 +29,7 @@
       v-model:time="timeFilter"
       v-model:duration="durationFilter" 
     />
-    <header class="page-header">
+    <header class="page-header" v-if="currentView === 'home'">
         <h1 v-if="user" class="bounce-in">Welcome, {{ user.displayName || user.email }}</h1>
         <h1 v-else class="bounce-in">Auth Portal</h1>
     </header>
