@@ -262,11 +262,15 @@ watch(() => props.user, (newUser) => {
 </script>
 
 <style scoped>
-.plans-view { max-width: 600px; margin: 0 auto; padding: 1rem; }
-h1 { color: #42b883; text-align: center; margin-bottom: 2rem; }
+.plans-view { max-width: 1200px; margin: 0 auto; padding: 1rem; }
 .plan-list-section { margin-bottom: 2.5rem; }
 
-.plan-cards-container { display: grid; gap: 1.5rem; }
+.plan-cards-container { 
+  display: grid;
+  grid-template-columns: minmax(0, 600px);
+  justify-content: center;
+  gap: 1.5rem; 
+}
 
 .plan-card {
   position: relative;
