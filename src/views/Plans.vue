@@ -26,6 +26,7 @@
           <div v-if="plan.hashtags && plan.hashtags.length" class="hashtags-container">
             <span v-for="tag in plan.hashtags" :key="tag" class="hashtag">{{ tag }}</span>
           </div>
+          <ProgressBar :startDate="plan.creationDate" :endDate="plan.fullDate" />
           <div class="card-footer">
             <p class="creator-info">By: {{ plan.createdBy }}</p>
             <div class="card-actions">
@@ -63,6 +64,7 @@ import { ref, onMounted, onUnmounted, computed, watch } from 'vue';
 import { getFirestore, collection, query, orderBy, onSnapshot } from 'firebase/firestore';
 import PlanFormModal from '../components/PlanFormModal.vue';
 import ConfirmDeleteModal from '../components/ConfirmDeleteModal.vue';
+import ProgressBar from '../components/ProgressBar.vue';
 
 // --- PROPS ---
 const props = defineProps({
@@ -132,7 +134,22 @@ const subscribeToPlans = () => {
     const plansQuery = query(collection(db, 'plans'), orderBy('date', 'desc'));
 
     unsubscribeFromPlans = onSnapshot(plansQuery, (snapshot) => {
-      plans.value = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      plans.value = snapshot.docs.map(doc => {
+        const data = doc.data();
+        const date = new Date(data.date);
+        if (data.time) {
+          const timeParts = data.time.match(/(\d{2}):(\d{2})/);
+          if (timeParts) {
+            date.setHours(timeParts[1], timeParts[2]);
+          }
+        }
+        return {
+          id: doc.id,
+          ...data,
+          creationDate: doc.createTime ? doc.createTime.toDate() : new Date(),
+          fullDate: date,
+        };
+      });
       isLoading.value = false;
     }, (error) => {
       console.error("Error fetching plans in real-time:", error);
@@ -326,7 +343,7 @@ watch(() => props.user, (newUser) => {
 
 .add-plan-button:hover {
   transform: translateY(-3px);
-  box-shadow: 0 7px 20px rgba(248, 87, 166, 0.5);
+  box-shadow: 0 7px 20px rgba(f8, 87, 166, 0.5);
 }
 
 
