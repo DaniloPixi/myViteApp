@@ -17,28 +17,47 @@
       <div v-else-if="!filteredPlans.length" class="empty-state"><p>No plans match your current filters.</p></div>
       <div v-else class="plan-cards-container">
         <div 
-          v-for="(plan, index) in filteredPlans" 
-          :key="plan.id" 
+          v-for="plan in filteredPlans"
+          :key="plan.id"
           class="plan-card"
-          :ref="el => { if (el) planCardElements[index] = el }"
-          :style="{ transform: `scale(${cardScales[index] || 1})` }">
-          <div class="card-header">
+          :class="{ 
+            'expanded': expandedPlanId === plan.id, 
+            'hovered': hoveredPlanId === plan.id && expandedPlanId !== plan.id 
+          }"
+          @click="toggleExpand(plan.id)"
+          @mouseover="setHovered(plan.id)"
+          @mouseleave="clearHovered">
+
+          <!-- Expanded Content -->
+          <div v-if="expandedPlanId === plan.id" class="expanded-content">
             <h3>{{ plan.text }}</h3>
-          </div>
-          <p class="plan-detail"><strong>Date:</strong> {{ formatDate(plan.date) }}</p>
-          <p v-if="plan.time" class="plan-detail"><strong>Time:</strong> {{ formatTime(plan.time) }}</p>
-          <p class="plan-detail"><strong>Location:</strong> {{ plan.location }}</p>
-          <div v-if="plan.hashtags && plan.hashtags.length" class="hashtags-container">
-            <span v-for="tag in plan.hashtags" :key="tag" class="hashtag">{{ tag }}</span>
-          </div>
-          <ProgressBar :startDate="plan.creationDate" :endDate="plan.fullDate" />
-          <div class="card-footer">
-            <p class="creator-info">By: {{ plan.createdBy }}</p>
-            <div class="card-actions">
-                <button @click="openEditModal(plan)" class="edit-button">edit</button>
-                <button @click="promptDelete(plan.id)" class="delete-button">delete</button>
+            <p class="plan-detail"><strong>Date:</strong> {{ formatDate(plan.date) }}</p>
+            <p v-if="plan.time" class="plan-detail"><strong>Time:</strong> {{ formatTime(plan.time) }}</p>
+            <p class="plan-detail"><strong>Location:</strong> {{ plan.location }}</p>
+            <div v-if="plan.hashtags && plan.hashtags.length" class="hashtags-container">
+              <span v-for="tag in plan.hashtags" :key="tag" class="hashtag">{{ tag }}</span>
+            </div>
+            <ProgressBar :startDate="plan.creationDate" :endDate="plan.fullDate" />
+            <div class="card-footer">
+              <p class="creator-info">By: {{ plan.createdBy }}</p>
+              <div class="card-actions">
+                  <button @click.stop="openEditModal(plan)" class="edit-button">edit</button>
+                  <button @click.stop="promptDelete(plan.id)" class="delete-button">delete</button>
+              </div>
             </div>
           </div>
+
+          <!-- Hovered Content (Title + Time) -->
+          <div v-else-if="hoveredPlanId === plan.id" class="hover-content">
+            <h4>{{ plan.text }}</h4>
+            <p v-if="plan.time">{{ formatTime(plan.time) }}</p>
+          </div>
+
+          <!-- Default Content (Title Only) -->
+          <div v-else class="default-content">
+            <h4>{{ plan.text }}</h4>
+          </div>
+
         </div>
       </div>
     </section>
@@ -65,13 +84,12 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, computed, watch, onBeforeUpdate, nextTick } from 'vue';
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue';
 import { getFirestore, collection, query, orderBy, onSnapshot } from 'firebase/firestore';
 import PlanFormModal from '../components/PlanFormModal.vue';
 import ConfirmDeleteModal from '../components/ConfirmDeleteModal.vue';
 import ProgressBar from '../components/ProgressBar.vue';
 
-// --- PROPS ---
 const props = defineProps({
   user: { type: Object, required: true },
   locationFilter: { type: String, default: '' },
@@ -81,49 +99,36 @@ const props = defineProps({
   durationFilter: { type: Array, default: () => [] },
 });
 
-// --- STATE ---
 const plans = ref([]);
 const isLoading = ref(true);
 const fetchError = ref('');
 const isSubmitting = ref(false);
 const submitError = ref('');
 
-// Modal State
 const isFormModalVisible = ref(false);
 const editingPlan = ref(null);
 const isDeleteModalVisible = ref(false);
 const planToDeleteId = ref(null);
 
-// Static Data
 const createButtonTitle = ref('');
 let unsubscribeFromPlans = null;
 
-// Scroll Animation
-const planCardElements = ref([]);
-const cardScales = ref([]);
+// State for bubble interaction
+const expandedPlanId = ref(null);
+const hoveredPlanId = ref(null);
 
-onBeforeUpdate(() => {
-  planCardElements.value = [];
-});
-
-const handleScroll = () => {
-  const viewportCenterY = window.innerHeight / 2;
-  const newScales = filteredPlans.value.map((plan, index) => {
-    const cardElement = planCardElements.value[index];
-    if (cardElement) {
-      const { top, height } = cardElement.getBoundingClientRect();
-      const cardCenterY = top + height / 2;
-      const distance = Math.abs(viewportCenterY - cardCenterY);
-      const scale = Math.max(0.8, 1.1 - (distance / viewportCenterY) * 0.3);
-      return scale;
-    }
-    return 1;
-  });
-  cardScales.value = newScales;
+const toggleExpand = (planId) => {
+  expandedPlanId.value = expandedPlanId.value === planId ? null : planId;
 };
 
+const setHovered = (planId) => {
+  hoveredPlanId.value = planId;
+};
 
-// --- COMPUTED PROPERTIES ---
+const clearHovered = () => {
+  hoveredPlanId.value = null;
+};
+
 const filteredPlans = computed(() => {
   return plans.value.filter(plan => {
     const locationMatch = !props.locationFilter || plan.location.toLowerCase().includes(props.locationFilter.toLowerCase());
@@ -147,16 +152,13 @@ const filteredPlans = computed(() => {
   });
 });
 
-// --- API HELPER ---
 const getAuthToken = async () => {
   if (!props.user) throw new Error("User not authenticated");
   return await props.user.getIdToken(true);
 };
 
-// --- FIRESTORE REAL-TIME LISTENER ---
 const subscribeToPlans = () => {
-  if (unsubscribeFromPlans) unsubscribeFromPlans(); // Unsubscribe from any previous listener
-
+  if (unsubscribeFromPlans) unsubscribeFromPlans();
   if (!props.user) return;
 
   try {
@@ -193,8 +195,6 @@ const subscribeToPlans = () => {
   }
 };
 
-
-// --- API CALLS (for write operations) ---
 const handleSave = async (planData) => {
   isSubmitting.value = true;
   submitError.value = '';
@@ -239,7 +239,6 @@ const handleDelete = async () => {
   }
 };
 
-// --- MODAL HANDLING ---
 const openCreateModal = () => {
   editingPlan.value = null;
   submitError.value = '';
@@ -263,13 +262,13 @@ const promptDelete = (planId) => {
   isDeleteModalVisible.value = true;
 };
 
-// --- FORMATTING ---
 const formatDate = (dateString) => {
   if (!dateString) return '';
   const options = { year: 'numeric', month: 'long', day: 'numeric' };
   const date = new Date(dateString);
   return new Date(date.getTime() + date.getTimezoneOffset() * 60000).toLocaleDateString(undefined, options);
 };
+
 const formatTime = (timeString) => {
     if (!timeString) return '';
     const parts = timeString.split(', ');
@@ -285,22 +284,18 @@ const formatTime = (timeString) => {
     return [formattedTime, durationPart].filter(Boolean).join(', ') || timeString;
 };
 
-// --- LIFECYCLE HOOKS ---
 onMounted(() => {
   const titles = ["What's on your mind, beautiful?", "What shall we do, my love?", "Create a new adventure..."];
   createButtonTitle.value = titles[Math.floor(Math.random() * titles.length)];
   if (props.user) {
     subscribeToPlans();
   }
-  window.addEventListener('scroll', handleScroll, { passive: true });
-  handleScroll();
 });
 
 onUnmounted(() => {
   if (unsubscribeFromPlans) {
     unsubscribeFromPlans();
   }
-  window.removeEventListener('scroll', handleScroll);
 });
 
 watch(() => props.user, (newUser) => {
@@ -312,56 +307,85 @@ watch(() => props.user, (newUser) => {
   }
 });
 
-watch(filteredPlans, () => {
-  nextTick(() => {
-    handleScroll();
-  });
-}, { deep: true, immediate: true });
 </script>
 
 <style scoped>
 .plans-view { max-width: 1200px; margin: 0 auto; padding: 1rem; }
-.plan-list-section { margin-bottom: 2.5rem; }
+.plan-list-section { margin-bottom: 2.5rem; text-align: center;}
 
-.plan-cards-container { 
-  display: grid;
-  grid-template-columns: minmax(0, 600px);
+.plan-cards-container {
+  display: flex;
+  flex-wrap: wrap;
   justify-content: center;
-  gap: 1.5rem; 
+  gap: 1.5rem;
+  padding: 2rem 0;
 }
 
 .plan-card {
   position: relative;
-  padding: 1.5rem;
-  border-radius: 20px;
+  border-radius: 15px;
   background: rgba(50, 50, 50, 0.5);
   backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.1), 0 8px 16px rgba(0, 0, 0, 0.3), 0 4px 8px rgba(0, 0, 0, 0.4);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  box-shadow: 0 8px 16px rgba(0,0,0,0.3);
+  transition: all 1s cubic-bezier(0.25, 0.8, 0.25, 1);
+  cursor: pointer;
+  color: #fff;
+
+  /* Bubble styles */
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 1rem;
 }
 
-.plan-card:hover {
-  transform: translateY(-10px) scale(1.03);
-  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.2), 0 12px 24px rgba(0, 0, 0, 0.4), 0 8px 12px rgba(0, 0, 0, 0.5);
+.plan-card.hovered {
+  transform: scale(1.1);
+  box-shadow: 0 12px 24px rgba(0,0,0,0.4);
+  background: rgba(70, 70, 70, 0.6);
 }
 
-.card-header {
-  margin-bottom: 1rem;
+.plan-card.expanded {
+  width: 90%;
+  max-width: 600px;
+  height: auto;
+  border-radius: 20px;
+  flex-direction: column;
+  align-items: stretch;
+  padding: 2rem;
+  cursor: default;
 }
 
-.card-header h3 {
+.default-content h4, .hover-content h4 {
+  font-size: 1.2rem;
   margin: 0;
+  font-weight: 500;
+}
+
+.hover-content p {
+  margin: 0.5rem 0 0;
+  font-size: 0.9rem;
+  color: #ccc;
+}
+
+.expanded-content {
+  opacity: 1;
+  transition: opacity 0.5s ease-in-out;
+}
+
+.expanded-content h3 {
+  margin: 0 0 1rem;
   color: turquoise;
   font-family: 'Great Vibes', cursive;
   font-size: 2.5em;
-  text-align: center;
   font-weight: normal;
-  line-height: 1.2;
 }
 
-.plan-card .plan-detail { margin: 0.5rem 0; color: #ddd; }
+.plan-detail { margin: 0.5rem 0; color: #ddd; }
 .plan-detail strong { color: #aaa; }
 
 .create-plan-button-section { text-align: center; margin-bottom: 2.5rem; }
@@ -378,8 +402,6 @@ watch(filteredPlans, () => {
   cursor: pointer;
   transition: all 0.3s ease;
   box-shadow: 0 4px 15px rgba(240, 6, 134, 0.26);
-  line-height: 1;
-  -webkit-tap-highlight-color: transparent;
 }
 
 .add-plan-button:hover {
