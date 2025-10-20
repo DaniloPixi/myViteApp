@@ -16,7 +16,12 @@
       <div v-else-if="!plans.length" class="empty-state"><p>No plans yet. Let's create one!</p></div>
       <div v-else-if="!filteredPlans.length" class="empty-state"><p>No plans match your current filters.</p></div>
       <div v-else class="plan-cards-container">
-        <div v-for="plan in filteredPlans" :key="plan.id" class="plan-card">
+        <div 
+          v-for="(plan, index) in filteredPlans" 
+          :key="plan.id" 
+          class="plan-card"
+          :ref="el => { if (el) planCardElements[index] = el }"
+          :style="{ transform: `scale(${cardScales[index] || 1})` }">
           <div class="card-header">
             <h3>{{ plan.text }}</h3>
           </div>
@@ -60,7 +65,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, computed, watch } from 'vue';
+import { ref, onMounted, onUnmounted, computed, watch, onBeforeUpdate, nextTick } from 'vue';
 import { getFirestore, collection, query, orderBy, onSnapshot } from 'firebase/firestore';
 import PlanFormModal from '../components/PlanFormModal.vue';
 import ConfirmDeleteModal from '../components/ConfirmDeleteModal.vue';
@@ -92,6 +97,31 @@ const planToDeleteId = ref(null);
 // Static Data
 const createButtonTitle = ref('');
 let unsubscribeFromPlans = null;
+
+// Scroll Animation
+const planCardElements = ref([]);
+const cardScales = ref([]);
+
+onBeforeUpdate(() => {
+  planCardElements.value = [];
+});
+
+const handleScroll = () => {
+  const viewportCenterY = window.innerHeight / 2;
+  const newScales = filteredPlans.value.map((plan, index) => {
+    const cardElement = planCardElements.value[index];
+    if (cardElement) {
+      const { top, height } = cardElement.getBoundingClientRect();
+      const cardCenterY = top + height / 2;
+      const distance = Math.abs(viewportCenterY - cardCenterY);
+      const scale = Math.max(0.8, 1.1 - (distance / viewportCenterY) * 0.3);
+      return scale;
+    }
+    return 1;
+  });
+  cardScales.value = newScales;
+};
+
 
 // --- COMPUTED PROPERTIES ---
 const filteredPlans = computed(() => {
@@ -259,13 +289,18 @@ const formatTime = (timeString) => {
 onMounted(() => {
   const titles = ["What's on your mind, beautiful?", "What shall we do, my love?", "Create a new adventure..."];
   createButtonTitle.value = titles[Math.floor(Math.random() * titles.length)];
-  if (props.user) subscribeToPlans();
+  if (props.user) {
+    subscribeToPlans();
+  }
+  window.addEventListener('scroll', handleScroll, { passive: true });
+  handleScroll();
 });
 
 onUnmounted(() => {
   if (unsubscribeFromPlans) {
     unsubscribeFromPlans();
   }
+  window.removeEventListener('scroll', handleScroll);
 });
 
 watch(() => props.user, (newUser) => {
@@ -276,6 +311,12 @@ watch(() => props.user, (newUser) => {
     plans.value = [];
   }
 });
+
+watch(filteredPlans, () => {
+  nextTick(() => {
+    handleScroll();
+  });
+}, { deep: true, immediate: true });
 </script>
 
 <style scoped>

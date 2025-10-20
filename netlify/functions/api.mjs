@@ -226,8 +226,6 @@ apiRouter.use(checkDb);
 apiRouter.use('/plans', createPlansRouter(db, sendPushNotification));
 apiRouter.use('/memos', createMemosRouter(db, cloudinary, extractPublicId, sendPushNotification));
 
-app.use('/api', apiRouter);
-
 // Standalone registration endpoint (can be kept here or moved)
 app.post('/api/register', authenticateToken, checkDb, async (req, res) => {
   const { token } = req.body;
@@ -243,5 +241,30 @@ app.post('/api/register', authenticateToken, checkDb, async (req, res) => {
     res.status(500).json({ success: false, message: 'Internal server error.', details: error.message });
   }
 });
+
+app.post('/api/send-love', authenticateToken, checkDb, async (req, res) => {
+    const { uid, name } = req.user; // Get sender's UID and name
+    const senderName = name || 'Someone'; // Fallback to 'Someone' if name is not available
+
+    try {
+        // The link to open when the notification is clicked
+        const link = '/'; 
+
+        // Send the push notification
+        await sendPushNotification(
+            `A message from ${senderName}`, 
+            'I love you',
+            link,
+            uid // Exclude the sender from receiving the notification
+        );
+
+        res.status(200).json({ success: true, message: '"I love you" notification sent successfully.' });
+    } catch (error) {
+        console.error('Error in /api/send-love:', error);
+        res.status(500).json({ success: false, message: 'Internal server error while sending notification.' });
+    }
+});
+
+app.use('/api', apiRouter);
 
 export const handler = serverless(app);

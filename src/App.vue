@@ -51,7 +51,7 @@
 
           <!-- Conditional Views -->
           <div v-if="currentView === 'home'">
-             <!--Placeholder for a real home screen component -->
+             <button @click="sendLoveNotification" class="love-button">Send Love</button>
           </div>
 
           <MemosAndMoments v-if="currentView === 'memos'" 
@@ -191,6 +191,32 @@ const logout = () => {
   auth.signOut();
 };
 
+async function sendLoveNotification() {
+  if (!user.value) return;
+  try {
+    const idToken = await user.value.getIdToken(true);
+    const response = await fetch('/api/send-love', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${idToken}`
+      }
+    });
+    if (!response.ok) {
+        const errorBody = await response.json();
+        throw new Error(errorBody.message || `Server responded with ${response.status}`);
+    }
+    const result = await response.json();
+    console.log('"I love you" notification sent:', result.message);
+    // Optionally show an in-app notification to the sender
+    inAppNotification.title = "Message Sent!";
+    inAppNotification.body = "You've sent an 'I love you' notification.";
+    inAppNotification.visible = true;
+  } catch (error) {
+    console.error('Error sending "I love you" notification:', error);
+  }
+}
+
 // --- Push Notification API Calls ---
 async function sendTokenToServer(token) {
   if (!user.value) return;
@@ -256,6 +282,25 @@ onUnmounted(() => {
     transform: scale(1);
     opacity: 1;
   }
+}
+
+.love-button {
+  background-color: #ff4081; /* A pink/magenta color */
+  color: white;
+  padding: 1rem 2rem;
+  border-radius: 2rem;
+  border: none;
+  font-size: 1.2rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  display: block;
+  margin: 2rem auto;
+}
+
+.love-button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 10px rgba(255, 64, 129, 0.5);
 }
 
 .bounce-in {
