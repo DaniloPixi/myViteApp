@@ -17,13 +17,14 @@
       <div v-else-if="!filteredPlans.length" class="empty-state"><p>No plans match your current filters.</p></div>
       <div v-else class="plan-cards-container">
         <div 
-          v-for="plan in filteredPlans"
+          v-for="(plan, index) in filteredPlans"
           :key="plan.id"
           class="plan-card"
           :class="{ 
             'expanded': expandedPlanId === plan.id, 
             'hovered': hoveredPlanId === plan.id && expandedPlanId !== plan.id 
           }"
+          :style="getPlanBubbleStyle(index)"
           @click="toggleExpand(plan.id)"
           @mouseover="setHovered(plan.id)"
           @mouseleave="clearHovered">
@@ -49,13 +50,13 @@
 
           <!-- Hovered Content (Title + Time) -->
           <div v-else-if="hoveredPlanId === plan.id" class="hover-content">
-            <h4>{{ plan.text }}</h4>
+            <h4 class="plan-title">{{ plan.text }}</h4>
             <p v-if="plan.time">{{ formatTime(plan.time) }}</p>
           </div>
 
           <!-- Default Content (Title Only) -->
           <div v-else class="default-content">
-            <h4>{{ plan.text }}</h4>
+            <h4 class="plan-title">{{ plan.text }}</h4>
           </div>
 
         </div>
@@ -113,9 +114,21 @@ const planToDeleteId = ref(null);
 const createButtonTitle = ref('');
 let unsubscribeFromPlans = null;
 
-// State for bubble interaction
 const expandedPlanId = ref(null);
 const hoveredPlanId = ref(null);
+
+const colorPalette = [
+  { inner: 'rgba(255, 3, 220, 0.5)', outer: 'rgba(255, 3, 220, 0.3)' }, // Magenta
+  { inner: 'rgba(3, 220, 255, 0.5)', outer: 'rgba(3, 220, 255, 0.3)' }, // Turquoise
+];
+
+const getPlanBubbleStyle = (index) => {
+  const color = colorPalette[index % colorPalette.length];
+  return {
+    '--bubble-inner-shadow-color': color.inner,
+    '--bubble-outer-shadow-color': color.outer,
+  };
+};
 
 const toggleExpand = (planId) => {
   expandedPlanId.value = expandedPlanId.value === planId ? null : planId;
@@ -323,16 +336,11 @@ watch(() => props.user, (newUser) => {
 
 .plan-card {
   position: relative;
-  border-radius: 15px;
-  background: rgba(50, 50, 50, 0.5);
   backdrop-filter: blur(8px);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 8px 16px rgba(0,0,0,0.3);
-  transition: all 1s cubic-bezier(0.25, 0.8, 0.25, 1);
+  transition: all 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);
   cursor: pointer;
   color: #fff;
-
-  /* Bubble styles */
   width: 180px;
   height: 180px;
   border-radius: 50%;
@@ -341,12 +349,13 @@ watch(() => props.user, (newUser) => {
   justify-content: center;
   text-align: center;
   padding: 1rem;
+  background-color: transparent;
+  box-shadow: inset 0 0 10px var(--bubble-inner-shadow-color), 0 0 15px var(--bubble-outer-shadow-color);
 }
 
 .plan-card.hovered {
   transform: scale(1.1);
-  box-shadow: 0 12px 24px rgba(0,0,0,0.4);
-  background: rgba(70, 70, 70, 0.6);
+  box-shadow: inset 0 0 15px var(--bubble-inner-shadow-color), 0 0 25px var(--bubble-outer-shadow-color);
 }
 
 .plan-card.expanded {
@@ -358,10 +367,12 @@ watch(() => props.user, (newUser) => {
   align-items: stretch;
   padding: 2rem;
   cursor: default;
+  box-shadow: inset 0 0 20px var(--bubble-inner-shadow-color), 0 0 30px var(--bubble-outer-shadow-color);
 }
 
-.default-content h4, .hover-content h4 {
-  font-size: 1.2rem;
+.plan-title {
+  word-wrap: break-word;
+  font-size: clamp(1rem, 1.2vw, 1.2rem);
   margin: 0;
   font-weight: 500;
 }
@@ -374,12 +385,12 @@ watch(() => props.user, (newUser) => {
 
 .expanded-content {
   opacity: 1;
-  transition: opacity 0.5s ease-in-out;
+  transition: opacity 0.9s ease-in-out;
 }
 
 .expanded-content h3 {
   margin: 0 0 1rem;
-  color: turquoise;
+  color: var(--bubble-text-color, turquoise);
   font-family: 'Great Vibes', cursive;
   font-size: 2.5em;
   font-weight: normal;
