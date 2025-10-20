@@ -1,5 +1,5 @@
 <template>
-  <div class="plans-view">
+  <div class="plans-view" @click="handleOutsideClick">
 
     <!-- Create Plan Button -->
     <section class="create-plan-button-section">
@@ -27,7 +27,7 @@
             'focused': isTouchDevice && focusedPlanId === plan.id && expandedPlanId !== plan.id
           }"
           :style="getPlanBubbleStyle(plan, index)"
-          @click="toggleExpand(plan.id)"
+          @click.stop="toggleExpand(plan.id)" 
           @mouseover="setHovered(plan.id)"
           @mouseleave="clearHovered">
 
@@ -186,6 +186,11 @@ const setHovered = (planId) => {
 
 const clearHovered = () => {
   hoveredPlanId.value = null;
+};
+
+const handleOutsideClick = () => {
+  expandedPlanId.value = null;
+  clearHovered();
 };
 
 const filteredPlans = computed(() => {
