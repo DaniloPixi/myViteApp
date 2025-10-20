@@ -23,7 +23,8 @@
           :data-plan-id="plan.id" 
           :class="{ 
             'expanded': expandedPlanId === plan.id, 
-            'hovered': hoveredPlanId === plan.id && expandedPlanId !== plan.id 
+            'hovered': hoveredPlanId === plan.id && expandedPlanId !== plan.id,
+            'focused': isTouchDevice && focusedPlanId === plan.id && expandedPlanId !== plan.id
           }"
           :style="getPlanBubbleStyle(plan, index)"
           @click="toggleExpand(plan.id)"
@@ -49,8 +50,8 @@
             </div>
           </div>
 
-          <!-- Hovered Content (Title + Time) -->
-          <div v-else-if="hoveredPlanId === plan.id" class="hover-content">
+          <!-- Hovered or Focused Content (Title + Time) -->
+          <div v-else-if="hoveredPlanId === plan.id || (isTouchDevice && focusedPlanId === plan.id)" class="hover-content">
             <h4 class="plan-title">{{ plan.text }}</h4>
             <p v-if="plan.time">{{ formatTime(plan.time) }}</p>
           </div>
@@ -208,6 +209,33 @@ const filteredPlans = computed(() => {
 
     return locationMatch && hashtagMatch && dateMatch && timeMatch && durationMatch;
   });
+});
+
+const focusedPlanId = computed(() => {
+  if (!isTouchDevice.value) return null;
+
+  let closestPlan = null;
+  let minDistance = Infinity;
+  const viewportCenterY = window.innerHeight / 2;
+
+  filteredPlans.value.forEach(plan => {
+    if (plan.rect) {
+      const cardCenterY = plan.rect.top + plan.rect.height / 2;
+      const distance = Math.abs(viewportCenterY - cardCenterY);
+
+      if (distance < minDistance) {
+        minDistance = distance;
+        closestPlan = plan.id;
+      }
+    }
+  });
+
+  // Threshold to consider a card "focused"
+  if (minDistance < 100) { // Adjust this threshold as needed
+    return closestPlan;
+  }
+
+  return null;
 });
 
 const getAuthToken = async () => {
@@ -409,8 +437,8 @@ watch(() => props.user, (newUser) => {
   box-shadow: inset 0 0 10px var(--bubble-inner-shadow-color), 0 0 15px var(--bubble-outer-shadow-color);
 }
 
-.plan-card.hovered {
-  box-shadow: inset 0 0 15px var(--bubble-inner-shadow-color), 0 0 25px var(--bubble-outer-shadow-color);
+.plan-card.hovered, .plan-card.focused {
+  box-shadow: inset 0 0 25px var(--bubble-inner-shadow-color), 0 0 25px var(--bubble-outer-shadow-color);
 }
 
 .plan-card.expanded {
