@@ -15,16 +15,17 @@
       <div v-else-if="fetchError" class="error-message"><p>{{ fetchError }}</p></div>
       <div v-else-if="!plans.length" class="empty-state"><p>No plans yet. Let's create one!</p></div>
       <div v-else-if="!filteredPlans.length" class="empty-state"><p>No plans match your current filters.</p></div>
-      <div v-else class="plan-cards-container">
+      <div v-else class="plan-cards-container" @mousemove="handleMousemove">
         <div 
           v-for="(plan, index) in filteredPlans"
           :key="plan.id"
           class="plan-card"
+          :data-plan-id="plan.id" 
           :class="{ 
             'expanded': expandedPlanId === plan.id, 
             'hovered': hoveredPlanId === plan.id && expandedPlanId !== plan.id 
           }"
-          :style="getPlanBubbleStyle(index)"
+          :style="getPlanBubbleStyle(plan, index)"
           @click="toggleExpand(plan.id)"
           @mouseover="setHovered(plan.id)"
           @mouseleave="clearHovered">
@@ -116,18 +117,62 @@ let unsubscribeFromPlans = null;
 
 const expandedPlanId = ref(null);
 const hoveredPlanId = ref(null);
+const mousePosition = ref({ x: 0, y: 0 });
+const isTouchDevice = ref(false);
 
 const colorPalette = [
   { inner: 'rgba(255, 3, 220, 0.5)', outer: 'rgba(255, 3, 220, 0.3)' }, // Magenta
   { inner: 'rgba(3, 220, 255, 0.5)', outer: 'rgba(3, 220, 255, 0.3)' }, // Turquoise
 ];
 
-const getPlanBubbleStyle = (index) => {
+const getPlanBubbleStyle = (plan, index) => {
   const color = colorPalette[index % colorPalette.length];
-  return {
+  const style = {
     '--bubble-inner-shadow-color': color.inner,
     '--bubble-outer-shadow-color': color.outer,
   };
+
+  if (expandedPlanId.value !== plan.id) {
+    const scale = isTouchDevice.value ? getScaleForMobile(plan) : getScaleForDesktop(plan);
+    style.transform = `scale(${scale})`;
+  }
+
+  return style;
+};
+
+const getScaleForDesktop = (plan) => {
+  if (!plan.rect) return 1;
+  const centerX = plan.rect.left + plan.rect.width / 2;
+  const centerY = plan.rect.top + plan.rect.height / 2;
+  const distance = Math.sqrt(Math.pow(centerX - mousePosition.value.x, 2) + Math.pow(centerY - mousePosition.value.y, 2));
+  const maxDistance = 300; // Affects the "magnetic" range
+  const scale = Math.max(1, 1.5 - (distance / maxDistance));
+  return scale;
+};
+
+const getScaleForMobile = (plan) => {
+  if (!plan.rect) return 1;
+  const viewportCenterY = window.innerHeight / 2;
+  const cardCenterY = plan.rect.top + plan.rect.height / 2;
+  const distance = Math.abs(viewportCenterY - cardCenterY);
+  const maxDistance = window.innerHeight / 2;
+  const scale = Math.max(1, 1.3 - (distance / maxDistance));
+  return scale;
+};
+
+const handleMousemove = (event) => {
+  if (isTouchDevice.value) return;
+  mousePosition.value = { x: event.clientX, y: event.clientY };
+  updatePlanRects();
+};
+
+const updatePlanRects = () => {
+  plans.value.forEach(plan => {
+    const el = document.querySelector(`[data-plan-id="${plan.id}"]`);
+    if (el) {
+      plan.rect = el.getBoundingClientRect();
+    }
+  });
 };
 
 const toggleExpand = (planId) => {
@@ -193,9 +238,12 @@ const subscribeToPlans = () => {
           ...data,
           creationDate: doc.createTime ? doc.createTime.toDate() : new Date(),
           fullDate: date,
+          rect: null, // Initialize rect property
         };
       });
       isLoading.value = false;
+      // Initial rect calculation after data is loaded
+      setTimeout(updatePlanRects, 100);
     }, (error) => {
       console.error("Error fetching plans in real-time:", error);
       fetchError.value = "Failed to load plans. Please check your connection and try again.";
@@ -298,16 +346,24 @@ const formatTime = (timeString) => {
 };
 
 onMounted(() => {
+  isTouchDevice.value = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
   const titles = ["What's on your mind, beautiful?", "What shall we do, my love?", "Create a new adventure..."];
   createButtonTitle.value = titles[Math.floor(Math.random() * titles.length)];
   if (props.user) {
     subscribeToPlans();
+  }
+
+  if (isTouchDevice.value) {
+    window.addEventListener('scroll', updatePlanRects);
   }
 });
 
 onUnmounted(() => {
   if (unsubscribeFromPlans) {
     unsubscribeFromPlans();
+  }
+  if (isTouchDevice.value) {
+    window.removeEventListener('scroll', updatePlanRects);
   }
 });
 
@@ -338,7 +394,7 @@ watch(() => props.user, (newUser) => {
   position: relative;
   backdrop-filter: blur(8px);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  transition: all 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);
+  transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), box-shadow 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
   cursor: pointer;
   color: #fff;
   width: 180px;
@@ -354,7 +410,6 @@ watch(() => props.user, (newUser) => {
 }
 
 .plan-card.hovered {
-  transform: scale(1.1);
   box-shadow: inset 0 0 15px var(--bubble-inner-shadow-color), 0 0 25px var(--bubble-outer-shadow-color);
 }
 
@@ -368,6 +423,7 @@ watch(() => props.user, (newUser) => {
   padding: 2rem;
   cursor: default;
   box-shadow: inset 0 0 20px var(--bubble-inner-shadow-color), 0 0 30px var(--bubble-outer-shadow-color);
+  transform: scale(1) !important; /* Override scaling when expanded */
 }
 
 .plan-title {
