@@ -53,8 +53,8 @@ import StyledTimeInput from './StyledTimeInput.vue';
 
 const isExpanded = ref(false);
 
-defineProps(['location', 'hashtags', 'date', 'time', 'duration']);
-defineEmits(['update:location', 'update:hashtags', 'update:date', 'update:time', 'update:duration']);
+const props = defineProps(['location', 'hashtags', 'date', 'time', 'duration']);
+const emit = defineEmits(['update:location', 'update:hashtags', 'update:date', 'update:time', 'update:duration']);
 
 const availableHashtags = ref(['date', 'party', 'food', '18+', 'travel', 'weekend', 'chill', 'friends', 'love', 'random']);
 const toggleHashtagFilter = (tag) => emit('update:hashtags', props.hashtags === tag ? '' : tag);

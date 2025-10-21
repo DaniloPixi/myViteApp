@@ -196,20 +196,22 @@ const handleOutsideClick = () => {
 const filteredPlans = computed(() => {
   return plans.value.filter(plan => {
     const locationMatch = !props.locationFilter || plan.location.toLowerCase().includes(props.locationFilter.toLowerCase());
-    const hashtagMatch = !props.hashtagFilter || (plan.hashtags && plan.hashtags.some(tag => tag.toLowerCase().includes(props.hashtagFilter.toLowerCase())));
+    const hashtagMatch = !props.hashtagFilter || (plan.hashtags && plan.hashtags.some(tag => tag.toLowerCase() === ('#' + props.hashtagFilter).toLowerCase()));
     const dateMatch = !props.dateFilter || plan.date === props.dateFilter;
     
     const durationMatch = props.durationFilter.length === 0 || (plan.time && props.durationFilter.some(d => plan.time.includes(d)));
 
     const timeMatch = (() => {
-      if (!props.timeFilter) return true;
-      if (!plan.time) return false;
+      if (!props.timeFilter) return true; // No time filter applied
+      if (!plan.time) return false; // Plan has no time, so it can't match
+
       const timeRegex = /\d{2}:\d{2}/;
-      const match = plan.time.match(timeRegex);
-      if (!match) return false;
-      const planHour = parseInt(match[0].split(':')[0], 10);
-      const filterHour = parseInt(props.timeFilter, 10);
-      return planHour === filterHour;
+      const planTimeMatch = plan.time.match(timeRegex);
+
+      if (!planTimeMatch) return false; // Plan has a time string but not in HH:mm format
+
+      const planTime = planTimeMatch[0];
+      return planTime === props.timeFilter;
     })();
 
     return locationMatch && hashtagMatch && dateMatch && timeMatch && durationMatch;

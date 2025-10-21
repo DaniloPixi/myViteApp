@@ -156,7 +156,7 @@ const closeImageModal = () => {
 const filteredMemos = computed(() => {
   return memos.value.filter(memo => {
     const locationMatch = !props.locationFilter || (memo.location && memo.location.toLowerCase().includes(props.locationFilter.toLowerCase()));
-    const hashtagMatch = !props.hashtagFilter || (memo.hashtags && memo.hashtags.some(tag => tag.toLowerCase().includes(props.hashtagFilter.toLowerCase())));
+    const hashtagMatch = !props.hashtagFilter || (memo.hashtags && memo.hashtags.some(tag => tag.toLowerCase() === ('#' + props.hashtagFilter).toLowerCase()));
     const dateMatch = !props.dateFilter || memo.date === props.dateFilter;
     return locationMatch && hashtagMatch && dateMatch;
   });
