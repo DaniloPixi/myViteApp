@@ -17,7 +17,7 @@
         <div class="form-group">
           <label>Time & Duration</label>
           <div class="time-duration-group">
-            <input type="time" id="plan-time" v-model="specificTime">
+            <StyledTimeInput v-model="specificTime" />
             <div class="duration-buttons">
               <button @click.prevent="selectDuration('All day')" :class="{ selected: selectedDuration === 'All day' }">All day</button>
               <button @click.prevent="selectDuration('All night')" :class="{ selected: selectedDuration === 'All night' }">All night</button>
@@ -50,6 +50,7 @@
 
 <script setup>
 import { ref, watch, computed } from 'vue';
+import StyledTimeInput from './StyledTimeInput.vue';
 
 const props = defineProps({ plan: Object, isSubmitting: Boolean, submitError: String });
 const emit = defineEmits(['save', 'close']);
@@ -193,11 +194,6 @@ input:focus {
   display: flex;
   align-items: stretch;
   gap: 1rem;
-}
-
-.time-duration-group input[type="time"] {
-  flex-basis: 150px;
-  flex-grow: 0;
 }
 
 .duration-buttons {

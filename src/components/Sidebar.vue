@@ -26,14 +26,8 @@
             </div>
             <div class="filter-group time-group">
               <div class="time-input-wrapper">
-                <div class="stepper-input">
-                  <input type="text" class="hour-display" :value="time" @input="handleTimeInput" @blur="handleTimeBlur" maxlength="2" placeholder="--" />
-                  <div class="stepper-controls">
-                    <button @click="incrementHour">▲</button>
-                    <button @click="decrementHour">▼</button>
-                  </div>
-                </div>
-                <button v-if="time" @click="clearTimeFilter" class="clear-btn" title="Clear filter">×</button>
+                <StyledTimeInput :modelValue="time" @update:modelValue="$emit('update:time', $event)" />
+                <button v-if="time" @click="$emit('update:time', '')" class="clear-btn" title="Clear filter">×</button>
               </div>
             </div>
             <div class="filter-group duration-group">
@@ -54,12 +48,13 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref } from 'vue';
+import StyledTimeInput from './StyledTimeInput.vue';
 
 const isExpanded = ref(false);
 
-const props = defineProps(['location', 'hashtags', 'date', 'time', 'duration']);
-const emit = defineEmits(['update:location', 'update:hashtags', 'update:date', 'update:time', 'update:duration']);
+defineProps(['location', 'hashtags', 'date', 'time', 'duration']);
+defineEmits(['update:location', 'update:hashtags', 'update:date', 'update:time', 'update:duration']);
 
 const availableHashtags = ref(['date', 'party', 'food', '18+', 'travel', 'weekend', 'chill', 'friends', 'love', 'random']);
 const toggleHashtagFilter = (tag) => emit('update:hashtags', props.hashtags === tag ? '' : tag);
@@ -75,35 +70,6 @@ const toggleDurationFilter = (d) => {
   }
   emit('update:duration', newDurations);
 };
-
-const currentHour = computed(() => (props.time ? parseInt(props.time, 10) : null));
-
-const incrementHour = () => {
-  let newHour = (currentHour.value === null || currentHour.value === 23) ? 0 : currentHour.value + 1;
-  emit('update:time', newHour.toString().padStart(2, '0'));
-};
-
-const decrementHour = () => {
-  let newHour = (currentHour.value === null || currentHour.value === 0) ? 23 : currentHour.value - 1;
-  emit('update:time', newHour.toString().padStart(2, '0'));
-};
-
-const handleTimeInput = (event) => {
-  const value = event.target.value.replace(/\D/g, '');
-  if (value === '') {
-    emit('update:time', '');
-  } else {
-    const hour = parseInt(value, 10);
-    if (!isNaN(hour) && hour >= 0 && hour <= 23) emit('update:time', value);
-  }
-};
-
-const handleTimeBlur = () => {
-  if (props.time && props.time.length === 1) emit('update:time', props.time.padStart(2, '0'));
-};
-
-const clearTimeFilter = () => emit('update:time', '');
-
 </script>
 
 <style scoped>
@@ -131,21 +97,23 @@ const clearTimeFilter = () => emit('update:time', '');
   overflow: hidden;
   background: #000;
   border-radius: 12px;
-  border: 1px solid magenta;
-  box-shadow: 0 0 15px rgba(255, 0, 255, 0.4);
+  border: 1px solid rgba(255, 0, 255, 0);
+  box-shadow: 0 0 15px rgba(255, 0, 255, 0);
   will-change: max-height;
   transform: translateZ(0);
   padding-left: 1.5rem;
   padding-right: 1.5rem;
   padding-top: 0;
   padding-bottom: 0;
-  transition: max-height 1.2s ease-out, padding-top 1.2s ease-out, padding-bottom 1.2s ease-out;
+  transition: max-height 1.2s ease-out, padding-top 1.2s ease-out, padding-bottom 1.2s ease-out, border-color 1.2s ease-out, box-shadow 1.2s ease-out;
 }
 
 .filter-content.expanded {
   max-height: 280px;
   padding-top: 1.5rem;
   padding-bottom: 1.5rem;
+  border-color: magenta;
+  box-shadow: 0 0 15px rgba(255, 0, 255, 0.4);
 }
 
 .content-inner {
@@ -185,8 +153,7 @@ const clearTimeFilter = () => emit('update:time', '');
 .duration-group { flex-basis: 220px; flex-grow: 2; }
 
 .filter-group input[type="text"],
-.filter-group input[type="date"],
-.hour-display {
+.filter-group input[type="date"] {
   box-sizing: border-box;
   width: 100%;
   padding: 0.6em 0.8em;
@@ -201,8 +168,7 @@ const clearTimeFilter = () => emit('update:time', '');
   transition: box-shadow 0.3s ease;
 }
 
-.filter-group input:focus,
-.hour-display:focus {
+.filter-group input:focus {
     outline: none;
     box-shadow: inset 0 0 8px rgba(64, 224, 208, 0.8), 0 0 8px rgba(64, 224, 208, 0.8);
 }
@@ -247,39 +213,6 @@ const clearTimeFilter = () => emit('update:time', '');
   gap: 0.4rem;
   justify-content: center;
 }
-
-.stepper-input {
-  display: flex;
-  align-items: center;
-  border-radius: 8px;
-  padding: 0.15em 0.3em;
-  background-color: #000;
-  border: 1px solid transparent;
-  box-shadow: inset 0 0 5px rgba(64, 224, 208, 0.5), 0 0 5px rgba(64, 224, 208, 0.5);
-}
-
-.hour-display {
-  box-shadow: none;
-  border: none;
-  width: 30px; 
-  padding: 0.1em; 
-  margin-right: 0.2rem;
-}
-.hour-display:focus { box-shadow: none; }
-
-.stepper-controls { display: flex; flex-direction: column; }
-.stepper-controls button { 
-  border: 1px solid turquoise; 
-  background: #000; 
-  color: turquoise; 
-  cursor: pointer; 
-  width: 20px; 
-  height: 12px; 
-  font-size: 0.5em; 
-  border-radius: 2px; 
-  box-shadow: 0 0 3px turquoise;
-}
-.stepper-controls button:first-child { margin-bottom: 2px; }
 
 .clear-btn { 
   background: none; 
