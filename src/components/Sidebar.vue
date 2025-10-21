@@ -107,6 +107,8 @@ const clearTimeFilter = () => emit('update:time', '');
 </script>
 
 <style scoped>
+@import url('https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap');
+
 .collapsible-filters-container {
   position: relative;
   height: 26px;
@@ -120,42 +122,52 @@ const clearTimeFilter = () => emit('update:time', '');
   left: 0;
   right: 0;
   width: 100%;
-  background-color: rgba(30, 30, 30, 0.2);
-  opacity: 0.5;
-  transition: opacity 0.3s ease-in-out, background-color 0.3s ease-in-out;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-}
-
-.filter-wrapper:focus-within, .filter-wrapper:hover {
-  background-color: rgba(30, 30, 30, 1);
-  opacity: 1;
+  background-color: transparent;
+  transition: all 0.3s ease-in-out;
 }
 
 .filter-content {
   max-height: 0;
   overflow: hidden;
-  transition: max-height 1.2s ease-out;
+  background: #000;
   border-radius: 12px;
-  border: 1px solid #444;
+  border: 1px solid magenta;
+  box-shadow: 0 0 15px rgba(255, 0, 255, 0.4);
   will-change: max-height;
   transform: translateZ(0);
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+  padding-top: 0;
+  padding-bottom: 0;
+  transition: max-height 1.2s ease-out, padding-top 1.2s ease-out, padding-bottom 1.2s ease-out;
 }
 
 .filter-content.expanded {
   max-height: 280px;
+  padding-top: 1.5rem;
+  padding-bottom: 1.5rem;
 }
 
 .content-inner {
-  padding: 0.8rem;
+  opacity: 0;
+  transform: translateY(-15px);
+  transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+  pointer-events: none;
+}
+
+.filter-content.expanded .content-inner {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+  transition-delay: 0.4s;
 }
 
 .filter-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.8rem;
-  margin-bottom: 0.8rem;
-  align-items: center; /* Vertically center items in the row */
+  gap: 1rem;
+  margin-bottom: 1rem;
+  align-items: center;
 }
 .filter-row:last-child { margin-bottom: 0; }
 
@@ -173,46 +185,60 @@ const clearTimeFilter = () => emit('update:time', '');
 .duration-group { flex-basis: 220px; flex-grow: 2; }
 
 .filter-group input[type="text"],
-.filter-group input[type="date"] {
+.filter-group input[type="date"],
+.hour-display {
   box-sizing: border-box;
   width: 100%;
-  padding: 0.4em 0.6em;
-  border-radius: 5px;
-  border: 1px solid #444;
-  background-color: #1a1a1a;
-  color: #fff;
-  font-size: 0.8em;
+  padding: 0.6em 0.8em;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background-color: #000;
+  color: turquoise;
+  font-size: 0.9em;
   font-family: inherit;
   text-align: center;
+  box-shadow: inset 0 0 5px rgba(64, 224, 208, 0.5), 0 0 5px rgba(64, 224, 208, 0.5);
+  transition: box-shadow 0.3s ease;
+}
+
+.filter-group input:focus,
+.hour-display:focus {
+    outline: none;
+    box-shadow: inset 0 0 8px rgba(64, 224, 208, 0.8), 0 0 8px rgba(64, 224, 208, 0.8);
 }
 
 .hashtag-buttons, .duration-buttons {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.3rem;
+  gap: 0.5rem;
   justify-content: center;
 }
 
 .hashtag-buttons button,
 .duration-buttons button {
-  padding: 0.3em 0.7em;
+  padding: 0.4em 0.8em;
   border-radius: 15px;
-  border: 1px solid #444;
-  background-color: #333;
-  color: #fff;
+  border: 1px solid turquoise;
+  background-color: #000;
+  color: turquoise;
   cursor: pointer;
-  transition: all 0.2s;
-  font-size: 0.75em;
+  transition: all 0.3s ease;
+  font-size: 0.8em;
+  box-shadow: inset 0 0 4px rgba(64, 224, 208, 0.5), 0 0 4px rgba(64, 224, 208, 0.5);
 }
 
 .hashtag-buttons button:hover, 
-.duration-buttons button:hover { background-color: #555; }
+.duration-buttons button:hover { 
+  box-shadow: inset 0 0 8px rgba(64, 224, 208, 0.8), 0 0 8px rgba(64, 224, 208, 0.8);
+}
 
 .hashtag-buttons button.selected,
 .duration-buttons button.selected {
-  background-color: #42b883;
-  border-color: #42b883;
+  background-color: turquoise;
+  border-color: turquoise;
+  color: #000;
   font-weight: 600;
+  box-shadow: 0 0 10px turquoise;
 }
 
 .date-input-wrapper, .time-input-wrapper {
@@ -225,22 +251,34 @@ const clearTimeFilter = () => emit('update:time', '');
 .stepper-input {
   display: flex;
   align-items: center;
-  background-color: #1a1a1a;
-  border: 1px solid #444;
-  border-radius: 5px;
+  border-radius: 8px;
   padding: 0.15em 0.3em;
+  background-color: #000;
+  border: 1px solid transparent;
+  box-shadow: inset 0 0 5px rgba(64, 224, 208, 0.5), 0 0 5px rgba(64, 224, 208, 0.5);
 }
 
 .hour-display {
-  background: transparent; border: none; color: #fff; font-size: 1.1em; font-weight: 600;
-  text-align: center; width: 30px; padding: 0.1em 0; margin-right: 0.2rem;
+  box-shadow: none;
+  border: none;
+  width: 30px; 
+  padding: 0.1em; 
+  margin-right: 0.2rem;
 }
-
-.hour-display:focus { outline: none; }
-.hour-display::placeholder { color: #888; }
+.hour-display:focus { box-shadow: none; }
 
 .stepper-controls { display: flex; flex-direction: column; }
-.stepper-controls button { border: none; background: #333; color: #fff; cursor: pointer; width: 20px; height: 12px; font-size: 0.5em; border-radius: 2px; }
+.stepper-controls button { 
+  border: 1px solid turquoise; 
+  background: #000; 
+  color: turquoise; 
+  cursor: pointer; 
+  width: 20px; 
+  height: 12px; 
+  font-size: 0.5em; 
+  border-radius: 2px; 
+  box-shadow: 0 0 3px turquoise;
+}
 .stepper-controls button:first-child { margin-bottom: 2px; }
 
 .clear-btn { 
@@ -251,6 +289,7 @@ const clearTimeFilter = () => emit('update:time', '');
   cursor: pointer; 
   padding: 0;
   line-height: 1;
+  text-shadow: 0 0 5px #aaa;
 }
 
 .toggle-handle {
@@ -260,53 +299,40 @@ const clearTimeFilter = () => emit('update:time', '');
   width: 75px;
   height: 26px;
   margin: 0 auto;
-  background: transparent;
+  background: black;
   border: 1px solid magenta;
   border-top: none;
   border-bottom-left-radius: 35px;
   border-bottom-right-radius: 35px;
   cursor: pointer;
   color: magenta;
+  box-shadow: 0 5px 15px rgba(255, 0, 255, 0.3);
+  transition: all 0.3s ease;
 }
 
 .toggle-handle:hover {
-  border: 1px solid magenta;
+  box-shadow: 0 5px 20px rgba(255, 0, 255, 0.5);
+  border-color: magenta;
   border-top: none;
 }
 
-.toggle-handle:focus,
-.toggle-handle:focus-visible {
-  outline: none;
-}
+.toggle-handle:focus, .toggle-handle:focus-visible { outline: none; }
 
-.arrow {
-  transition: transform 1.2s ease-out;
-}
+.arrow { transition: transform 1.2s ease-out; }
 
-.toggle-handle.expanded .arrow {
-  transform: rotate(180deg);
-}
+.toggle-handle.expanded .arrow { transform: rotate(180deg); }
 
-/* --- Mobile Responsive Adjustments --- */
 @media (max-width: 768px) {
   .filter-row {
     flex-direction: column;
     align-items: stretch;
-    gap: 0.8rem;
+    gap: 1rem;
   }
 
-  .filter-group {
-    flex-basis: auto !important;
-    width: 100%;
-  }
+  .filter-group { flex-basis: auto !important; width: 100%; }
 
-  .filter-content.expanded {
-    max-height: 500px;
-  }
+  .filter-content.expanded { max-height: 500px; }
 
-  .hashtag-buttons,
-  .duration-buttons {
-    justify-content: center;
-  }
+  .hashtag-buttons, .duration-buttons { justify-content: center; }
 }
 </style>
