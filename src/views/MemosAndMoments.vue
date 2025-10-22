@@ -25,11 +25,11 @@
                  @touchstart="handleTouchStart(memo.id, $event)"
                  @touchmove="handleTouchMove(memo.id, $event)"
                  @touchend="handleTouchEnd(memo.id, $event)">
-              <div v-for="(photo, index) in getMemoPhotos(memo)"
+              <div v-for="(media, index) in getMemoMedia(memo)"
                    :key="index"
                    class="photo-item"
-                   @click="openImageModal(getMemoPhotos(memo).map(p => p.url), index)">
-                <img :src="getOptimizedUrl(photo.url, { width: 600 })" alt="Memo photo" :class="{'adult-content-blur': photo.isAdult }"/>
+                   @click="openImageModal(getMemoMedia(memo), index)">
+                <img :src="getThumbnailUrl(media)" alt="Memo media" :class="{'adult-content-blur': media.isAdult }"/>
               </div>
             </div>
           </div>
@@ -56,11 +56,11 @@
           </div>
 
           <!-- Layer 3: Gallery Controls -->
-          <template v-if="getMemoPhotos(memo).length > 1">
+          <template v-if="getMemoMedia(memo).length > 1">
             <button @click.stop="prevImage(memo.id)" class="gallery-nav prev-btn" :class="{ 'visible': galleryState[memo.id]?.currentIndex > 0 }">&lsaquo;</button>
-            <button @click.stop="nextImage(memo.id)" class="gallery-nav next-btn" :class="{ 'visible': galleryState[memo.id]?.currentIndex < getMemoPhotos(memo).length - 1 }">&rsaquo;</button>
+            <button @click.stop="nextImage(memo.id)" class="gallery-nav next-btn" :class="{ 'visible': galleryState[memo.id]?.currentIndex < getMemoMedia(memo).length - 1 }">&rsaquo;</button>
             <div class="gallery-dots">
-              <span v-for="(photo, index) in getMemoPhotos(memo)" :key="index" class="dot" :class="{ active: galleryState[memo.id]?.currentIndex === index }"></span>
+              <span v-for="(media, index) in getMemoMedia(memo)" :key="index" class="dot" :class="{ active: galleryState[memo.id]?.currentIndex === index }"></span>
             </div>
           </template>
         </div>
@@ -96,7 +96,7 @@
     />
     <ImageModal
       :is-visible="isImageModalVisible"
-      :image-urls="selectedImageUrls"
+      :media-items="selectedMediaItems"
       :start-index="selectedImageIndex"
       @close="closeImageModal"
     />
@@ -128,31 +128,35 @@ const selectedMemo = ref(null);
 const isDeleteModalVisible = ref(false);
 const deletingMemoId = ref(null);
 const isImageModalVisible = ref(false);
-const selectedImageUrls = ref([]);
+const selectedMediaItems = ref([]);
 const selectedImageIndex = ref(0);
 const galleryState = ref({});
 let unsubscribeFromMemos = null;
 
-const getMemoPhotos = (memo) => {
+const getMemoMedia = (memo) => {
+  // This function is now responsible for getting all media
   if (memo.photos && Array.isArray(memo.photos)) {
     return memo.photos;
-  }
-  if (memo.photoUrls && Array.isArray(memo.photoUrls)) {
-    const isAdult = memo.hashtags && memo.hashtags.includes('#18+');
-    return memo.photoUrls.map(url => ({ url, isAdult }));
   }
   return [];
 };
 
-const openImageModal = (urls, index) => {
-  selectedImageUrls.value = urls;
+const getThumbnailUrl = (media) => {
+  if (media.resource_type === 'video') {
+    return media.url.replace(/\.mp4$/, '.jpg');
+  }
+  return getOptimizedUrl(media.url, { width: 600 });
+};
+
+const openImageModal = (media, index) => {
+  selectedMediaItems.value = media;
   selectedImageIndex.value = index;
   isImageModalVisible.value = true;
 };
 
 const closeImageModal = () => {
   isImageModalVisible.value = false;
-  selectedImageUrls.value = [];
+  selectedMediaItems.value = [];
   selectedImageIndex.value = 0;
 };
 
@@ -249,7 +253,7 @@ const prevImage = (memoId) => {
 
 const nextImage = (memoId) => {
   const memo = memos.value.find(m => m.id === memoId);
-  if (memo && galleryState.value[memoId].currentIndex < getMemoPhotos(memo).length - 1) {
+  if (memo && galleryState.value[memoId].currentIndex < getMemoMedia(memo).length - 1) {
     galleryState.value[memoId].currentIndex++;
   }
 };

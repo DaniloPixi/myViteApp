@@ -32,20 +32,21 @@
           </div>
         </div>
 
-        <!-- Photo Uploader -->
+        <!-- Media Uploader -->
         <div class="form-group">
-          <input type="file" id="file-upload" @change="handleFileChange" multiple accept="image/*" :disabled="isUploading" class="file-input-hidden" />
+          <input type="file" id="file-upload" @change="handleFileChange" multiple accept="image/*,video/*" :disabled="isUploading" class="file-input-hidden" />
           <label for="file-upload" class="file-upload-label" :class="{ 'disabled': isUploading }">
-            + Add Photos
+            + Add Media
           </label>
           <div v-if="isUploading" class="upload-status">Uploading... {{ uploadProgress }}%</div>
         </div>
 
-        <!-- Image Previews -->
-        <div class="image-previews" v-if="imagePreviews.length > 0">
-          <div v-for="(preview, index) in imagePreviews" :key="index" class="preview-item">
-            <img :src="preview.url" :class="{'adult-preview-blur': preview.isAdult}" />
-            <button @click.prevent="removeImage(index)" class="remove-image-btn">×</button>
+        <!-- Media Previews -->
+        <div class="media-previews" v-if="mediaPreviews.length > 0">
+          <div v-for="(preview, index) in mediaPreviews" :key="index" class="preview-item">
+            <img v-if="preview.resource_type === 'image'" :src="preview.url" :class="{'adult-preview-blur': preview.isAdult}" />
+            <video v-else-if="preview.resource_type === 'video'" :src="preview.url" muted loop playsinline class="video-preview"></video>
+            <button @click.prevent="removeMedia(index)" class="remove-media-btn">×</button>
             <button @click.prevent="toggleAdultFlag(index)" class="adult-flag" :class="{'adult-flag-selected': preview.isAdult}">18+</button>
           </div>
         </div>
@@ -80,7 +81,7 @@ const emit = defineEmits(['close', 'memo-saved']);
 const availableHashtags = ref(['date', 'party', 'food', '18+', 'travel', 'weekend', 'chill', 'friends', 'love', 'random']);
 const isEditing = computed(() => !!props.memo);
 const formData = ref({ hashtags: [] });
-const imagePreviews = ref([]);
+const mediaPreviews = ref([]);
 const isUploading = ref(false);
 const isSubmitting = ref(false);
 const uploadProgress = ref(0);
@@ -89,23 +90,16 @@ const error = ref(null);
 watch(() => props.memo, (newMemo) => {
   if (newMemo) {
     formData.value = { ...newMemo };
-    if (newMemo.hashtags && Array.isArray(newMemo.hashtags)) {
-        formData.value.hashtags = newMemo.hashtags.map(t => t.startsWith('#') ? t.substring(1) : t);
-    } else {
-        formData.value.hashtags = [];
-    }
-
+    formData.value.hashtags = (newMemo.hashtags || []).map(t => t.startsWith('#') ? t.substring(1) : t);
+    
     if (newMemo.photos && Array.isArray(newMemo.photos)) {
-        imagePreviews.value = newMemo.photos.map(photo => ({ ...photo, source: 'existing' }));
-    } else if (newMemo.photoUrls && Array.isArray(newMemo.photoUrls)) {
-        const contains18plus = newMemo.hashtags && newMemo.hashtags.includes('#18+');
-        imagePreviews.value = newMemo.photoUrls.map(url => ({ url, isAdult: contains18plus, source: 'existing' }));
+      mediaPreviews.value = newMemo.photos.map(media => ({ ...media, source: 'existing' }));
     } else {
-        imagePreviews.value = [];
+      mediaPreviews.value = [];
     }
   } else {
     formData.value = { description: '', location: '', date: new Date().toISOString().split('T')[0], hashtags: [] };
-    imagePreviews.value = [];
+    mediaPreviews.value = [];
   }
 }, { immediate: true });
 
@@ -120,40 +114,42 @@ const toggleHashtag = (tag) => {
 
 const handleFileChange = (event) => {
   const files = Array.from(event.target.files);
-  const availableSlots = 10 - imagePreviews.value.length;
+  const availableSlots = 10 - mediaPreviews.value.length;
 
   if (files.length > availableSlots) {
-    error.value = `You can only add ${availableSlots} more photos.`;
+    error.value = `You can only add ${availableSlots} more files.`;
     event.target.value = null;
     return;
   }
   error.value = null;
 
   for (const file of files) {
-    imagePreviews.value.push({
+    const resource_type = file.type.startsWith('video') ? 'video' : 'image';
+    mediaPreviews.value.push({
       url: URL.createObjectURL(file),
       file: file,
       isAdult: false,
+      resource_type: resource_type,
       source: 'new'
     });
   }
   event.target.value = null;
 };
 
-const removeImage = (index) => {
-  imagePreviews.value.splice(index, 1);
+const removeMedia = (index) => {
+  mediaPreviews.value.splice(index, 1);
 };
 
 const toggleAdultFlag = (index) => {
-  imagePreviews.value[index].isAdult = !imagePreviews.value[index].isAdult;
+  mediaPreviews.value[index].isAdult = !mediaPreviews.value[index].isAdult;
 };
 
-const uploadImages = async () => {
+const uploadFiles = async () => {
   isUploading.value = true;
   uploadProgress.value = 0;
-  const uploadedPhotos = [];
+  const uploadedMedia = [];
 
-  const filesToUpload = imagePreviews.value.filter(p => p.source === 'new');
+  const filesToUpload = mediaPreviews.value.filter(p => p.source === 'new');
   if (filesToUpload.length === 0) {
     isUploading.value = false;
     return [];
@@ -161,51 +157,56 @@ const uploadImages = async () => {
 
   for (let i = 0; i < filesToUpload.length; i++) {
     const preview = filesToUpload[i];
-    const formData = new FormData();
-    formData.append('file', preview.file);
-    formData.append('upload_preset', props.cloudinaryUploadPreset);
+    const uploadFormData = new FormData();
+    uploadFormData.append('file', preview.file);
+    uploadFormData.append('upload_preset', props.cloudinaryUploadPreset);
 
     try {
-      const response = await fetch(`https://api.cloudinary.com/v1_1/${props.cloudinaryCloudName}/image/upload`, {
+      const endpoint = `https://api.cloudinary.com/v1_1/${props.cloudinaryCloudName}/${preview.resource_type}/upload`;
+      const response = await fetch(endpoint, {
         method: 'POST',
-        body: formData,
+        body: uploadFormData,
       });
       const data = await response.json();
       if (data.secure_url) {
-        uploadedPhotos.push({ url: data.secure_url, isAdult: preview.isAdult });
+        uploadedMedia.push({ 
+          url: data.secure_url, 
+          isAdult: preview.isAdult,
+          resource_type: data.resource_type
+        });
         uploadProgress.value = Math.round(((i + 1) / filesToUpload.length) * 100);
       } else {
-        throw new Error('Image upload failed.');
+        throw new Error('File upload failed.');
       }
     } catch (err) {
-      error.value = `Upload failed for one or more images: ${err.message}`;
+      error.value = `Upload failed for one or more files: ${err.message}`;
       isUploading.value = false;
       return null;
     }
   }
 
   isUploading.value = false;
-  return uploadedPhotos;
+  return uploadedMedia;
 };
 
 const submitForm = async () => {
   isSubmitting.value = true;
   error.value = null;
 
-  const newPhotos = await uploadImages();
-  if (newPhotos === null) {
+  const newMedia = await uploadFiles();
+  if (newMedia === null) {
     isSubmitting.value = false;
     return;
   }
 
-  const existingPhotos = imagePreviews.value
+  const existingMedia = mediaPreviews.value
     .filter(p => p.source === 'existing')
-    .map(({url, isAdult}) => ({url, isAdult}));
+    .map(({url, isAdult, resource_type}) => ({url, isAdult, resource_type}));
 
-  const finalPhotos = [...existingPhotos, ...newPhotos];
+  const finalMedia = [...existingMedia, ...newMedia];
 
   const memoHashtags = new Set(formData.value.hashtags);
-  const hasAdultContent = finalPhotos.some(p => p.isAdult);
+  const hasAdultContent = finalMedia.some(p => p.isAdult);
 
   if (hasAdultContent) {
     memoHashtags.add('18+');
@@ -214,9 +215,8 @@ const submitForm = async () => {
   const payload = {
     ...formData.value,
     hashtags: Array.from(memoHashtags).map(tag => `#${tag}`),
-    photos: finalPhotos,
+    photos: finalMedia, // API expects a 'photos' field
   };
-  delete payload.photoUrls;
 
   try {
     if (!auth.currentUser) throw new Error('Authentication required.');
@@ -252,6 +252,7 @@ const submitForm = async () => {
 </script>
 
 <style scoped>
+/* Styles remain unchanged, but I'm including them for completeness */
 @import url('https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap');
 
 .modal-overlay {
@@ -422,7 +423,7 @@ button:disabled {
 
 .upload-status { margin-top: 0.5rem; color: turquoise; }
 
-.image-previews {
+.media-previews {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
   gap: 10px;
@@ -432,7 +433,7 @@ button:disabled {
   position: relative;
 }
 
-.preview-item img {
+.preview-item img, .video-preview {
   width: 100%;
   height: 80px;
   object-fit: cover;
@@ -445,7 +446,7 @@ button:disabled {
   filter: blur(8px);
 }
 
-.remove-image-btn {
+.remove-media-btn {
   position: absolute;
   top: 2px;
   right: 2px;

@@ -1,5 +1,5 @@
 <template>
-  <div v-if="isVisible" class="image-modal-overlay" @click.self="close" @keydown.esc="close" @keydown.left="prevImage" @keydown.right="nextImage" tabindex="0" ref="modal">
+  <div v-if="isVisible" class="image-modal-overlay" @click.self="close" @keydown.esc="close" @keydown.left="prevMedia" @keydown.right="nextMedia" tabindex="0" ref="modal">
     <div class="modal-container">
       <div class="image-modal-content"
            @touchstart.passive="handleTouchStart"
@@ -7,14 +7,15 @@
            @touchend="handleTouchEnd">
 
         <!-- Navigation Buttons -->
-        <button v-if="hasMultipleImages" @click.stop="prevImage" class="nav-btn prev-btn" :disabled="isFirstImage">&lsaquo;</button>
-        <button v-if="hasMultipleImages" @click.stop="nextImage" class="nav-btn next-btn" :disabled="isLastImage">&rsaquo;</button>
+        <button v-if="hasMultipleMedia" @click.stop="prevMedia" class="nav-btn prev-btn" :disabled="isFirstMedia">&lsaquo;</button>
+        <button v-if="hasMultipleMedia" @click.stop="nextMedia" class="nav-btn next-btn" :disabled="isLastMedia">&rsaquo;</button>
 
-        <!-- Image Slider -->
+        <!-- Media Slider -->
         <div class="image-slider" :style="{ transform: `translateX(-${currentIndex * 100}%)` }">
-          <div v-for="(url, index) in imageUrls" :key="index" class="slide">
+          <div v-for="(item, index) in mediaItems" :key="index" class="slide">
             <div class="image-container">
-               <img :src="getOptimizedUrl(url, { width: 1200 })" alt="Enlarged photo" />
+               <img v-if="item.resource_type === 'image'" :src="getOptimizedUrl(item.url, { width: 1200 })" alt="Enlarged media" />
+               <video v-else-if="item.resource_type === 'video'" :src="getOptimizedUrl(item.url, { isVideo: true, width: 1200 })" controls autoplay loop playsinline></video>
             </div>
           </div>
         </div>
@@ -23,8 +24,8 @@
       <!-- Bottom Controls -->
       <div class="bottom-controls">
         <!-- Dots Indicator -->
-        <div v-if="hasMultipleImages" class="dots-indicator">
-          <span v-for="(_, index) in imageUrls" :key="index" class="dot" :class="{ active: currentIndex === index }"></span>
+        <div v-if="hasMultipleMedia" class="dots-indicator">
+          <span v-for="(_, index) in mediaItems" :key="index" class="dot" :class="{ active: currentIndex === index }"></span>
         </div>
         <!-- New Bottom Close Button -->
         <button @click="close" class="close-btn-bottom">Close</button>
@@ -41,7 +42,7 @@ const { getOptimizedUrl } = usePhotoUtils();
 
 const props = defineProps({
   isVisible: { type: Boolean, required: true },
-  imageUrls: { type: Array, default: () => [] },
+  mediaItems: { type: Array, default: () => [] },
   startIndex: { type: Number, default: 0 },
 });
 
@@ -52,9 +53,9 @@ const modal = ref(null);
 const touchStartX = ref(0);
 
 // Computed properties
-const hasMultipleImages = computed(() => props.imageUrls.length > 1);
-const isFirstImage = computed(() => currentIndex.value === 0);
-const isLastImage = computed(() => currentIndex.value === props.imageUrls.length - 1);
+const hasMultipleMedia = computed(() => props.mediaItems.length > 1);
+const isFirstMedia = computed(() => currentIndex.value === 0);
+const isLastMedia = computed(() => currentIndex.value === props.mediaItems.length - 1);
 
 // Watchers
 watch(() => props.isVisible, (newValue) => {
@@ -69,14 +70,14 @@ watch(() => props.isVisible, (newValue) => {
 // Methods
 const close = () => emit('close');
 
-const prevImage = () => {
-  if (!isFirstImage.value) {
+const prevMedia = () => {
+  if (!isFirstMedia.value) {
     currentIndex.value--;
   }
 };
 
-const nextImage = () => {
-  if (!isLastImage.value) {
+const nextMedia = () => {
+  if (!isLastMedia.value) {
     currentIndex.value++;
   }
 };
@@ -97,9 +98,9 @@ const handleTouchEnd = (event) => {
   const diffX = touchStartX.value - touchEndX;
 
   if (diffX > 50) { // Swiped left
-    nextImage();
+    nextMedia();
   } else if (diffX < -50) { // Swiped right
-    prevImage();
+    prevMedia();
   }
 
   touchStartX.value = 0; // Reset
@@ -160,13 +161,12 @@ const handleTouchEnd = (event) => {
   justify-content: center;
 }
 
-.image-container img {
+.image-container img, .image-container video {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
   display: block;
   border-radius: 8px;
-  pointer-events: none;
 }
 
 .nav-btn {
