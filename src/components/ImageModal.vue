@@ -14,8 +14,8 @@
         <div class="image-slider" :style="{ transform: `translateX(-${currentIndex * 100}%)` }">
           <div v-for="(item, index) in mediaItems" :key="index" class="slide">
             <div class="image-container">
-               <img v-if="item.resource_type === 'image'" :src="getOptimizedUrl(item.url, { width: 1200 })" alt="Enlarged media" />
-               <video v-else-if="item.resource_type === 'video'" :src="getOptimizedUrl(item.url, { isVideo: true, width: 1200 })" controls autoplay loop playsinline></video>
+               <video v-if="item.resource_type === 'video'" :src="getOptimizedUrl(item.url, { isVideo: true, width: 1200 })" controls autoplay loop playsinline></video>
+               <img v-else :src="getOptimizedUrl(item.url, { width: 1200 })" alt="Enlarged media" />
             </div>
           </div>
         </div>
