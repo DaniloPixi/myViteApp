@@ -14,7 +14,7 @@
         <div class="image-slider" :style="{ transform: `translateX(-${currentIndex * 100}%)` }">
           <div v-for="(url, index) in imageUrls" :key="index" class="slide">
             <div class="image-container">
-              <img :src="url" alt="Enlarged photo" />
+               <img :src="getOptimizedUrl(url, { width: 1200 })" alt="Enlarged photo" />
             </div>
           </div>
         </div>
@@ -35,6 +35,9 @@
 
 <script setup>
 import { ref, computed, watch, nextTick } from 'vue';
+import { usePhotoUtils } from '../composables/usePhotoUtils';
+
+const { getOptimizedUrl } = usePhotoUtils();
 
 const props = defineProps({
   isVisible: { type: Boolean, required: true },

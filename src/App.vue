@@ -135,9 +135,15 @@ const dateFilter = ref('');
 const timeFilter = ref('');
 const durationFilter = ref([]);
 
-// --- Watch for view changes ---
+// --- Watch for view changes & reset filters ---
 watch(currentView, (newView) => {
   localStorage.setItem('currentView', newView);
+  // Reset filters whenever the view changes to ensure a clean state
+  locationFilter.value = '';
+  hashtagFilter.value = '';
+  dateFilter.value = '';
+  timeFilter.value = '';
+  durationFilter.value = [];
 });
 
 // --- Component Switching ---

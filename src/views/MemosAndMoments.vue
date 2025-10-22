@@ -29,7 +29,7 @@
                    :key="index"
                    class="photo-item"
                    @click="openImageModal(getMemoPhotos(memo).map(p => p.url), index)">
-                <img :src="photo.url" alt="Memo photo" :class="{'adult-content-blur': photo.isAdult }"/>
+                <img :src="getOptimizedUrl(photo.url, { width: 600 })" alt="Memo photo" :class="{'adult-content-blur': photo.isAdult }"/>
               </div>
             </div>
           </div>
@@ -110,6 +110,9 @@ import { auth } from '../firebase';
 import MemoForm from '../components/MemoForm.vue';
 import ConfirmDeleteModal from '../components/ConfirmDeleteModal.vue';
 import ImageModal from '../components/ImageModal.vue';
+import { usePhotoUtils } from '../composables/usePhotoUtils';
+
+const { getOptimizedUrl } = usePhotoUtils();
 
 const props = defineProps({
   locationFilter: { type: String, default: '' },
