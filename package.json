@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@popperjs/core": "^2.11.8",
     "body-parser": "^2.2.0",
     "cors": "^2.8.5",
     "curl": "^0.1.4",
@@ -21,6 +22,7 @@
     "netlify-cli": "^23.7.1",
     "serverless-http": "^4.0.0",
     "three": "^0.178.0",
+    "v-calendar": "^3.1.2",
     "vue": "^3.5.18"
   },
   "devDependencies": {

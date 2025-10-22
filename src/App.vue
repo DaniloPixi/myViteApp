@@ -38,7 +38,7 @@
 
   <!-- The main content card -->
   <AnimatedBorder :max-width="animatedBorderMaxWidth">
-    <div class="card" :class="{ 'is-full-width': currentView === 'memos' || currentView === 'plans' }">
+    <div class="card" :class="{ 'is-full-width': currentView !== 'home' }">
       <main>
         <!-- Logged-in Content -->
         <div v-if="user">
@@ -52,6 +52,10 @@
           <!-- Conditional Views -->
           <div v-if="currentView === 'home'">
              <button @click="sendLoveNotification" class="love-button">Send Love</button>
+             <CombinedCalendar
+                :memos="memos"
+                :plans="plans"
+             />
           </div>
 
           <MemosAndMoments v-if="currentView === 'memos'" 
@@ -87,12 +91,14 @@
 import { ref, watch, onUnmounted, onMounted, reactive, computed } from 'vue';
 import { useRegisterSW } from 'virtual:pwa-register/vue';
 import { auth, messaging } from './firebase';
+import { getFirestore, collection, query, orderBy, onSnapshot } from 'firebase/firestore';
 import { LogOut } from 'lucide-vue-next';
 // Import child components and views
 import Login from './views/Login.vue';
 import Register from './views/Register.vue';
 import MemosAndMoments from './views/MemosAndMoments.vue';
 import Plans from './views/Plans.vue';
+import CombinedCalendar from './components/CombinedCalendar.vue';
 import Sidebar from './components/Sidebar.vue';
 import ScrollToTopButton from './components/ScrollToTopButton.vue';
 import InAppNotification from './components/InAppNotification.vue';
@@ -115,11 +121,16 @@ const notificationPermission = ref(null);
 const supportsNotifications = ref(false);
 const currentView = ref(localStorage.getItem('currentView') || 'home');
 
+// --- Centralized Data for Calendar ---
+const memos = ref([]);
+const plans = ref([]);
+let unsubscribeMemos = null;
+let unsubscribePlans = null;
+
 // Compute dynamic max-width for the animated border
 const animatedBorderMaxWidth = computed(() => {
   return '100%';
 });
-
 
 // In-app notification state
 const inAppNotification = reactive({
@@ -151,6 +162,48 @@ const handleSwitchForm = (formName) => {
   isRegistering.value = formName === 'register';
 };
 
+// --- Firestore Data Subscription for Calendar ---
+const setupDataListeners = () => {
+  if (!auth.currentUser) return;
+  const db = getFirestore();
+
+  // Memos listener
+  const memosQuery = query(collection(db, 'memos'), orderBy('createdAt', 'desc'));
+  unsubscribeMemos = onSnapshot(memosQuery, (snapshot) => {
+    memos.value = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  }, (err) => {
+    console.error("Error fetching memos for calendar:", err);
+  });
+
+  // Plans listener
+  const plansQuery = query(collection(db, 'plans'), orderBy('date', 'desc'));
+  unsubscribePlans = onSnapshot(plansQuery, (snapshot) => {
+    plans.value = snapshot.docs.map(doc => {
+      const data = doc.data();
+      const date = new Date(data.date);
+      if (data.time) {
+        const timeParts = data.time.match(/(\d{2}):(\d{2})/);
+        if (timeParts) {
+          date.setHours(timeParts[1], timeParts[2]);
+        }
+      }
+      return {
+        id: doc.id,
+        ...data,
+        creationDate: doc.createTime ? doc.createTime.toDate() : new Date(),
+        fullDate: date,
+      };
+    });
+  }, (err) => {
+    console.error("Error fetching plans for calendar:", err);
+  });
+};
+
+const clearDataListeners = () => {
+  if (unsubscribeMemos) unsubscribeMemos();
+  if (unsubscribePlans) unsubscribePlans();
+};
+
 // --- Core Notification Logic ---
 async function registerDeviceForNotifications() {
   if (notificationPermission.value !== 'granted' || !user.value) return;
@@ -162,8 +215,6 @@ async function registerDeviceForNotifications() {
     });
     if (currentToken) {
       await sendTokenToServer(currentToken);
-    } else {
-      console.log('No registration token available.');
     }
   } catch (error) {
     console.error('An error occurred while retrieving token:', error);
@@ -187,7 +238,9 @@ const unsubscribeAuth = auth.onAuthStateChanged((currentUser) => {
   user.value = currentUser;
   if (currentUser) {
     registerDeviceForNotifications();
+    setupDataListeners(); // Fetch data for calendar
   } else {
+    clearDataListeners(); // Clean up listeners on logout
     localStorage.removeItem('currentView');
     currentView.value = 'home';
   }
@@ -213,8 +266,6 @@ async function sendLoveNotification() {
         throw new Error(errorBody.message || `Server responded with ${response.status}`);
     }
     const result = await response.json();
-    console.log('"I love you" notification sent:', result.message);
-    // Optionally show an in-app notification to the sender
     inAppNotification.title = "Message Sent!";
     inAppNotification.body = "You've sent an 'I love you' notification.";
     inAppNotification.visible = true;
@@ -275,6 +326,7 @@ onUnmounted(() => {
   if (unsubscribeAuth) {
     unsubscribeAuth();
   }
+  clearDataListeners(); // Clean up listeners when component is destroyed
 });
 </script>
 
