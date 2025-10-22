@@ -1,9 +1,9 @@
 
 <template>
-  <div class="form-overlay">
-    <div class="form-container">
-      <form @submit.prevent="submitForm">
-        <h2>{{ isEditing ? 'Edit Memo' : 'Create New Memo' }}</h2>
+  <div class="modal-overlay" @click.self="$emit('close')">
+    <div class="modal-content">
+      <h3>{{ isEditing ? 'Edit Memo' : 'Create New Memo' }}</h3>
+      <form @submit.prevent="submitForm" class="plan-form">
 
         <!-- Description -->
         <div class="form-group">
@@ -54,11 +54,11 @@
         <div v-if="error" class="error-message">{{ error }}</div>
 
         <!-- Action Buttons -->
-        <div class="form-actions">
-          <button type="button" @click="$emit('close')" class="btn-cancel">Cancel</button>
-          <button type="submit" class="btn-submit" :disabled="isUploading || isSubmitting">
+        <div class="modal-actions">
+          <button type="submit" class="confirm-button" :disabled="isUploading || isSubmitting">
             {{ isSubmitting ? 'Saving...' : 'Save Memo' }}
           </button>
+          <button type="button" @click="$emit('close')" class="cancel-button">Cancel</button>
         </div>
       </form>
     </div>
@@ -252,27 +252,48 @@ const submitForm = async () => {
 </script>
 
 <style scoped>
-.form-overlay {
+@import url('https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap');
+
+.modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.8);
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(10px);
   display: flex;
-  align-items: center;
   justify-content: center;
+  align-items: center;
   z-index: 1000;
 }
-.form-container {
-  background: #2a2a2a;
+
+.modal-content {
+  background: #000;
   padding: 2rem;
   border-radius: 12px;
-  width: 90%;
+  border: 1px solid magenta;
+  box-shadow: 0 0 25px rgba(255, 0, 255, 0.4);
   max-width: 600px;
+  width: 90%;
   max-height: 90vh;
   overflow-y: auto;
-  border: 1px solid #444;
+}
+
+h3 {
+  font-family: 'Great Vibes', cursive;
+  color: magenta;
+  text-align: center;
+  margin-top: 0;
+  margin-bottom: 2rem;
+  font-size: 3em;
+  text-shadow: 0 0 10px magenta;
+}
+
+.plan-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 .form-row {
   display: flex;
@@ -281,42 +302,125 @@ const submitForm = async () => {
 .form-row .form-group {
   flex: 1;
 }
+
 .form-group {
-  margin-bottom: 1rem;
+  width: 100%;
 }
-label {
+
+.form-group label {
   display: block;
   margin-bottom: 0.5rem;
-  color: #ccc;
+  color: turquoise;
 }
-input[type="text"], input[type="date"], textarea {
+
+input, textarea {
+  box-sizing: border-box;
   width: 100%;
-  padding: 0.8em;
-  border: 1px solid #555;
-  background-color: #333;
-  color: #fff;
-  border-radius: 6px;
+  padding: 0.8em 1em;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background-color: #000;
+  color: turquoise;
+  font-size: 1em;
+  box-shadow: inset 0 0 5px rgba(64, 224, 208, 0.5), 0 0 5px rgba(64, 224, 208, 0.5);
+  transition: box-shadow 0.3s ease;
 }
 textarea {
   min-height: 100px;
   resize: vertical;
 }
 
+input:focus, textarea:focus {
+    outline: none;
+    box-shadow: inset 0 0 8px rgba(64, 224, 208, 0.8), 0 0 8px rgba(64, 224, 208, 0.8);
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.modal-actions button {
+  padding: 0.7em 1.4em;
+  border-radius: 30px;
+  border: 1px solid;
+  font-size: 1.5em;
+  cursor: pointer;
+  font-family: 'Great Vibes', cursive;
+  background-color: black;
+  transition: box-shadow 0.3s ease, color 0.3s ease;
+}
+
+.confirm-button {
+  color: magenta;
+  border-color: magenta;
+  box-shadow: inset 0 0 8px rgba(255, 0, 255, 0.5), 0 0 8px rgba(255, 0, 255, 0.5);
+}
+
+.confirm-button:hover {
+  box-shadow: inset 0 0 12px rgba(255, 0, 255, 0.8), 0 0 12px rgba(255, 0, 255, 0.8);
+}
+
+.cancel-button {
+  color: turquoise;
+  border-color: turquoise;
+  box-shadow: inset 0 0 8px rgba(64, 224, 208, 0.5), 0 0 8px rgba(64, 224, 208, 0.5);
+}
+
+.cancel-button:hover {
+    box-shadow: inset 0 0 12px rgba(64, 224, 208, 0.8), 0 0 12px rgba(64, 224, 208, 0.8);
+}
+
+.error-message {
+  color: #ff6b6b;
+  text-align: center;
+  margin-top: 1rem;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.hashtag-selection-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.hashtag-selection-container button {
+  background-color: #000;
+  color: turquoise;
+  border: 1px solid turquoise;
+  border-radius: 15px;
+  padding: 0.5em 1em;
+  cursor: pointer;
+  transition: background-color 0.3s, box-shadow 0.3s;
+}
+
+.hashtag-selection-container button.selected {
+  background-color: turquoise;
+  color: #000;
+  box-shadow: 0 0 10px turquoise;
+}
 .file-input-hidden { display: none; }
 .file-upload-label {
   display: inline-block;
   padding: 0.7em 1.5em;
-  background-color: #555;
-  color: white;
+  background-color: #000;
+  color: turquoise;
+  border: 1px solid turquoise;
   border-radius: 8px;
   cursor: pointer;
   font-weight: 600;
   transition: background-color 0.3s;
 }
-.file-upload-label:hover { background-color: #666; }
+.file-upload-label:hover { background-color: turquoise; color:#000; }
 .file-upload-label.disabled { opacity: 0.5; cursor: not-allowed; }
 
-.upload-status { margin-top: 0.5rem; color: #42b883; }
+.upload-status { margin-top: 0.5rem; color: turquoise; }
 
 .image-previews {
   display: grid;
@@ -376,22 +480,4 @@ textarea {
   border-color: #ff6b6b;
 }
 
-.error-message { color: #ff6b6b; margin-bottom: 1rem; }
-
-.form-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 1rem;
-  margin-top: 1.5rem;
-}
-.btn-cancel, .btn-submit {
-  padding: 0.7em 1.5em;
-  border: none;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-}
-.btn-cancel { background-color: #555; color: white; }
-.btn-submit { background-color: #42b883; color: white; }
-.btn-submit:disabled { background-color: #36a473; opacity: 0.6; }
 </style>
