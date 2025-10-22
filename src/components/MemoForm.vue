@@ -93,7 +93,11 @@ watch(() => props.memo, (newMemo) => {
     formData.value.hashtags = (newMemo.hashtags || []).map(t => t.startsWith('#') ? t.substring(1) : t);
     
     if (newMemo.photos && Array.isArray(newMemo.photos)) {
-      mediaPreviews.value = newMemo.photos.map(media => ({ ...media, source: 'existing' }));
+      mediaPreviews.value = newMemo.photos.map(media => ({ 
+        ...media, 
+        resource_type: media.resource_type || 'image', // Default to image for old data
+        source: 'existing' 
+      }));
     } else {
       mediaPreviews.value = [];
     }
