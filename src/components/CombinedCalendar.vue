@@ -96,14 +96,32 @@ const attributes = computed(() => {
 
 <style>
 /* --- Calendar Styles (Unchanged) --- */
-.custom-calendar.vc-container { --vc-bg: #000; --vc-content-color: #FFF; --vc-border: 1px solid magenta; --vc-font-family: 'Arial', sans-serif; --vc-title-color: magenta; --vc-weekday-color: turquoise; --vc-nav-color: magenta; border-radius: 12px; box-shadow: 0 0 25px rgba(255, 0, 255, 0.4); width: 100%; }
-.custom-calendar .vc-header .vc-title { font-family: 'Great Vibes', cursive; font-size: 2.2em; text-shadow: 0 0 10px magenta; }
+.custom-calendar.vc-container { --vc-bg: #000; --vc-content-color: #FFF;  --vc-font-family: 'Arial', sans-serif; --vc-title-color: magenta; --vc-weekday-color: turquoise; --vc-nav-color: magenta; border-radius: 12px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.4), 0 0 25px rgba(255, 0, 255, 0.4); width: 100%; }
+.custom-calendar .vc-header .vc-title { font-family: 'Great Vibes', cursive;padding-top:0.4rem; font-size: 2em;background-color: transparent; text-shadow: 0 0 10px magenta; }
 .custom-calendar .vc-weekday { font-weight: 600; }
 .custom-day-content { width: 100%; height: 100%; cursor: pointer; }
-.day-label { color: #FFD700; font-family: 'Great Vibes', cursive; font-style: italic; font-size: 1.2em; }
+.day-label { color: #dbb406; font-family: 'Great Vibes', cursive; font-style: italic; font-size: 1.2em; }
 .custom-calendar .vc-dots { gap: 4px; }
 .custom-calendar .vc-dot.memo-dot { background: magenta !important; }
 .custom-calendar .vc-dot.plan-dot { background: turquoise !important; }
+--vc-nav-container { background-color: transparent; }
+
+/* --- Nav Arrow Styles --- */
+.custom-calendar .vc-arrow {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 50%  !important;
+  width: 32px;
+  height: 32px;
+  color: magenta !important;
+  transition: all 0.3s ease;
+}
+
+.custom-calendar .vc-arrow:hover {
+  color: turquoise !important;
+  background: transparent !important;
+  box-shadow: 0 0 12px turquoise;
+}
 
 /* --- Modal Base Styles (No Transitions Here) --- */
 .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(0, 0, 0, 0.7); backdrop-filter: blur(2px); display: flex; justify-content: center; align-items: center; z-index: 1000; }
