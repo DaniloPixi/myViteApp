@@ -513,7 +513,7 @@ watch(() => props.user, (newUser) => {
 
 
 .hashtags-container { margin-top: 1rem; }
-.hashtag { display: inline-block; background-color: #333; color: #42b883; padding: 0.3em 0.7em; border-radius: 15px; font-size: 0.85em; margin-right: 0.5rem; margin-bottom: 0.5rem; }
+.hashtag { display: inline-block; background-color: #000000; color: #f700c1; padding: 0.3em 0.7em; border-radius: 15px; font-size: 0.85em; margin-right: 0.5rem; margin-bottom: 0.5rem; }
 
 .error-message, .loading-state, .empty-state { text-align: center; margin-top: 1rem; color: #aaa; }
 .error-message { color: #ff6b6b; }
