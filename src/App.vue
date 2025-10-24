@@ -367,8 +367,9 @@ onUnmounted(() => {
   color: rgb(253, 8, 200);
   padding: 1rem 2rem;
   border-radius: 2rem;
-  border: none;
+  border: none !important;
   font-weight: bold;
+  outline: none !important;
   cursor: pointer;
   transition: transform 0.2s, box-shadow 0.2s;
   display: block;
