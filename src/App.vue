@@ -343,12 +343,13 @@ onUnmounted(() => {
 }
 
 .love-button {
-  background-color: #ff4081; /* A pink/magenta color */
-  color: white;
+  font-family: 'Great Vibes', cursive;
+  font-size: 1.8rem;
+  background-color: #0e0d0d00; /* A pink/magenta color */
+  color: rgb(253, 8, 200);
   padding: 1rem 2rem;
   border-radius: 2rem;
   border: none;
-  font-size: 1.2rem;
   font-weight: bold;
   cursor: pointer;
   transition: transform 0.2s, box-shadow 0.2s;
@@ -357,7 +358,7 @@ onUnmounted(() => {
 }
 
 .love-button:hover {
-  transform: translateY(-3px);
+  transform: translateY(-5px);
   box-shadow: 0 4px 10px rgba(255, 64, 129, 0.5);
 }
 

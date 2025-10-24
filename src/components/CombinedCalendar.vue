@@ -95,8 +95,33 @@ const attributes = computed(() => {
 </script>
 
 <style>
+/* --- Keyframes for Calendar Glow Animation --- */
+@keyframes pulse-calendar-glow {
+  0% {
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.4), inset 0 0 10px rgba(255, 0, 255, 0.5), 0 0 25px rgba(255, 0, 255, 0.4);
+  }
+  50% {
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.4), inset 0 0 10px rgba(255, 0, 255, 0.5), 0 0 40px rgba(0, 255, 255, 0.6);
+  }
+  100% {
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.4), inset 0 0 10px rgba(255, 0, 255, 0.5), 0 0 25px rgba(255, 0, 255, 0.4);
+  }
+}
+
 /* --- Calendar Styles (Unchanged) --- */
-.custom-calendar.vc-container { --vc-bg: #000; --vc-content-color: #FFF;  --vc-font-family: 'Arial', sans-serif; --vc-title-color: magenta; --vc-weekday-color: turquoise; --vc-nav-color: magenta; border-radius: 12px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.4), 0 0 25px rgba(255, 0, 255, 0.4); width: 100%; }
+.custom-calendar.vc-container { 
+  --vc-bg: #000;  
+  --vc-font-family: 'Arial', sans-serif; 
+  --vc-title-color: magenta; 
+  --vc-weekday-color: turquoise; 
+  --vc-nav-color: rgb(202, 103, 10); 
+  --vc-border-width: 0;
+  border-radius: 20px; 
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.4), inset 0 0 10px rgba(255, 0, 255, 0.5), 0 0 25px rgba(255, 0, 255, 0.4); 
+  width: 100%;
+  animation: pulse-calendar-glow 3s infinite ease-in-out;
+}
+
 .custom-calendar .vc-header .vc-title { font-family: 'Great Vibes', cursive;padding-top:0.4rem; font-size: 2em;background-color: transparent; text-shadow: 0 0 10px magenta; }
 .custom-calendar .vc-weekday { font-weight: 600; }
 .custom-day-content { width: 100%; height: 100%; cursor: pointer; }
