@@ -46,7 +46,7 @@
           <div v-for="(preview, index) in mediaPreviews" :key="index" class="preview-item">
             <img v-if="preview.resource_type === 'image'" :src="preview.url" :class="{'adult-preview-blur': preview.isAdult}" />
             <video v-else-if="preview.resource_type === 'video'" :src="preview.url" muted loop playsinline class="video-preview"></video>
-            <button @click.prevent="removeMedia(index)" class="remove-media-btn">×</button>
+            <button @click.prevent="removeMedia(index)" class="remove-media-btn">X</button>
             <button @click.prevent="toggleAdultFlag(index)" class="adult-flag" :class="{'adult-flag-selected': preview.isAdult}">18+</button>
           </div>
         </div>
@@ -452,15 +452,15 @@ button:disabled {
 
 .remove-media-btn {
   position: absolute;
-  top: 2px;
-  right: 2px;
-  background: rgba(0,0,0,0.6);
-  color: white;
+  top: -0.8rem;
+  right: -0.3rem;
+  background: rgba(0, 0, 0, 0);
+  color: rgb(247, 6, 6);
   border: none;
   border-radius: 50%;
   width: 20px;
   height: 20px;
-  font-size: 14px;
+  font-size: 16px;
   line-height: 20px;
   text-align: center;
   cursor: pointer;
