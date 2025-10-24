@@ -116,9 +116,11 @@ const attributes = computed(() => {
   --vc-weekday-color: turquoise; 
   --vc-nav-color: rgb(202, 103, 10); 
   --vc-border-width: 0;
+  border:none !important;
   border-radius: 20px; 
   box-shadow: inset 0 2px 4px rgba(0,0,0,0.4), inset 0 0 10px rgba(255, 0, 255, 0.5), 0 0 25px rgba(255, 0, 255, 0.4); 
   width: 100%;
+  outline: none !important;
   animation: pulse-calendar-glow 3s infinite ease-in-out;
 }
 
@@ -150,8 +152,8 @@ const attributes = computed(() => {
 
 /* --- Modal Base Styles (No Transitions Here) --- */
 .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(0, 0, 0, 0.7); backdrop-filter: blur(2px); display: flex; justify-content: center; align-items: center; z-index: 1000; }
-.modal-content { background: #1a1a1a; border: 1px solid magenta; border-radius: 12px; padding: 20px 25px; width: 90%; max-width: 500px; box-shadow: 0 0 25px rgba(255, 0, 255, 0.5); position: relative; font-family: 'Arial', sans-serif; }
-.close-button { position: absolute; top: 10px; right: 10px; background: transparent; border: none; color: white; font-size: 24px; cursor: pointer; }
+.modal-content { background: #00000050; border: 1px solid magenta; border-radius: 12px; padding: 20px 25px; width: 90%; max-width: 500px; box-shadow: 0 0 25px rgba(255, 0, 255, 0.5); position: relative; font-family: 'Arial', sans-serif; }
+.close-button { position: absolute; top: -0.8rem; right: -1rem; background: transparent; border: none; color: rgb(7, 208, 243); font-size: 24px; cursor: pointer; }
 .modal-content p { margin: 8px 0; }
 .modal-content .event-title { font-weight: bold; }
 .modal-content .memo-text { color: magenta; }

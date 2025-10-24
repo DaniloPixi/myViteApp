@@ -530,9 +530,9 @@ onUnmounted(() => {
 .gallery-nav {
   top: 50%;
   transform: translateY(-50%);
-  background-color: rgba(0, 0, 0, 0.5);
-  color: white;
-  border: none;
+  background-color: rgba(0, 0, 0, 0);
+  color: rgb(208, 8, 235);
+  border: none ;
   border-radius: 50%;
   width: 2.25rem;
   height: 2.25rem;
@@ -542,7 +542,14 @@ onUnmounted(() => {
   justify-content: center;
   align-items: center;
   opacity: 0;
-  transition: opacity 0.3s ease;
+  outline:none;
+  transition: opacity 0.5s ease-in-out, color height width 0.5s ease-in-out;
+}
+
+.gallery-nav:hover,
+.gallery-nav:active {
+    color: rgba(64, 224, 208, 0.5);
+  
 }
 
 .gallery-nav.visible {
@@ -552,7 +559,6 @@ onUnmounted(() => {
 .prev-btn {
   left: 0.625rem;
 }
-
 .next-btn {
   right: 0.625rem;
 }
