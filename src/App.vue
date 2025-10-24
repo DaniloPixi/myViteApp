@@ -50,28 +50,32 @@
           </nav>
 
           <!-- Conditional Views -->
-          <div v-if="currentView === 'home'">
-             <button @click="sendLoveNotification" class="love-button">Send Love</button>
-             <CombinedCalendar
-                :memos="memos"
-                :plans="plans"
-             />
-          </div>
+          <transition name="slide-fade" mode="out-in">
+            <div :key="currentView">
+              <div v-if="currentView === 'home'">
+                 <button @click="sendLoveNotification" class="love-button">Send Love</button>
+                 <CombinedCalendar
+                    :memos="memos"
+                    :plans="plans"
+                 />
+              </div>
 
-          <MemosAndMoments v-if="currentView === 'memos'" 
-            :location-filter="locationFilter"
-            :hashtag-filter="hashtagFilter"
-            :date-filter="dateFilter"
-          />
-          <Plans 
-            v-if="currentView === 'plans'" 
-            :user="user"
-            :location-filter="locationFilter"
-            :hashtag-filter="hashtagFilter"
-            :date-filter="dateFilter"
-            :time-filter="timeFilter"
-            :duration-filter="durationFilter" 
-          /> 
+              <MemosAndMoments v-if="currentView === 'memos'" 
+                :location-filter="locationFilter"
+                :hashtag-filter="hashtagFilter"
+                :date-filter="dateFilter"
+              />
+              <Plans 
+                v-if="currentView === 'plans'" 
+                :user="user"
+                :location-filter="locationFilter"
+                :hashtag-filter="hashtagFilter"
+                :date-filter="dateFilter"
+                :time-filter="timeFilter"
+                :duration-filter="durationFilter" 
+              />
+            </div>
+          </transition>
         </div>
 
         <!-- Authentication Views (Logged-out) -->
@@ -461,6 +465,20 @@ onUnmounted(() => {
 .card.is-full-width {
   max-width: 90%;
   width: 90%;
+}
+
+.slide-fade-enter-active {
+  transition: all 0.3s ease-out;
+}
+
+.slide-fade-leave-active {
+  transition: all 0.3s cubic-bezier(1, 0.5, 0.8, 1);
+}
+
+.slide-fade-enter-from,
+.slide-fade-leave-to {
+  transform: translateX(20px);
+  opacity: 0;
 }
 
 @media (max-width: 768px) {
