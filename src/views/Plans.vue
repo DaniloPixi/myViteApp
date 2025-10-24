@@ -513,7 +513,18 @@ watch(() => props.user, (newUser) => {
 
 
 .hashtags-container { margin-top: 1rem; }
-.hashtag { display: inline-block; background-color: #000000; color: #f700c1; padding: 0.3em 0.7em; border-radius: 15px; font-size: 0.85em; margin-right: 0.5rem; margin-bottom: 0.5rem; }
+.hashtag {
+  display: inline-block;
+  background-color: #000000;
+  color: #f700c1;
+  padding: 0.3em 0.7em;
+  border-radius: 15px;
+  font-size: 0.85em;
+  margin-right: 0.5rem;
+  margin-bottom: 0.5rem;
+  border: 1px solid #f700c1;
+  box-shadow: 0 0 8px rgba(247, 0, 193, 0.7);
+}
 
 .error-message, .loading-state, .empty-state { text-align: center; margin-top: 1rem; color: #aaa; }
 .error-message { color: #ff6b6b; }

@@ -75,11 +75,14 @@ const timeLeftMessage = computed(() => {
 <style scoped>
 .progress-container {
   width: 100%;
-  background-color: #333;
+  background-color: #0a0a0a00;
   border-radius: 5px;
   position: relative;
   height: 20px;
   margin-top: 10px;
+  border: 0.01px #f700c1;
+  box-shadow: 0 0 8px rgba(5, 136, 243, 0.7);
+
 }
 
 .progress-bar {
