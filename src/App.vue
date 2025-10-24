@@ -44,9 +44,9 @@
         <div v-if="user">
           <!-- View Navigation -->
           <nav class="view-nav">
-            <a @click="currentView = 'home'" :class="{ active: currentView === 'home' }">Home</a>
-            <a @click="currentView = 'memos'" :class="{ active: currentView === 'memos' }">Memos and Moments</a>
-            <a @click="currentView = 'plans'" :class="{ active: currentView === 'plans' }">Plans</a>
+            <a @click="currentView = 'home'" :class="{ active: currentView === 'home' }" :style="getNavStyle('home', 0)">Home</a>
+            <a @click="currentView = 'memos'" :class="{ active: currentView === 'memos' }" :style="getNavStyle('memos', 1)">Memos and Moments</a>
+            <a @click="currentView = 'plans'" :class="{ active: currentView === 'plans' }" :style="getNavStyle('plans', 2)">Plans</a>
           </nav>
 
           <!-- Conditional Views -->
@@ -120,6 +120,7 @@ const isRegistering = ref(false);
 const notificationPermission = ref(null);
 const supportsNotifications = ref(false);
 const currentView = ref(localStorage.getItem('currentView') || 'home');
+const navColors = ref([]);
 
 // --- Centralized Data for Calendar ---
 const memos = ref([]);
@@ -160,6 +161,14 @@ watch(currentView, (newView) => {
 // --- Component Switching ---
 const handleSwitchForm = (formName) => {
   isRegistering.value = formName === 'register';
+};
+
+const getNavStyle = (view, index) => {
+    const style = { '--active-color': navColors.value[index] };
+    if (currentView.value === view) {
+        style.color = navColors.value[index];
+    }
+    return style;
 };
 
 // --- Firestore Data Subscription for Calendar ---
@@ -320,6 +329,11 @@ onMounted(() => {
   if (supportsNotifications.value) {
     notificationPermission.value = Notification.permission;
   }
+  const colors = ['magenta', 'turquoise'];
+  const startingColorIndex = Math.round(Math.random());
+  navColors.value = ['home', 'memos', 'plans'].map((_, index) => {
+      return colors[(startingColorIndex + index) % 2];
+  });
 });
 
 onUnmounted(() => {
@@ -390,13 +404,11 @@ onUnmounted(() => {
 }
 
 .view-nav a:hover {
-  color: #42b883;
+  color: var(--active-color);
 }
 
 .view-nav a.active {
-  color: #42b883;
-  border-bottom: 2px solid #42b883;
-  padding-bottom: 4px;
+  color: var(--active-color);
 }
 
 .notification-control-fixed {
