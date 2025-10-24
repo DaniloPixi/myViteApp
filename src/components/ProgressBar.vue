@@ -76,9 +76,9 @@ const timeLeftMessage = computed(() => {
 .progress-container {
   width: 100%;
   background-color: #0a0a0a00;
-  border-radius: 5px;
+  border-radius: 7px;
   position: relative;
-  height: 20px;
+  height: 1.25rem;
   margin-top: 10px;
   border: 0.01px #f700c1;
   box-shadow: 0 0 8px rgba(5, 136, 243, 0.7);
@@ -88,7 +88,7 @@ const timeLeftMessage = computed(() => {
 .progress-bar {
   height: 100%;
   background: linear-gradient(to right, turquoise, magenta);
-  border-radius: 5px;
+  border-radius: 7px;
   transition: width 0.5s ease-in-out;
 }
 
