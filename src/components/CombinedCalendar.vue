@@ -124,7 +124,7 @@ const attributes = computed(() => {
   animation: pulse-calendar-glow 3s infinite ease-in-out;
 }
 
-.custom-calendar .vc-header .vc-title { font-family: 'Great Vibes', cursive;padding-top:0.4rem; font-size: 2em;background-color: transparent; text-shadow: 0 0 10px magenta; }
+.custom-calendar .vc-header .vc-title { font-family: 'Great Vibes', cursive;padding-top:0.4rem; font-size: 2em;background-color: rgba(0, 0, 0, 0);color:rgb(236, 5, 148); text-shadow: 0 0 10px magenta; }
 .custom-calendar .vc-weekday { font-weight: 600; }
 .custom-day-content { width: 100%; height: 100%; cursor: pointer; }
 .day-label { color: #dbb406; font-family: 'Great Vibes', cursive; font-style: italic; font-size: 1.2em; }

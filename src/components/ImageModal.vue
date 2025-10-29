@@ -173,16 +173,21 @@ const handleTouchEnd = (event) => {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  background: rgba(0,0,0,0.3);
-  color: white;
-  border: none;
+  background: rgba(255, 255, 255, 0.1); /* More transparent */
+  color: magenta;
+  border: none; 
+  backdrop-filter: blur(10px); /* Frosted glass effect */
+  -webkit-backdrop-filter: blur(10px); /* For Safari */
   border-radius: 50%;
-  width: 44px;
-  height: 44px;
-  font-size: 24px;
+  width: 50px;  /* Slightly larger */
+  height: 50px; /* Slightly larger */
+  font-size: 30px; /* Larger icon */
   cursor: pointer;
   z-index: 5;
-  transition: background 0.2s;
+  transition: background 0.3s ease, transform 0.2s ease;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 /* Hide nav buttons on touch devices to encourage swiping */
@@ -193,22 +198,23 @@ const handleTouchEnd = (event) => {
 }
 
 .nav-btn:hover:not(:disabled) {
-  background: rgba(0,0,0,0.6);
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-50%) scale(1.05); /* Slight scale effect on hover */
 }
 
 .nav-btn:disabled {
-  opacity: 0.2;
+  opacity: 0.4;
   cursor: not-allowed;
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .nav-btn:focus,
 .nav-btn:focus-visible {
   outline: none;
-  box-shadow: none;
 }
 
-.prev-btn { left: 15px; }
-.next-btn { right: 15px; }
+.prev-btn { left: 20px; }
+.next-btn { right: 20px; }
 
 .bottom-controls {
   display: flex;
@@ -236,18 +242,24 @@ const handleTouchEnd = (event) => {
 
 .close-btn-bottom {
   background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.6);
-  color: white;
+  border: 1px solid magenta;
+  color: magenta;
   padding: 8px 24px;
   border-radius: 20px;
   cursor: pointer;
-  font-size: 0.9rem;
+  font-family: 'Great Vibes', cursive;
+  font-size: 1.5rem;
   font-weight: 500;
   transition: all 0.2s ease;
+  box-shadow: inset 0 0 8px rgba(255, 0, 255, 0.5), 0 0 8px rgba(255, 0, 255, 0.5);
 }
 
 .close-btn-bottom:hover {
-  background: white;
-  color: black;
+  box-shadow: inset 0 0 12px rgba(255, 0, 255, 0.8), 0 0 12px rgba(255, 0, 255, 0.8);
+}
+
+.close-btn-bottom:focus,
+.close-btn-bottom:focus-visible {
+  outline: none;
 }
 </style>
