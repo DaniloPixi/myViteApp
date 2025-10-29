@@ -26,6 +26,7 @@ const stopAnimation = () => {
   }
 };
 
+
 const scrollToTop = () => {
   // Stop any existing animation before starting a new one
   stopAnimation();
@@ -71,9 +72,9 @@ onUnmounted(() => {
   position: fixed;
   bottom: 25px;
   right: 25px;
-  background-color: #42b883;
-  color: white;
-  border: none;
+  background-color: #b8429b50;
+  color: magenta;
+  border: 1px solid magenta;
   border-radius: 50%;
   width: 50px;
   height: 50px;
