@@ -40,8 +40,14 @@
             
             <div>
               <div class="memo-meta">
-                <span class="meta-item"><strong>📍</strong> {{ memo.location || 'No location' }}</span>
-                <span class="meta-item"><strong>🗓️</strong> {{ formatDate(memo.date) }}</span>
+                <span class="meta-item">
+                  <svg class="meta-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+                  {{ memo.location || 'No location' }}
+                </span>
+                <span class="meta-item">
+                  <svg class="meta-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20a2 2 0 0 0 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V8h14v12zM7 10h5v5H7z"/></svg>
+                  {{ formatDate(memo.date) }}
+                </span>
               </div>
               <div v-if="memo.hashtags && memo.hashtags.length" class="memo-hashtags">
                 <span v-for="tag in memo.hashtags" :key="tag" class="hashtag">{{ tag }}</span>
@@ -381,7 +387,10 @@ onUnmounted(() => {
 
 .memo-card:hover {
   transform: translateY(-10px) scale(1.03);
-  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.2), 0 12px 24px rgba(0, 0, 0, 0.4), 0 8px 12px rgba(0, 0, 0, 0.5);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.2), 
+              0 12px 24px rgba(0, 0, 0, 0.4), 
+              0 8px 12px rgba(0, 0, 0, 0.5), 
+              0 0 30px 10px rgba(0, 255, 255, 0.5);
 }
 
 .gallery-container {
@@ -448,37 +457,61 @@ onUnmounted(() => {
 
 
 .memo-description {
-  font-size: 1.1em;
+  font-size: 1.8em;
   line-height: 1.6;
-  color: #f0f0f0;
+  color: magenta;
   margin-bottom: 0.15rem;
+  font-family: 'Great Vibes', cursive;
 }
 
 .memo-meta {
   display: flex;
   flex-wrap: wrap;
-  justify-content:center;
+  align-items: center;
+  justify-content: center;
   gap: 1rem;
   font-size: 0.9em;
-  color: #00d9ff;
+  color: magenta;
   margin-bottom: 0.25rem;
+  font-weight: 700;
+}
+
+.meta-item {
+  display: inline-flex;
+  align-items: center;
+}
+
+.meta-icon {
+  width: 1em;
+  height: 1em;
+  fill: currentColor;
+  margin-right: 0.35em;
 }
 
 .memo-hashtags {
-  margin-bottom: 0.25rem;
+  text-align: center;
+  margin-bottom: 0.5rem;
 }
 
 .hashtag {
   display: inline-block;
-  background-color: rgba(255, 255, 255, 0.1);
-  color: #f0f0f0;
-  padding: 0.2em 0.5em;
-  border-radius: 0.9375rem;
-  font-size: 0.75em;
+  background-color: rgba(0, 0, 0, 0.2);
+  color: magenta;
+  padding: 0.3em 0.7em;
+  border-radius: 1rem;
+  font-size: 0.8em;
   font-weight: 700;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  margin-right: 0.5rem;
-  margin-bottom: 0.5rem;
+  border: 1px solid rgba(255, 25, 255, 0.2);
+  margin: 0.2rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.hashtag:hover {
+  background-color: rgba(255, 25, 255, 0.3);
+  border-color: rgba(255, 25, 255, 0.6);
+  color: #fff;
+  transform: scale(1.05);
 }
 
 .memo-footer {
@@ -488,7 +521,7 @@ onUnmounted(() => {
   padding-top: 0.25rem;
   padding-right:0.25rem;
   padding-left:0.25rem;
-  border-top: 0.0625rem solid #444;
+  border-top: 0.0625rem solid magenta;
   font-size: 1em;
   color: #f595ff;
 }
@@ -501,7 +534,7 @@ onUnmounted(() => {
 .edit-button, .delete-button {
   background: none;
   border: none;
-  color: #aaa;
+  color: turquoise;
   cursor: pointer;
   font-size: 0.9em;
   text-transform: lowercase;
@@ -511,7 +544,7 @@ onUnmounted(() => {
 
 .edit-button:hover, .delete-button:hover {
   text-decoration: none;
-  color: #fff;
+  color: magenta;
 }
 
 .delete-button:hover {
