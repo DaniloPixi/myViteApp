@@ -88,7 +88,7 @@ const progressTextMessage = computed(() => {
 
 .progress-bar {
   height: 100%;
-  background: linear-gradient(to right, turquoise, magenta);
+  background: linear-gradient(to right, rgba(23, 231, 210, 0.39), rgba(255, 0, 255, 0.384));
   border-radius: 7px;
   transition: width 0.5s ease-in-out;
 }

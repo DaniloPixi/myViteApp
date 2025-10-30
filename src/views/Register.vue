@@ -1,7 +1,6 @@
 <template>
   <div class="register-container">
     <div class="register-card">
-      <h1>Register</h1>
       <form @submit.prevent="handleRegister">
         <div class="form-group">
           <label for="nickname">Nickname</label>
@@ -15,15 +14,13 @@
           <label for="password">Password</label>
           <input type="password" id="password" v-model="password" required />
         </div>
-        <!-- Bind the disabled state and change the text based on the loading flag -->
         <button type="submit" :disabled="loading">
           {{ loading ? 'Registering...' : 'Register' }}
         </button>
-        <!-- Display the error message if it exists -->
         <p v-if="error" class="error-message">{{ error }}</p>
       </form>
       <p class="switch-form">
-        Already have an account? <a href="#" @click.prevent="switchToLogin">Login here</a>
+        You got one already baby <a href="#" @click.prevent="switchToLogin">Login here</a>
       </p>
     </div>
   </div>
@@ -38,14 +35,13 @@ const emit = defineEmits(['switch-form']);
 const nickname = ref('');
 const email = ref('');
 const password = ref('');
-const loading = ref(false); // Reactive flag for loading state
-const error = ref('');     // Reactive string for error messages
+const loading = ref(false);
+const error = ref('');
 
 const handleRegister = async () => {
   loading.value = true;
   error.value = '';
 
-  // --- VALIDATION ---
   if (!nickname.value.trim()) {
     error.value = 'Please enter a nickname.';
     loading.value = false;
@@ -57,10 +53,8 @@ const handleRegister = async () => {
     await userCredential.user.updateProfile({ 
       displayName: nickname.value 
     });
-    // On success, App.vue will handle the redirect. We don't need to set loading to false.
   } catch (err) {
     console.error("Error during registration:", err);
-    // Prettify the error message
     switch (err.code) {
       case 'auth/email-already-in-use':
         error.value = 'This email address is already in use.';
@@ -75,7 +69,7 @@ const handleRegister = async () => {
         error.value = 'An unexpected error occurred during registration.';
         break;
     }
-    loading.value = false; // Set loading to false only on failure
+    loading.value = false;
   }
 };
 
@@ -85,27 +79,32 @@ const switchToLogin = () => {
 </script>
 
 <style scoped>
-/* ... all other styles remain the same ... */
 .register-container {
   display: flex;
   justify-content: center;
   align-items: center;
   min-height: 80vh;
+  padding: 2rem;
 }
 
 .register-card {
   padding: 2.5em;
-  border-radius: 12px;
-  background-color: #2f2f2f;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  border-radius: 20px;
+  background-color: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 3, 220, 0.2);
+  box-shadow: 0 0 20px rgba(255, 3, 220, 0.5), inset 0 0 15px rgba(3, 220, 255, 0.4);
   width: 100%;
-  max-width: 400px;
+  max-width: 420px;
   text-align: center;
 }
 
 h1 {
-  color: #42b883;
+  font-family: 'Great Vibes', cursive;
+  color: magenta;
+  font-size: 3.5rem;
   margin-bottom: 1.5rem;
+  font-weight: normal;
 }
 
 .form-group {
@@ -115,39 +114,48 @@ h1 {
 
 label {
   display: block;
-  margin-bottom: 0.5rem;
-  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 0.75rem;
+  color: turquoise;
   font-weight: 500;
+  font-size: 1.1rem;
 }
 
 input {
   width: 100%;
   padding: 0.8em 1em;
   border-radius: 8px;
-  border: 1px solid #444;
-  background-color: #1a1a1a;
+  border: 1px solid magenta;
+  background-color: rgba(0,0,0,0.4);
   color: #fff;
   font-size: 1em;
+  transition: box-shadow 0.3s ease, border-color 0.3s ease;
+}
+
+input:focus {
+  outline: none;
+  border-color: turquoise;
+  box-shadow: 0 0 15px rgba(3, 220, 255, 0.6);
 }
 
 button {
   width: 100%;
-  padding: 0.8em 1.2em;
-  border-radius: 8px;
-  border: none;
-  background-color: #42b883;
-  color: white;
-  font-size: 1.1em;
-  font-weight: 600;
+  border-radius: 30px;
+  border: 1px solid magenta;
+  background-color: transparent;
+  color: magenta;
+  font-family: 'Great Vibes', cursive;
+  font-size: 2rem;
+  font-weight: 500;
   cursor: pointer;
-  transition: background-color 0.3s;
+  transition: all 0.3s ease;
+  box-shadow: inset 0 0 8px rgba(255, 0, 255, 0.5), 0 0 8px rgba(255, 0, 255, 0.5);
 }
 
-button:hover {
-  background-color: #368f6a;
+button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: inset 0 0 12px rgba(255, 0, 255, 0.8), 0 0 12px rgba(255, 0, 255, 0.8);
 }
 
-/* Style for the error message */
 .error-message {
   color: #ff6b6b;
   margin-top: 1.5rem;
@@ -155,23 +163,28 @@ button:hover {
 }
 
 button:disabled {
-  background-color: #333;
-  color: #777;
+  background: #555;
   cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .switch-form {
+  font-family:'Great Vibes', cursive;
+  font-weight: 800;
+  font-size: 2rem;
   margin-top: 2rem;
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .switch-form a {
-  color: #42b883;
+  color: turquoise;
   text-decoration: none;
   font-weight: 600;
+  transition: color 0.3s ease, text-shadow 0.3s ease;
 }
 
 .switch-form a:hover {
-  text-decoration: underline;
+  color: magenta;
+  text-shadow: 0 0 5px rgba(255, 3, 220, 0.7);
 }
 </style>

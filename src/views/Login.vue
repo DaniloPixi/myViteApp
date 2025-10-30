@@ -1,7 +1,6 @@
 <template>
   <div class="login-container">
     <div class="login-card">
-      <h1>Login</h1>
       <form @submit.prevent="handleLogin">
         <div class="form-group">
           <label for="email">Email</label>
@@ -11,15 +10,13 @@
           <label for="password">Password</label>
           <input type="password" id="password" v-model="password" required />
         </div>
-        <!-- Bind the disabled state and change the text based on the loading flag -->
         <button type="submit" :disabled="loading">
           {{ loading ? 'Logging in...' : 'Login' }}
         </button>
-        <!-- Display the error message if it exists -->
         <p v-if="error" class="error-message">{{ error }}</p>
       </form>
       <p class="switch-form">
-        Don't have an account? <a href="#" @click.prevent="switchToRegister">Register here</a>
+        First time? <a href="#" @click.prevent="switchToRegister">Step in</a>
       </p>
     </div>
   </div>
@@ -33,8 +30,8 @@ const emit = defineEmits(['switch-form']);
 
 const email = ref('');
 const password = ref('');
-const loading = ref(false); // Reactive flag for loading state
-const error = ref('');     // Reactive string for error messages
+const loading = ref(false);
+const error = ref('');
 
 const handleLogin = async () => {
   loading.value = true;
@@ -42,11 +39,8 @@ const handleLogin = async () => {
 
   try {
     await auth.signInWithEmailAndPassword(email.value, password.value);
-    // On success, App.vue will handle switching the view.
-    // The loading state is reset in the `finally` block.
   } catch (err) {
     console.error("Error during login:", err);
-    // Prettify the error message for the user
     switch (err.code) {
       case 'auth/user-not-found':
         error.value = 'No account found with this email.';
@@ -59,7 +53,6 @@ const handleLogin = async () => {
         break;
     }
   } finally {
-    // This ensures the loading state is always reset, even on success.
     loading.value = false;
   }
 };
@@ -70,93 +63,115 @@ const switchToRegister = () => {
 </script>
 
 <style scoped>
-/* ... all other styles remain the same ... */
 .login-container {
   display: flex;
   justify-content: center;
   align-items: center;
   min-height: 80vh;
+  padding: 2rem;
 }
 
 .login-card {
   padding: 2.5em;
-  border-radius: 12px;
-  background-color: #1e1e1e; /* Updated background color for consistency */
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  border-radius: 20px;
+  background-color: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 3, 220, 0.2);
+  box-shadow: 0 0 20px rgba(255, 3, 220, 0.5), inset 0 0 15px rgba(3, 220, 255, 0.4);
   width: 100%;
-  max-width: 400px;
+  max-width: 420px;
   text-align: center;
 }
 
 h1 {
-  color: #42b883;
+  font-family: 'Great Vibes', cursive;
+  color: magenta;
+  font-size: 3.5rem;
   margin-bottom: 1.5rem;
+  font-weight: normal;
 }
 
 .form-group {
   margin-bottom: 1.5rem;
   text-align: left;
+  padding:0.2rem;
 }
 
 label {
   display: block;
-  margin-bottom: 0.5rem;
-  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 0.75rem;
+  color: turquoise;
   font-weight: 500;
+  font-size: 1.1rem;
 }
 
 input {
   width: 100%;
   padding: 0.8em 1em;
   border-radius: 8px;
-  border: 1px solid #444;
-  background-color: #1a1a1a;
+  border: 1px solid magenta;
+  background-color: rgba(0,0,0,0.4);
   color: #fff;
   font-size: 1em;
+  transition: box-shadow 0.3s ease, border-color 0.3s ease;
+}
+
+input:focus {
+  outline: none;
+  border-color: turquoise;
+  box-shadow: 0 0 15px rgba(3, 220, 255, 0.6);
 }
 
 button {
+  font-family: 'Great Vibes', cursive;
   width: 100%;
-  padding: 0.8em 1.2em;
-  border-radius: 8px;
-  border: none;
-  background-color: #42b883;
-  color: white;
-  font-size: 1.1em;
+  border-radius: 12px;
+  border: 1px solid magenta;
+  background-color:black;
+  color: rgb(253, 0, 232);
+  font-size: 2rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.3s;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
 }
 
-button:hover {
-  background-color: #368f6a;
+button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(255, 3, 220, 0.4);
 }
 
-/* Style for the error message */
 .error-message {
-  color: #ff6b6b; /* A standard error color */
+  color: #ff6b6b;
   margin-top: 1.5rem;
   font-weight: 500;
 }
 
 button:disabled {
-  background-color: #333;
-  color: #777;
+  background: #555;
   cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .switch-form {
+  font-family:'Great Vibes', cursive;
+  font-weight: 800;
+  font-size: 2rem;
   margin-top: 2rem;
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(255, 255, 255, 0.7);
+  margin-top: 2rem;
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .switch-form a {
-  color: #42b883;
+  color: turquoise;
   text-decoration: none;
   font-weight: 600;
+  transition: color 0.3s ease, text-shadow 0.3s ease;
 }
 
 .switch-form a:hover {
-  text-decoration: underline;
+  color: magenta;
+  text-shadow: 0 0 5px rgba(255, 3, 220, 0.7);
 }
 </style>
