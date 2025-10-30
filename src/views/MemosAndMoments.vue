@@ -36,8 +36,9 @@
 
           <!-- Layer 2: Text Content Overlay -->
           <div class="memo-content">
-            <div class="memo-details-tooltip">
-              <p class="memo-description">{{ memo.description }}</p>
+            <p class="memo-description">{{ memo.description }}</p>
+            
+            <div>
               <div class="memo-meta">
                 <span class="meta-item"><strong>📍</strong> {{ memo.location || 'No location' }}</span>
                 <span class="meta-item"><strong>🗓️</strong> {{ formatDate(memo.date) }}</span>
@@ -45,12 +46,12 @@
               <div v-if="memo.hashtags && memo.hashtags.length" class="memo-hashtags">
                 <span v-for="tag in memo.hashtags" :key="tag" class="hashtag">{{ tag }}</span>
               </div>
-            </div>
-            <div class="memo-footer">
-              <span class="created-by">By: {{ memo.createdBy }}</span>
-              <div class="card-actions">
-                <button @click="openEditForm(memo)" class="edit-button">edit</button>
-                <button @click="promptDelete(memo.id)" class="delete-button">delete</button>
+              <div class="memo-footer">
+                <span class="created-by">By: {{ memo.createdBy }}</span>
+                <div class="card-actions">
+                  <button @click="openEditForm(memo)" class="edit-button">edit</button>
+                  <button @click="promptDelete(memo.id)" class="delete-button">delete</button>
+                </div>
               </div>
             </div>
           </div>
@@ -383,8 +384,6 @@ onUnmounted(() => {
   box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.2), 0 12px 24px rgba(0, 0, 0, 0.4), 0 8px 12px rgba(0, 0, 0, 0.5);
 }
 
-
-/* Layer 1: Gallery Container */
 .gallery-container {
   position: absolute;
   top: 0;
@@ -421,34 +420,32 @@ onUnmounted(() => {
   filter: blur(1rem);
 }
 
-/* Layer 2: Memo Content */
 .memo-content {
   position: absolute;
-  bottom: 0;
+  top: 0;
   left: 0;
   right: 0;
+  bottom: 0;
   z-index: 2;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.7) 50%, transparent 100%);
-  padding: 1rem 1rem 1rem;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.7) 30%, transparent 100%);
+  padding: 1rem;
   display: flex;
   flex-direction: column;
-  flex-grow: 1;
+  justify-content: space-between; /* Push details to top, footer to bottom */
   pointer-events: none;
+  opacity: 0; /* Hidden by default */
+  transition: opacity 0.3s ease-in-out;
 }
+
+.memo-card:hover .memo-content {
+  opacity: 1; /* Show on hover */
+}
+
 
 .memo-content > * {
     pointer-events: auto;
 }
 
-.memo-details-tooltip {
-  opacity: 0;
-  transition: opacity 0.3s ease-in-out;
-}
-
-.memo-card:hover .memo-details-tooltip,
-.memo-card:focus .memo-details-tooltip {
-  opacity: 1;
-}
 
 .memo-description {
   font-size: 1.1em;
@@ -521,10 +518,9 @@ onUnmounted(() => {
   color: #ff6b6b;
 }
 
-/* Layer 3: Gallery Controls */
 .gallery-nav, .gallery-dots {
     position: absolute;
-    z-index: 3; /* Highest layer */
+    z-index: 3; 
 }
 
 .gallery-nav {
