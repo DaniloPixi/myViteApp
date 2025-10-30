@@ -406,7 +406,8 @@ onUnmounted(() => {
   margin: 0 1.5rem;
   cursor: pointer;
   color: #aaa;
-  font-weight: 500;
+  font-size:1.1rem;
+  font-weight: 400;
   transition: color 0.3s, transform 0.2s ease-in-out;
   display: inline-block;
 }

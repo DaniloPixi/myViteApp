@@ -462,6 +462,14 @@ onUnmounted(() => {
   color: magenta;
   margin-bottom: 0.15rem;
   font-family: 'Great Vibes', cursive;
+  opacity: 0;
+  transform: translateY(-20px);
+  transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
+}
+
+.memo-card:hover .memo-description {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .memo-meta {
