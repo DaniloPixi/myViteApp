@@ -396,8 +396,9 @@ onUnmounted(() => {
   display: flex;
   justify-content: center;
   margin-bottom: 2rem;
-  border-bottom: 1px solid #444;
+  border-bottom: 1px solid magenta;
   padding-bottom: 1rem;
+  box-shadow: 0 18px 26px -6px rgba(255, 0, 255, 0.5);
 }
 
 .view-nav a {
@@ -405,15 +406,19 @@ onUnmounted(() => {
   cursor: pointer;
   color: #aaa;
   font-weight: 500;
-  transition: color 0.3s;
+  transition: color 0.3s, transform 0.2s ease-in-out;
+  display: inline-block;
 }
 
-.view-nav a:hover {
+.view-nav a:hover,
+.view-nav a:active {
   color: var(--active-color);
+  transform: scale(1.3);
 }
 
 .view-nav a.active {
   color: var(--active-color);
+  font-weight: 700;
 }
 
 .notification-control-fixed {

@@ -122,8 +122,8 @@ const mousePosition = ref({ x: 0, y: 0 });
 const isTouchDevice = ref(false);
 
 const colorPalette = [
-  { inner: 'rgba(255, 3, 220, 0.5)', outer: 'rgba(255, 3, 220, 0.3)' }, // Magenta
-  { inner: 'rgba(3, 220, 255, 0.5)', outer: 'rgba(3, 220, 255, 0.3)' }, // Turquoise
+  { inner: 'rgba(255, 3, 220, 0.5)', outer: 'rgba(255, 3, 220, 0.3)', color: 'magenta' }, // Magenta
+  { inner: 'rgba(3, 220, 255, 0.5)', outer: 'rgba(3, 220, 255, 0.3)', color: 'turquoise' }, // Turquoise
 ];
 
 const getPlanBubbleStyle = (plan, index) => {
@@ -131,6 +131,7 @@ const getPlanBubbleStyle = (plan, index) => {
   const style = {
     '--bubble-inner-shadow-color': color.inner,
     '--bubble-outer-shadow-color': color.outer,
+    '--bubble-text-color': color.color,
   };
 
   if (expandedPlanId.value !== plan.id) {
@@ -462,10 +463,12 @@ watch(() => props.user, (newUser) => {
 }
 
 .plan-title {
+  font-family: 'Great Vibes', cursive;
   word-wrap: break-word;
-  font-size: clamp(1rem, 1.2vw, 1.2rem);
+  font-size: clamp(1.5rem, 1.2vw, 1.2rem);
   margin: 0;
-  font-weight: 500;
+  font-weight: 700;
+  color: var(--bubble-text-color);
 }
 
 .hover-content p {
