@@ -1,7 +1,7 @@
 <template>
   <div class="progress-container">
     <div class="progress-bar" :style="{ width: progress + '%' }"></div>
-    <div class="progress-text">{{ timeLeftMessage }}</div>
+    <div class="progress-text">{{ progressTextMessage }}</div>
   </div>
 </template>
 
@@ -50,25 +50,26 @@ const progress = computed(() => {
   return (elapsedDuration / totalDuration) * 100;
 });
 
-const timeLeftMessage = computed(() => {
+const progressTextMessage = computed(() => {
     const end = new Date(props.endDate).getTime();
     const currentTime = now.value.getTime();
     const difference = end - currentTime;
+    const percentage = progress.value.toFixed(0);
 
     if (difference <= 0) {
-        return "Time's up!";
+        return `${percentage}% | Time's up!`;
     }
 
     const days = Math.floor(difference / (1000 * 60 * 60 * 24));
     const hours = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
     const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
 
-    let message = 'Time left: ';
-    if (days > 0) message += `${days}d `;
-    if (hours > 0) message += `${hours}h `;
-    if (minutes > 0) message += `${minutes}m`;
+    let timeLeftStr = 'Time left: ';
+    if (days > 0) timeLeftStr += `${days}d `;
+    if (hours > 0) timeLeftStr += `${hours}h `;
+    if (minutes > 0) timeLeftStr += `${minutes}m`;
 
-    return message.trim();
+    return `${percentage}% | ${timeLeftStr.trim()}`;
 });
 </script>
 

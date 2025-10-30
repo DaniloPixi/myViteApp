@@ -272,7 +272,7 @@ const subscribeToPlans = () => {
         return {
           id: doc.id,
           ...data,
-          creationDate: doc.createTime ? doc.createTime.toDate() : new Date(),
+          creationDate: data.createdAt ? data.createdAt.toDate() : new Date(),
           fullDate: date,
           rect: null, // Initialize rect property
         };
