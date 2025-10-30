@@ -25,7 +25,7 @@
       <div class="bottom-controls">
         <!-- Dots Indicator -->
         <div v-if="hasMultipleMedia" class="dots-indicator">
-          <span v-for="(_, index) in mediaItems" :key="index" class="dot" :class="{ active: currentIndex === index }"></span>
+          <span v-for="(_, index) in mediaItems" :key="index" class="dot" :class="[getDotClass(index), { active: currentIndex === index }]"></span>
         </div>
         <!-- New Bottom Close Button -->
         <button @click="close" class="close-btn-bottom">Close</button>
@@ -80,6 +80,10 @@ const nextMedia = () => {
   if (!isLastMedia.value) {
     currentIndex.value++;
   }
+};
+
+const getDotClass = (index) => {
+  return index % 2 === 0 ? 'dot-magenta' : 'dot-turquoise';
 };
 
 // --- Touch Swipe Logic ---
@@ -234,11 +238,22 @@ const handleTouchEnd = (event) => {
   height: 10px;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.4);
+  transition: transform 0.3s ease, background-color 0.3s ease;
 }
 
 .dot.active {
   background: white;
+  transform: scale(1.5);
 }
+
+.dot.dot-magenta {
+    background-color: magenta;
+}
+
+.dot.dot-turquoise {
+    background-color: turquoise;
+}
+
 
 .close-btn-bottom {
   background: transparent;

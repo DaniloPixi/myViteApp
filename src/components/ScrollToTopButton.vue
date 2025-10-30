@@ -89,7 +89,8 @@ onUnmounted(() => {
 }
 
 .scroll-to-top-button:hover {
-  background-color: #368f6a;
+  background-color: #0d0e0d00;
+  outline:none;
   transform: translateY(-3px);
 }
 

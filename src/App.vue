@@ -395,6 +395,7 @@ onUnmounted(() => {
 .view-nav {
   display: flex;
   justify-content: center;
+  margin-top: 2rem;
   margin-bottom: 2rem;
   border-bottom: 1px solid magenta;
   padding-bottom: 1rem;
@@ -413,7 +414,7 @@ onUnmounted(() => {
 .view-nav a:hover,
 .view-nav a:active {
   color: var(--active-color);
-  transform: scale(1.3);
+  transform: scale(1.25);
 }
 
 .view-nav a.active {
