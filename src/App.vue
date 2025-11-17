@@ -406,9 +406,10 @@ onUnmounted(() => {
   margin: 0 1.5rem;
   cursor: pointer;
   color: #aaa;
-  font-size:1.1rem;
+  font-family: 'Great Vibes', cursive;
+  font-size: 1.8rem;
   font-weight: 400;
-  transition: color 0.3s, transform 0.2s ease-in-out;
+  transition: color 0.3s, transform 0.2s ease-in-out, text-shadow 0.3s;
   display: inline-block;
 }
 
@@ -420,7 +421,7 @@ onUnmounted(() => {
 
 .view-nav a.active {
   color: var(--active-color);
-  font-weight: 700;
+  text-shadow: 0 0 5px var(--active-color), 0 0 15px var(--active-color);
 }
 
 .notification-control-fixed {
@@ -491,7 +492,8 @@ onUnmounted(() => {
 
 @media (max-width: 768px) {
   .view-nav a {
-    font-size: 1.2rem; 
+    font-size: 1.5rem; /* Adjust for smaller screens */
+    margin: 0 1rem;
   }
 }
 </style>
