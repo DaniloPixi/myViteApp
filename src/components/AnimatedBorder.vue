@@ -31,7 +31,7 @@
             .animated-border {
               position: relative;
               margin: 0 auto;
-              padding: 2px;
+              padding: 0.22rem;
               border-radius: 20px;
               overflow: hidden;
               transition: max-width 0.5s cubic-bezier(0.25, 1, 0.5, 1);
