@@ -101,17 +101,17 @@ const attributes = computed(() => {
     box-shadow: inset 0 2px 4px rgba(0,0,0,0.4),
                 inset 0 0 10px rgba(255, 0, 255, 0.5),
                 /* Left Glow: Magenta */
-                -50px 0px 60px -40px rgba(255, 0, 255, 0.5),
+                -50px 0px 80px -30px rgba(255, 0, 255, 0.5),
                 /* Right Glow: Turquoise */
-                50px 0px 60px -40px rgba(0, 255, 255, 0.5);
+                50px 0px 80px -30px rgba(0, 255, 255, 0.5);
   }
   50% {
     box-shadow: inset 0 2px 4px rgba(0,0,0,0.4),
                 inset 0 0 10px rgba(0, 255, 255, 0.5),
                 /* Left Glow: Turquoise */
-                -60px 0px 70px -50px rgba(0, 255, 255, 0.7),
+                -60px 0px 90px -40px rgba(0, 255, 255, 0.7),
                 /* Right Glow: Magenta */
-                60px 0px 70px -50px rgba(255, 0, 255, 0.7);
+                60px 0px 90px -40px rgba(255, 0, 255, 0.7);
   }
 }
 
