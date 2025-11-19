@@ -46,7 +46,7 @@
             <!-- View Navigation -->
             <nav class="view-nav">
               <a @click="currentView = 'home'" :class="{ active: currentView === 'home' }" :style="getNavStyle('home', 0)">Home</a>
-              <a @click="currentView = 'memos'" :class="{ active: currentView === 'memos' }" :style="getNavStyle('memos', 1)">Memos and Moments</a>
+              <a @click="currentView = 'memos'" :class="{ active: currentView === 'memos' }" :style="getNavStyle('memos', 1)">Moments</a>
               <a @click="currentView = 'plans'" :class="{ active: currentView === 'plans' }" :style="getNavStyle('plans', 2)">Plans</a>
             </nav>
 
