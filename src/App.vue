@@ -39,7 +39,7 @@
 
     <!-- The main content card -->
     <div class="centered-content-container">
-      <div class="card" :class="{ 'is-full-width': currentView !== 'home' }">
+      <div class="card" :class="{ 'is-full-width': currentView !== 'home', 'home-view-card': currentView === 'home' }">
         <main>
           <!-- Logged-in Content -->
           <div v-if="user">
@@ -55,10 +55,12 @@
               <div :key="currentView">
                 <div v-if="currentView === 'home'">
                   <button @click="sendLoveNotification" class="love-button">Send Love</button>
-                  <CombinedCalendar
-                      :memos="memos"
-                      :plans="plans"
-                  />
+                    <div class="calendar-container">
+                        <CombinedCalendar
+                            :memos="memos"
+                            :plans="plans"
+                        />
+                    </div>
                 </div>
 
                 <MemosAndMoments v-if="currentView === 'memos'" 
@@ -354,6 +356,11 @@ onUnmounted(() => {
   width: 100%;
 }
 
+.calendar-container {
+  max-width: 450px; /* Or any other width you prefer */
+  margin: 0 auto;
+}
+
 @keyframes bounce-in {
   0% {
     transform: scale(0.5);
@@ -387,6 +394,8 @@ onUnmounted(() => {
 }
 
 .bounce-in {
+  margin:auto;
+  padding-bottom:0px;
   animation: bounce-in 1s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
 }
 
@@ -479,6 +488,11 @@ onUnmounted(() => {
 .card.is-full-width {
   max-width: 90%;
   width: 90%;
+}
+
+.card.home-view-card {
+  width: 75%;
+  max-width: 1100px;
 }
 
 .slide-fade-enter-active {
