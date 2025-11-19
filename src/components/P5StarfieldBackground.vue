@@ -19,12 +19,13 @@ let p5Instance = null;
 
 onMounted(() => {
   const sketch = (p) => {
-    const STAR_COUNT = 500; // tweak for density
+    const STAR_COUNT = 400; // tweak for density
     let stars = [];
-    let containerEl = null;
 
     class Star {
       constructor() {
+        // Seed for Perlin noise so each star has its own noise path
+        this.noiseSeed = p.random(1000);
         this.reset();
       }
 
@@ -42,13 +43,19 @@ onMounted(() => {
 
         this.size = p.random(1, 2.2); // core size-ish
         this.baseBrightness = p.random(150, 255);
-        this.phase = p.random(p.TWO_PI);
-        this.speed = p.random(0.4, 1.4);
+        this.speed = p.random(0.1, 0.6); // affects how fast the noise evolves
       }
 
       update(t) {
-        const pulse = Math.sin(t * this.speed + this.phase) * 0.5 + 0.5; // 0..1
-        this.brightness = this.baseBrightness * (0.6 + 0.4 * pulse);
+        // Perlin noise in [0, 1]
+        const n = p.noise(this.noiseSeed + t * this.speed);
+
+        // Optional easing for smoother response
+        const eased = n * n * (3 - 2 * n); // smoothstep-ish
+
+        // Map to something like 0.3..1.0 of base brightness
+        const factor = 0.3 + 0.7 * eased;
+        this.brightness = this.baseBrightness * factor;
       }
     }
 
@@ -61,7 +68,6 @@ onMounted(() => {
     };
 
     p.setup = () => {
-      containerEl = p5Container.value;
       const { w, h } = getViewportSize();
       const canvas = p.createCanvas(w, h, p.WEBGL);
 
@@ -96,7 +102,7 @@ onMounted(() => {
       const t = p.millis() / 1000;
 
       // Deep-ish background
-      p.background(5, 5, 15); // can tint this later
+      p.background(15, 5, 15); // can tint this later
 
       // Subtle camera motion
       p.push();

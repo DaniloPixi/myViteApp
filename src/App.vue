@@ -38,7 +38,7 @@
     
 
     <!-- The main content card -->
-    <AnimatedBorder :max-width="animatedBorderMaxWidth">
+    <div class="centered-content-container">
       <div class="card" :class="{ 'is-full-width': currentView !== 'home' }">
         <main>
           <!-- Logged-in Content -->
@@ -54,11 +54,11 @@
             <transition name="slide-fade" mode="out-in">
               <div :key="currentView">
                 <div v-if="currentView === 'home'">
-                   <button @click="sendLoveNotification" class="love-button">Send Love</button>
-                   <CombinedCalendar
+                  <button @click="sendLoveNotification" class="love-button">Send Love</button>
+                  <CombinedCalendar
                       :memos="memos"
                       :plans="plans"
-                   />
+                  />
                 </div>
 
                 <MemosAndMoments v-if="currentView === 'memos'" 
@@ -86,7 +86,7 @@
           </div>
         </main>
       </div>
-    </AnimatedBorder>
+    </div>
 
     <!-- Global Scroll-to-Top Button -->
     <ScrollToTopButton />
@@ -94,7 +94,7 @@
 </template>
 
 <script setup>
-import { ref, watch, onUnmounted, onMounted, reactive, computed } from 'vue';
+import { ref, watch, onUnmounted, onMounted, reactive } from 'vue';
 import { useRegisterSW } from 'virtual:pwa-register/vue';
 import { auth, messaging } from './firebase';
 import { getFirestore, collection, query, orderBy, onSnapshot } from 'firebase/firestore';
@@ -108,7 +108,6 @@ import CombinedCalendar from './components/CombinedCalendar.vue';
 import Sidebar from './components/Sidebar.vue';
 import ScrollToTopButton from './components/ScrollToTopButton.vue';
 import InAppNotification from './components/InAppNotification.vue';
-import AnimatedBorder from './components/AnimatedBorder.vue';
 import CursorTrail from './components/CursorTrail.vue';
 import P5StarfieldBackground from './components/P5StarfieldBackground.vue';
 
@@ -135,11 +134,6 @@ const memos = ref([]);
 const plans = ref([]);
 let unsubscribeMemos = null;
 let unsubscribePlans = null;
-
-// Compute dynamic max-width for the animated border
-const animatedBorderMaxWidth = computed(() => {
-  return '100%';
-});
 
 // In-app notification state
 const inAppNotification = reactive({
@@ -353,6 +347,13 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+
+.centered-content-container {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
 @keyframes bounce-in {
   0% {
     transform: scale(0.5);
