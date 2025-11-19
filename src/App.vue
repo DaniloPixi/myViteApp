@@ -1,94 +1,96 @@
 
 <template>
-  <CursorTrail />
-  <!-- In-App Notification Banner -->
-  <InAppNotification
-    :title="inAppNotification.title"
-    :body="inAppNotification.body"
-    v-model:visible="inAppNotification.visible"
-  />
-
-  <!-- Fixed Notification Controls -->
-  <div v-if="user && currentView === 'home' && supportsNotifications" class="notification-control-fixed">
-    <button v-if="notificationPermission !== 'granted'" @click="enableNotifications" class="notification-btn enable">
-      Enable Notifs
-    </button>
-  </div>
-
-  <!-- The logout button is fixed to the bottom left, but only shown on the Home view -->
-  <button v-if="user && currentView === 'home'" @click="logout" class="logout-button">
-    <LogOut color="magenta" :size="32" />
-  </button>
-
-  <div class="sticky-header">
-    <Sidebar 
-      v-if="currentView === 'plans' || currentView === 'memos'"
-      v-model:location="locationFilter"
-      v-model:hashtags="hashtagFilter"
-      v-model:date="dateFilter"
-      v-model:time="timeFilter"
-      v-model:duration="durationFilter" 
+  <P5StarfieldBackground>
+    <CursorTrail />
+    <!-- In-App Notification Banner -->
+    <InAppNotification
+      :title="inAppNotification.title"
+      :body="inAppNotification.body"
+      v-model:visible="inAppNotification.visible"
     />
-    <header class="page-header" v-if="currentView === 'home'">
-        <h1 v-if="user" class="bounce-in">Welcome, {{ user.displayName || user.email }}</h1>
-        <h1 v-else class="bounce-in">Auth Portal</h1>
-    </header>
-  </div>
-  
 
-  <!-- The main content card -->
-  <AnimatedBorder :max-width="animatedBorderMaxWidth">
-    <div class="card" :class="{ 'is-full-width': currentView !== 'home' }">
-      <main>
-        <!-- Logged-in Content -->
-        <div v-if="user">
-          <!-- View Navigation -->
-          <nav class="view-nav">
-            <a @click="currentView = 'home'" :class="{ active: currentView === 'home' }" :style="getNavStyle('home', 0)">Home</a>
-            <a @click="currentView = 'memos'" :class="{ active: currentView === 'memos' }" :style="getNavStyle('memos', 1)">Memos and Moments</a>
-            <a @click="currentView = 'plans'" :class="{ active: currentView === 'plans' }" :style="getNavStyle('plans', 2)">Plans</a>
-          </nav>
-
-          <!-- Conditional Views -->
-          <transition name="slide-fade" mode="out-in">
-            <div :key="currentView">
-              <div v-if="currentView === 'home'">
-                 <button @click="sendLoveNotification" class="love-button">Send Love</button>
-                 <CombinedCalendar
-                    :memos="memos"
-                    :plans="plans"
-                 />
-              </div>
-
-              <MemosAndMoments v-if="currentView === 'memos'" 
-                :location-filter="locationFilter"
-                :hashtag-filter="hashtagFilter"
-                :date-filter="dateFilter"
-              />
-              <Plans 
-                v-if="currentView === 'plans'" 
-                :user="user"
-                :location-filter="locationFilter"
-                :hashtag-filter="hashtagFilter"
-                :date-filter="dateFilter"
-                :time-filter="timeFilter"
-                :duration-filter="durationFilter" 
-              />
-            </div>
-          </transition>
-        </div>
-
-        <!-- Authentication Views (Logged-out) -->
-        <div v-else>
-          <Login v-if="!isRegistering" @switch-form="handleSwitchForm" />
-          <Register v-else @switch-form="handleSwitchForm" />
-        </div>
-      </main>
+    <!-- Fixed Notification Controls -->
+    <div v-if="user && currentView === 'home' && supportsNotifications" class="notification-control-fixed">
+      <button v-if="notificationPermission !== 'granted'" @click="enableNotifications" class="notification-btn enable">
+        Enable Notifs
+      </button>
     </div>
-  </AnimatedBorder>
 
-  <!-- Global Scroll-to-Top Button -->
-  <ScrollToTopButton />
+    <!-- The logout button is fixed to the bottom left, but only shown on the Home view -->
+    <button v-if="user && currentView === 'home'" @click="logout" class="logout-button">
+      <LogOut color="magenta" :size="32" />
+    </button>
+
+    <div class="sticky-header">
+      <Sidebar 
+        v-if="currentView === 'plans' || currentView === 'memos'"
+        v-model:location="locationFilter"
+        v-model:hashtags="hashtagFilter"
+        v-model:date="dateFilter"
+        v-model:time="timeFilter"
+        v-model:duration="durationFilter" 
+      />
+      <header class="page-header" v-if="currentView === 'home'">
+          <h1 v-if="user" class="bounce-in">Welcome, {{ user.displayName || user.email }}</h1>
+          <h1 v-else class="bounce-in">Auth Portal</h1>
+      </header>
+    </div>
+    
+
+    <!-- The main content card -->
+    <AnimatedBorder :max-width="animatedBorderMaxWidth">
+      <div class="card" :class="{ 'is-full-width': currentView !== 'home' }">
+        <main>
+          <!-- Logged-in Content -->
+          <div v-if="user">
+            <!-- View Navigation -->
+            <nav class="view-nav">
+              <a @click="currentView = 'home'" :class="{ active: currentView === 'home' }" :style="getNavStyle('home', 0)">Home</a>
+              <a @click="currentView = 'memos'" :class="{ active: currentView === 'memos' }" :style="getNavStyle('memos', 1)">Memos and Moments</a>
+              <a @click="currentView = 'plans'" :class="{ active: currentView === 'plans' }" :style="getNavStyle('plans', 2)">Plans</a>
+            </nav>
+
+            <!-- Conditional Views -->
+            <transition name="slide-fade" mode="out-in">
+              <div :key="currentView">
+                <div v-if="currentView === 'home'">
+                   <button @click="sendLoveNotification" class="love-button">Send Love</button>
+                   <CombinedCalendar
+                      :memos="memos"
+                      :plans="plans"
+                   />
+                </div>
+
+                <MemosAndMoments v-if="currentView === 'memos'" 
+                  :location-filter="locationFilter"
+                  :hashtag-filter="hashtagFilter"
+                  :date-filter="dateFilter"
+                />
+                <Plans 
+                  v-if="currentView === 'plans'" 
+                  :user="user"
+                  :location-filter="locationFilter"
+                  :hashtag-filter="hashtagFilter"
+                  :date-filter="dateFilter"
+                  :time-filter="timeFilter"
+                  :duration-filter="durationFilter" 
+                />
+              </div>
+            </transition>
+          </div>
+
+          <!-- Authentication Views (Logged-out) -->
+          <div v-else>
+            <Login v-if="!isRegistering" @switch-form="handleSwitchForm" />
+            <Register v-else @switch-form="handleSwitchForm" />
+          </div>
+        </main>
+      </div>
+    </AnimatedBorder>
+
+    <!-- Global Scroll-to-Top Button -->
+    <ScrollToTopButton />
+  </P5StarfieldBackground>
 </template>
 
 <script setup>
@@ -108,6 +110,8 @@ import ScrollToTopButton from './components/ScrollToTopButton.vue';
 import InAppNotification from './components/InAppNotification.vue';
 import AnimatedBorder from './components/AnimatedBorder.vue';
 import CursorTrail from './components/CursorTrail.vue';
+import P5StarfieldBackground from './components/P5StarfieldBackground.vue';
+
 
 // --- PWA Auto-Update Logic ---
 const { needRefresh, updateServiceWorker } = useRegisterSW();
