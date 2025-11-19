@@ -28,7 +28,7 @@ const Z_OFF = 0.0005;
 const props = defineProps({
   particleCount: {
     type: Number,
-    default: 1000,
+    default: 700,
   },
   // kept for future tuning, but no longer used to clamp to center band
   rangeY: {

@@ -425,6 +425,7 @@ onUnmounted(() => {
   font-weight: 400;
   transition: color 0.3s, transform 0.2s ease-in-out, text-shadow 0.3s;
   display: inline-block;
+  will-change: transform;
 }
 
 .view-nav a:hover,
