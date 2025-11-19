@@ -1,9 +1,9 @@
 <template>
   <div class="p5-starfield-wrapper">
-    <!-- Background canvas -->
+    <!-- Fullscreen background canvas -->
     <canvas ref="canvasRef" class="p5-starfield-canvas"></canvas>
 
-    <!-- Your app content -->
+    <!-- Your app content on top -->
     <div class="p5-starfield-content">
       <slot />
     </div>
@@ -24,19 +24,20 @@ const X_OFF = 0.00125;
 const Y_OFF = 0.00125;
 const Z_OFF = 0.0005;
 
-// Optional props if you want to tweak later, but usage can stay <P5StarfieldBackground>
+// Props are optional; you can still just use <P5StarfieldBackground>
 const props = defineProps({
   particleCount: {
     type: Number,
     default: 700,
   },
+  // kept for future tuning, but no longer used to clamp to center band
   rangeY: {
     type: Number,
-    default: 100,
+    default: 150,
   },
   baseHue: {
     type: Number,
-    default: 260, // slightly purple, less “pure blue”
+    default: 260, // purple-ish
   },
   baseSpeed: {
     type: Number,
@@ -54,18 +55,12 @@ const props = defineProps({
     type: Number,
     default: 2,
   },
-  backgroundColor: {
-    type: String,
-    default: '#050515', // dark, not bright blue
-  },
 });
 
-const tick = ref(0);
 const animationFrame = ref(null);
 const particleProps = shallowRef(null); // Float32Array
-const center = ref([0, 0]); // [cx, cy]
+const center = ref([0, 0]); // [cx, cy] – still useful if you want later bias
 const ctx = shallowRef(null);
-
 const canvasRef = ref(null);
 
 const particleCache = {
@@ -82,6 +77,11 @@ const particleCache = {
 
 const noise3D = createNoise3D();
 
+// Time tracking for FPS-independent motion
+let lastTime = 0;        // ms from rAF
+let elapsedSeconds = 0;  // total seconds since start
+
+// Helpers
 function rand(n) {
   return n * Math.random();
 }
@@ -95,18 +95,30 @@ function fadeInOut(t, m) {
 function lerp(n1, n2, speed) {
   return (1 - speed) * n1 + speed * n2;
 }
+
 function initParticle(i) {
   if (!particleProps.value || !canvasRef.value) return;
 
   const canvas = canvasRef.value;
+  const h = canvas.height;
+
   particleCache.x = rand(canvas.width);
 
-  // 70% of particles anywhere on screen, 30% still biased around center
-  if (Math.random() < 0.7) {
-    particleCache.y = rand(canvas.height); // full top→bottom
+  // ---- slight bias towards center, but still spread ----
+  const biasCenterChance = 0.63; // 70% of particles near center, 30% anywhere
+
+  if (Math.random() < biasCenterChance) {
+    // near center, within ±rangeY
+    let y = center.value[1] + randRange(props.rangeY);
+    // clamp just in case
+    if (y < 0) y = 0;
+    if (y > h) y = h;
+    particleCache.y = y;
   } else {
-    particleCache.y = center.value[1] + randRange(props.rangeY); // keep some "vortex core"
+    // fully anywhere on screen
+    particleCache.y = rand(h);
   }
+  // ------------------------------------------------------
 
   particleCache.vx = 0;
   particleCache.vy = 0;
@@ -132,7 +144,8 @@ function initParticle(i) {
   );
 }
 
-function updateParticle(i) {
+
+function updateParticle(i, dt, timeSeconds) {
   if (!particleProps.value || !canvasRef.value || !ctx.value) return;
 
   const canvas = canvasRef.value;
@@ -150,14 +163,21 @@ function updateParticle(i) {
   particleCache.hue = propsArr[i + 8];
 
   const n =
-    noise3D(particleCache.x * X_OFF, particleCache.y * Y_OFF, tick.value * Z_OFF) *
+    noise3D(
+      particleCache.x * X_OFF,
+      particleCache.y * Y_OFF,
+      timeSeconds * Z_OFF, // real time, not frame count
+    ) *
     NOISE_STEPS *
     TAU;
 
   const nextVx = lerp(particleCache.vx, Math.cos(n), 0.5);
   const nextVy = lerp(particleCache.vy, Math.sin(n), 0.5);
-  const nextX = particleCache.x + nextVx * particleCache.speed;
-  const nextY = particleCache.y + nextVy * particleCache.speed;
+
+  // Scale by dt so movement is consistent across FPS
+  const speedFactor = dt * 60; // tweak this if you want a globally faster/slower feel
+  const nextX = particleCache.x + nextVx * particleCache.speed * speedFactor;
+  const nextY = particleCache.y + nextVy * particleCache.speed * speedFactor;
 
   context.save();
   context.lineCap = 'round';
@@ -176,7 +196,7 @@ function updateParticle(i) {
   propsArr[i + 1] = nextY;
   propsArr[i + 2] = nextVx;
   propsArr[i + 3] = nextVy;
-  propsArr[i + 4] = particleCache.life + 1;
+  propsArr[i + 4] = particleCache.life + dt * 60; // TTL still in "frame-ish" units
 
   if (
     nextX > canvas.width ||
@@ -189,20 +209,26 @@ function updateParticle(i) {
   }
 }
 
-function draw() {
-  if (!canvasRef.value || !ctx.value || !particleProps.value) return;
+function draw(now) {
+  if (!canvasRef.value || !ctx.value || !particleProps.value) {
+    animationFrame.value = requestAnimationFrame(draw);
+    return;
+  }
+
+  if (!lastTime) lastTime = now;
+  const dt = (now - lastTime) / 1000; // seconds
+  lastTime = now;
+  elapsedSeconds += dt;
 
   const canvas = canvasRef.value;
   const context = ctx.value;
 
-  tick.value++;
-
-  // Clear background
+  // Transparent background – use your app's background instead
   context.clearRect(0, 0, canvas.width, canvas.height);
 
   // Update & draw all particles
   for (let i = 0; i < particleProps.value.length; i += PARTICLE_PROP_COUNT) {
-    updateParticle(i);
+    updateParticle(i, dt, elapsedSeconds);
   }
 
   // Glow pass 1
@@ -255,7 +281,7 @@ onMounted(() => {
     initParticle(i);
   }
 
-  draw();
+  animationFrame.value = requestAnimationFrame(draw);
   window.addEventListener('resize', handleResize);
 });
 
@@ -277,7 +303,7 @@ onUnmounted(() => {
   height: 100%;
 }
 
-/* Full-screen, fixed background canvas */
+/* Full-screen, fixed background */
 .p5-starfield-canvas {
   position: fixed;
   inset: 0;
