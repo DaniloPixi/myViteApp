@@ -19,7 +19,7 @@ let p5Instance = null;
 
 onMounted(() => {
   const sketch = (p) => {
-    const STAR_COUNT = 400; // tweak for density
+    const STAR_COUNT = 500; // tweak for density
     let stars = [];
     let containerEl = null;
 
