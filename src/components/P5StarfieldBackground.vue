@@ -53,7 +53,7 @@ const props = defineProps({
   },
   rangeRadius: {
     type: Number,
-    default: 2,
+    default: 4,
   },
 });
 
@@ -124,7 +124,6 @@ function rebuildParticles() {
     initParticle(i);
   }
 }
-
 function initParticle(i) {
   if (!particleProps.value || !canvasRef.value) return;
 
@@ -135,12 +134,11 @@ function initParticle(i) {
   particleCache.x = rand(w);
 
   // ---- slight bias towards center, but still spread ----
-  const biasCenterChance = 0.63; // 70% of particles near center, 30% anywhere
+  const biasCenterChance = 0.63; // ~63% of particles near center, rest anywhere
 
   if (Math.random() < biasCenterChance) {
     // near center, within ±rangeY
     let y = center.value[1] + randRange(props.rangeY);
-    // clamp just in case
     if (y < 0) y = 0;
     if (y > h) y = h;
     particleCache.y = y;
@@ -156,7 +154,21 @@ function initParticle(i) {
   particleCache.ttl = BASE_TTL + rand(RANGE_TTL);
   particleCache.speed = props.baseSpeed + rand(props.rangeSpeed);
   particleCache.radius = props.baseRadius + rand(props.rangeRadius);
-  particleCache.hue = props.baseHue + rand(RANGE_HUE);
+
+  // --- color selection ---
+  const specialRoll = Math.random();
+
+  if (specialRoll < 0.05) {
+    // ~5% bright red (a bit of variation around 0°)
+    particleCache.hue = 0 + rand(10);           // 0–10°
+  } else if (specialRoll < 0.10) {
+    // next ~5% very blue
+    particleCache.hue = 210 + rand(20);         // 210–230°
+  } else {
+    // normal particles follow your base palette
+    particleCache.hue = props.baseHue + rand(RANGE_HUE);
+  }
+  // -----------------------
 
   particleProps.value.set(
     [
@@ -173,6 +185,7 @@ function initParticle(i) {
     i,
   );
 }
+
 
 function updateParticle(i, dt, timeSeconds) {
   if (!particleProps.value || !canvasRef.value || !glowCtx.value) return;
