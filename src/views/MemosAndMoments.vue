@@ -534,6 +534,7 @@ onUnmounted(() => {
   align-items: center;
   flex-wrap: wrap;
   margin-bottom: 0.5rem;
+  justify-content : space-evenly;
 }
 
 .meta-item {
@@ -560,6 +561,7 @@ onUnmounted(() => {
   flex-wrap: wrap;
   gap: 0.5rem;
   margin-bottom: 0.6rem;
+  justify-content:space-evenly;
 }
 
 .hashtag {
