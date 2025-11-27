@@ -62,6 +62,12 @@ const particleProps = shallowRef(null); // Float32Array
 const center = ref([0, 0]); // [cx, cy] – still useful if you want later bias
 const ctx = shallowRef(null);
 const canvasRef = ref(null);
+const glowCanvasRef = shallowRef(null);
+const glowCtx = shallowRef(null);
+let devicePixelRatioValue = 1;
+let viewportWidth = 0;
+let viewportHeight = 0;
+let particlePropsLength = 0;
 
 const particleCache = {
   x: 0,
@@ -96,13 +102,37 @@ function lerp(n1, n2, speed) {
   return (1 - speed) * n1 + speed * n2;
 }
 
+function computeParticleCount() {
+  const baseArea = 1280 * 720;
+  const w = viewportWidth || window.innerWidth || 0;
+  const h = viewportHeight || window.innerHeight || 0;
+  const areaScale = Math.max(1, Math.min(1.5, (w * h) / baseArea));
+  const dprScale = Math.max(1, Math.min(1.5, devicePixelRatioValue));
+  return Math.max(1, Math.round(props.particleCount * areaScale * dprScale));
+}
+
+function rebuildParticles() {
+  const nextParticleCount = computeParticleCount();
+  const nextLength = nextParticleCount * PARTICLE_PROP_COUNT;
+
+  if (!particleProps.value || particlePropsLength !== nextLength) {
+    particleProps.value = new Float32Array(nextLength);
+    particlePropsLength = nextLength;
+  }
+
+  for (let i = 0; i < particleProps.value.length; i += PARTICLE_PROP_COUNT) {
+    initParticle(i);
+  }
+}
+
 function initParticle(i) {
   if (!particleProps.value || !canvasRef.value) return;
 
   const canvas = canvasRef.value;
-  const h = canvas.height;
+  const w = viewportWidth || canvas.width;
+  const h = viewportHeight || canvas.height;
 
-  particleCache.x = rand(canvas.width);
+  particleCache.x = rand(w);
 
   // ---- slight bias towards center, but still spread ----
   const biasCenterChance = 0.63; // 70% of particles near center, 30% anywhere
@@ -144,13 +174,14 @@ function initParticle(i) {
   );
 }
 
-
 function updateParticle(i, dt, timeSeconds) {
-  if (!particleProps.value || !canvasRef.value || !ctx.value) return;
+  if (!particleProps.value || !canvasRef.value || !glowCtx.value) return;
 
   const canvas = canvasRef.value;
   const propsArr = particleProps.value;
-  const context = ctx.value;
+  const context = glowCtx.value;
+  const w = viewportWidth || canvas.width;
+  const h = viewportHeight || canvas.height;
 
   particleCache.x = propsArr[i];
   particleCache.y = propsArr[i + 1];
@@ -179,8 +210,6 @@ function updateParticle(i, dt, timeSeconds) {
   const nextX = particleCache.x + nextVx * particleCache.speed * speedFactor;
   const nextY = particleCache.y + nextVy * particleCache.speed * speedFactor;
 
-  context.save();
-  context.lineCap = 'round';
   context.lineWidth = particleCache.radius;
   context.strokeStyle = `hsla(${particleCache.hue},100%,65%,${fadeInOut(
     particleCache.life,
@@ -190,7 +219,6 @@ function updateParticle(i, dt, timeSeconds) {
   context.moveTo(particleCache.x, particleCache.y);
   context.lineTo(nextX, nextY);
   context.stroke();
-  context.restore();
 
   propsArr[i] = nextX;
   propsArr[i + 1] = nextY;
@@ -199,9 +227,9 @@ function updateParticle(i, dt, timeSeconds) {
   propsArr[i + 4] = particleCache.life + dt * 60; // TTL still in "frame-ish" units
 
   if (
-    nextX > canvas.width ||
+    nextX > w ||
     nextX < 0 ||
-    nextY > canvas.height ||
+    nextY > h ||
     nextY < 0 ||
     particleCache.life > particleCache.ttl
   ) {
@@ -210,39 +238,72 @@ function updateParticle(i, dt, timeSeconds) {
 }
 
 function draw(now) {
-  if (!canvasRef.value || !ctx.value || !particleProps.value) {
+  if (!canvasRef.value || !ctx.value || !glowCtx.value || !particleProps.value) {
     animationFrame.value = requestAnimationFrame(draw);
     return;
   }
 
   if (!lastTime) lastTime = now;
-  const dt = (now - lastTime) / 1000; // seconds
+  const dt = Math.min((now - lastTime) / 1000, 0.05); // seconds, clamped to avoid spikes
   lastTime = now;
   elapsedSeconds += dt;
 
   const canvas = canvasRef.value;
   const context = ctx.value;
+  const glowCanvas = glowCanvasRef.value;
+  const glowContext = glowCtx.value;
 
   // Transparent background – use your app's background instead
   context.clearRect(0, 0, canvas.width, canvas.height);
+  glowContext.clearRect(0, 0, glowCanvas.width, glowCanvas.height);
+
+  glowContext.lineCap = 'round';
+  glowContext.globalCompositeOperation = 'source-over';
+  glowContext.filter = 'none';
 
   // Update & draw all particles
   for (let i = 0; i < particleProps.value.length; i += PARTICLE_PROP_COUNT) {
     updateParticle(i, dt, elapsedSeconds);
   }
 
+  context.save();
+  context.globalCompositeOperation = 'source-over';
+  context.filter = 'none';
+  context.drawImage(glowCanvas, 0, 0, glowCanvas.width, glowCanvas.height, 0, 0, canvas.width, canvas.height);
+  context.restore();
+
   // Glow pass 1
   context.save();
   context.filter = 'blur(8px) brightness(220%)';
   context.globalCompositeOperation = 'lighter';
-  context.drawImage(canvas, 0, 0);
+  context.drawImage(
+    glowCanvas,
+    0,
+    0,
+    glowCanvas.width,
+    glowCanvas.height,
+    0,
+    0,
+    canvas.width,
+    canvas.height,
+  );
   context.restore();
 
   // Glow pass 2
   context.save();
   context.filter = 'blur(4px) brightness(220%)';
   context.globalCompositeOperation = 'lighter';
-  context.drawImage(canvas, 0, 0);
+  context.drawImage(
+    glowCanvas,
+    0,
+    0,
+    glowCanvas.width,
+    glowCanvas.height,
+    0,
+    0,
+    canvas.width,
+    canvas.height,
+  );
   context.restore();
 
   animationFrame.value = requestAnimationFrame(draw);
@@ -257,9 +318,22 @@ function handleResize() {
   resizeTimeout = window.setTimeout(() => {
     if (!canvasRef.value) return;
     const canvas = canvasRef.value;
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-    center.value = [0.5 * canvas.width, 0.5 * canvas.height];
+    const glowCanvas = glowCanvasRef.value;
+    devicePixelRatioValue = Math.min(window.devicePixelRatio || 1, 2);
+
+    viewportWidth = window.innerWidth;
+    viewportHeight = window.innerHeight;
+
+    canvas.width = Math.floor(window.innerWidth * devicePixelRatioValue);
+    canvas.height = Math.floor(window.innerHeight * devicePixelRatioValue);
+    glowCanvas.width = canvas.width;
+    glowCanvas.height = canvas.height;
+
+    ctx.value.setTransform(devicePixelRatioValue, 0, 0, devicePixelRatioValue, 0, 0);
+    glowCtx.value.setTransform(devicePixelRatioValue, 0, 0, devicePixelRatioValue, 0, 0);
+    center.value = [0.5 * viewportWidth, 0.5 * viewportHeight];
+
+    rebuildParticles();
   }, 150);
 }
 
@@ -267,19 +341,26 @@ onMounted(() => {
   const canvas = canvasRef.value;
   if (!canvas) return;
 
+  const glowCanvas = document.createElement('canvas');
+  glowCanvasRef.value = glowCanvas;
+
   ctx.value = canvas.getContext('2d');
-  if (!ctx.value) return;
+  glowCtx.value = glowCanvas.getContext('2d');
+  if (!ctx.value || !glowCtx.value) return;
 
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-  center.value = [0.5 * canvas.width, 0.5 * canvas.height];
+  devicePixelRatioValue = Math.min(window.devicePixelRatio || 1, 2);
+  viewportWidth = window.innerWidth;
+  viewportHeight = window.innerHeight;
 
-  const particlePropsLength = props.particleCount * PARTICLE_PROP_COUNT;
-  particleProps.value = new Float32Array(particlePropsLength);
+  canvas.width = Math.floor(window.innerWidth * devicePixelRatioValue);
+  canvas.height = Math.floor(window.innerHeight * devicePixelRatioValue);
+  glowCanvas.width = canvas.width;
+  glowCanvas.height = canvas.height;
+  ctx.value.setTransform(devicePixelRatioValue, 0, 0, devicePixelRatioValue, 0, 0);
+  glowCtx.value.setTransform(devicePixelRatioValue, 0, 0, devicePixelRatioValue, 0, 0);
+  center.value = [0.5 * viewportWidth, 0.5 * viewportHeight];
 
-  for (let i = 0; i < particlePropsLength; i += PARTICLE_PROP_COUNT) {
-    initParticle(i);
-  }
+  rebuildParticles();
 
   animationFrame.value = requestAnimationFrame(draw);
   window.addEventListener('resize', handleResize);
@@ -292,6 +373,7 @@ onUnmounted(() => {
   window.removeEventListener('resize', handleResize);
 
   ctx.value = null;
+  glowCtx.value = null;
   particleProps.value = null;
 });
 </script>
