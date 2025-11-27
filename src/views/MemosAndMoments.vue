@@ -1,4 +1,3 @@
-
 <template>
   <div class="memos-moments-view">
     <!-- Loading and Error States -->
@@ -9,9 +8,9 @@
     <div v-if="!loading && !error">
       <div class="add-memo-section">
         <button @click="openAddForm" class="add-memo-btn">
-            <svg class="add-memo-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 121.24 122.88">
-                <path d="M10.05,96.6C6.38,105.51,1.42,113.97,0,122.88l5.13-0.44c8.1-23.56,15.4-39.4,31.23-59.21 C48.24,48.39,61.13,36.58,77.66,27.2c8.8-5,20.07-10.47,30.21-11.85c2.77-0.38,5.58-0.49,8.46-0.24 c-31.4,7.19-56.26,23.84-76.12,48.8C32.1,74.09,25.05,85.4,18.57,97.32l11.94,2.18l-4.97-2.47l17.78-2.83 c-6.6-2.33-13.12-1.55-15.21-4.06c18.3-0.83,33.34-4.78,43.9-12.45c-3.93-0.55-8.46-1.04-10.82-2.17 c17.69-5.98,27.92-16.73,40.9-26.27c-16.87,3.54-32.48,2.96-37-0.25c29.77,2.21,49-6.02,55.59-26.77c0.57-2.24,0.73-4.5,0.37-6.78 C118.74,0.62,92.49-4.39,83.95,7.77c-1.71,2.43-4.12,4.66-6.11,7.48L85.97,0c-21.88,7.39-23.68,15.54-35,40.09 c0.9-7.47,2.97-14.24,5.66-20.63c-27.34,10.55-36.45,37.11-37.91,59.7c-0.79-7.88,0.67-17.78,3.49-28.9 c-7.98,8-13.41,17.39-11.47,30.79l-3.65-1.63l1.92,7.19l-5.46-2.59L10.05,96.6L10.05,96.6z"/>
-            </svg>
+          <svg class="add-memo-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 121.24 122.88">
+            <path d="M10.05,96.6C6.38,105.51,1.42,113.97,0,122.88l5.13-0.44c8.1-23.56,15.4-39.4,31.23-59.21 C48.24,48.39,61.13,36.58,77.66,27.2c8.8-5,20.07-10.47,30.21-11.85c2.77-0.38,5.58-0.49,8.46-0.24 c-31.4,7.19-56.26,23.84-76.12,48.8C32.1,74.09,25.05,85.4,18.57,97.32l11.94,2.18l-4.97-2.47l17.78-2.83 c-6.6-2.33-13.12-1.55-15.21-4.06c18.3-0.83,33.34-4.78,43.9-12.45c-3.93-0.55-8.46-1.04-10.82-2.17 c17.69-5.98,27.92-16.73,40.9-26.27c-16.87,3.54-32.48,2.96-37-0.25c29.77,2.21,49-6.02,55.59-26.77c0.57-2.24,0.73-4.5,0.37-6.78 C118.74,0.62,92.49-4.39,83.95,7.77c-1.71,2.43-4.12,4.66-6.11,7.48L85.97,0c-21.88,7.39-23.68,15.54-35,40.09 c0.9-7.47,2.97-14.24,5.66-20.63c-27.34,10.55-36.45,37.11-37.91,59.7c-0.79-7.88,0.67-17.78,3.49-28.9 c-7.98,8-13.41,17.39-11.47,30.79l-3.65-1.63l1.92,7.19l-5.46-2.59L10.05,96.6L10.05,96.6z" />
+          </svg>
         </button>
       </div>
 
@@ -20,16 +19,20 @@
         <div v-for="memo in filteredMemos" :key="memo.id" class="memo-card" tabindex="0">
           <!-- Layer 1: Background Gallery -->
           <div class="gallery-container">
-            <div class="photo-gallery"
-                 :style="{ transform: `translateX(-${galleryState[memo.id]?.currentIndex * 100}%)` }"
-                 @touchstart="handleTouchStart(memo.id, $event)"
-                 @touchmove="handleTouchMove(memo.id, $event)"
-                 @touchend="handleTouchEnd(memo.id, $event)">
-              <div v-for="(media, index) in getMemoMedia(memo)"
-                   :key="index"
-                   class="photo-item"
-                   @click="openImageModal(getMemoMedia(memo), index)">
-                <img :src="getThumbnailUrl(media)" alt="Memo media" :class="{'adult-content-blur': media.isAdult }"/>
+            <div
+              class="photo-gallery"
+              :style="{ transform: `translateX(-${galleryState[memo.id]?.currentIndex * 100}%)` }"
+              @touchstart="handleTouchStart(memo.id, $event)"
+              @touchmove="handleTouchMove(memo.id, $event)"
+              @touchend="handleTouchEnd(memo.id, $event)"
+            >
+              <div
+                v-for="(media, index) in getMemoMedia(memo)"
+                :key="index"
+                class="photo-item"
+                @click="openImageModal(getMemoMedia(memo), index)"
+              >
+                <img :src="getThumbnailUrl(media)" alt="Memo media" :class="{ 'adult-content-blur': media.isAdult }" />
               </div>
             </div>
           </div>
@@ -37,15 +40,15 @@
           <!-- Layer 2: Text Content Overlay -->
           <div class="memo-content">
             <p class="memo-description">{{ memo.description }}</p>
-            
+
             <div>
               <div class="memo-meta">
                 <span class="meta-item">
-                  <svg class="meta-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+                  <svg class="meta-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" /></svg>
                   {{ memo.location || 'No location' }}
                 </span>
                 <span class="meta-item">
-                  <svg class="meta-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20a2 2 0 0 0 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V8h14v12zM7 10h5v5H7z"/></svg>
+                  <svg class="meta-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20a2 2 0 0 0 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V8h14v12zM7 10h5v5H7z" /></svg>
                   {{ formatDate(memo.date) }}
                 </span>
               </div>
@@ -64,10 +67,23 @@
 
           <!-- Layer 3: Gallery Controls -->
           <template v-if="getMemoMedia(memo).length > 1">
-            <button @click.stop="prevImage(memo.id)" class="gallery-nav prev-btn" :class="{ 'visible': galleryState[memo.id]?.currentIndex > 0 }">&lsaquo;</button>
-            <button @click.stop="nextImage(memo.id)" class="gallery-nav next-btn" :class="{ 'visible': galleryState[memo.id]?.currentIndex < getMemoMedia(memo).length - 1 }">&rsaquo;</button>
+            <button
+              @click.stop="prevImage(memo.id)"
+              class="gallery-nav prev-btn"
+              :class="{ visible: galleryState[memo.id]?.currentIndex > 0 }"
+            >&lsaquo;</button>
+            <button
+              @click.stop="nextImage(memo.id)"
+              class="gallery-nav next-btn"
+              :class="{ visible: galleryState[memo.id]?.currentIndex < getMemoMedia(memo).length - 1 }"
+            >&rsaquo;</button>
             <div class="gallery-dots">
-              <span v-for="(media, index) in getMemoMedia(memo)" :key="index" class="dot" :class="{ active: galleryState[memo.id]?.currentIndex === index }"></span>
+              <span
+                v-for="(media, index) in getMemoMedia(memo)"
+                :key="index"
+                class="dot"
+                :class="{ active: galleryState[memo.id]?.currentIndex === index }"
+              ></span>
             </div>
           </template>
         </div>
@@ -140,13 +156,26 @@ const selectedImageIndex = ref(0);
 const galleryState = ref({});
 let unsubscribeFromMemos = null;
 
-const getMemoMedia = (memo) => {
-  // This function is now responsible for getting all media
-  if (memo.photos && Array.isArray(memo.photos)) {
-    return memo.photos;
-  }
-  return [];
+const normalizeHashtag = (value) => {
+  const trimmed = value.trim().toLowerCase();
+  if (!trimmed) return '';
+  return trimmed.startsWith('#') ? trimmed : `#${trimmed}`;
 };
+
+const normalizeFilters = computed(() => ({
+  location: props.locationFilter.trim().toLowerCase(),
+  hashtag: normalizeHashtag(props.hashtagFilter),
+  date: props.dateFilter,
+}));
+
+const ensureGalleryState = (memoId) => {
+  if (!galleryState.value[memoId]) {
+    galleryState.value[memoId] = { currentIndex: 0, touchStartX: 0 };
+  }
+  return galleryState.value[memoId];
+};
+
+const getMemoMedia = (memo) => (Array.isArray(memo.photos) ? memo.photos : []);
 
 const getThumbnailUrl = (media) => {
   if (media.resource_type === 'video') {
@@ -168,30 +197,40 @@ const closeImageModal = () => {
 };
 
 const filteredMemos = computed(() => {
-  return memos.value.filter(memo => {
-    const locationMatch = !props.locationFilter || (memo.location && memo.location.toLowerCase().includes(props.locationFilter.toLowerCase()));
-    const hashtagMatch = !props.hashtagFilter || (memo.hashtags && memo.hashtags.some(tag => tag.toLowerCase() === ('#' + props.hashtagFilter).toLowerCase()));
-    const dateMatch = !props.dateFilter || memo.date === props.dateFilter;
+  const { location, hashtag, date } = normalizeFilters.value;
+
+  return memos.value.filter((memo) => {
+    const locationMatch = !location || memo.location?.toLowerCase().includes(location);
+    const normalizedHashtags = memo.hashtags?.map(normalizeHashtag) || [];
+    const hashtagMatch = !hashtag || normalizedHashtags.includes(hashtag);
+    const dateMatch = !date || memo.date === date;
     return locationMatch && hashtagMatch && dateMatch;
   });
 });
 
 const subscribeToMemos = () => {
   if (unsubscribeFromMemos) unsubscribeFromMemos();
+  loading.value = true;
+  error.value = null;
+
   try {
     const db = getFirestore();
     const memosQuery = query(collection(db, 'memos'), orderBy('createdAt', 'desc'));
-    unsubscribeFromMemos = onSnapshot(memosQuery, (snapshot) => {
-      memos.value = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      loading.value = false;
-    }, (err) => {
-      console.error("Error fetching memos in real-time:", err);
-      error.value = "Failed to load memos. Please check your connection.";
-      loading.value = false;
-    });
+    unsubscribeFromMemos = onSnapshot(
+      memosQuery,
+      (snapshot) => {
+        memos.value = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+        loading.value = false;
+      },
+      (err) => {
+        console.error('Error fetching memos in real-time:', err);
+        error.value = 'Failed to load memos. Please check your connection.';
+        loading.value = false;
+      },
+    );
   } catch (err) {
-    console.error("Error setting up memos subscription:", err);
-    error.value = "An unexpected error occurred.";
+    console.error('Error setting up memos subscription:', err);
+    error.value = 'An unexpected error occurred.';
     loading.value = false;
   }
 };
@@ -202,14 +241,14 @@ const deleteMemo = async (memoId) => {
     const idToken = await auth.currentUser.getIdToken();
     const response = await fetch(`/api/memos/${memoId}`, {
       method: 'DELETE',
-      headers: { 'Authorization': `Bearer ${idToken}` },
+      headers: { Authorization: `Bearer ${idToken}` },
     });
     if (!response.ok) {
       const errorData = await response.json();
       throw new Error(errorData.message || 'Failed to delete memo.');
     }
   } catch (err) {
-    console.error("Error deleting memo:", err);
+    console.error('Error deleting memo:', err);
     error.value = err.message;
   }
 };
@@ -253,60 +292,71 @@ const formatDate = (dateString) => {
 };
 
 const prevImage = (memoId) => {
-  if (galleryState.value[memoId].currentIndex > 0) {
-    galleryState.value[memoId].currentIndex--;
+  const state = ensureGalleryState(memoId);
+  if (state.currentIndex > 0) {
+    state.currentIndex -= 1;
   }
 };
 
 const nextImage = (memoId) => {
-  const memo = memos.value.find(m => m.id === memoId);
-  if (memo && galleryState.value[memoId].currentIndex < getMemoMedia(memo).length - 1) {
-    galleryState.value[memoId].currentIndex++;
+  const memo = memos.value.find((m) => m.id === memoId);
+  const state = ensureGalleryState(memoId);
+  if (memo && state.currentIndex < getMemoMedia(memo).length - 1) {
+    state.currentIndex += 1;
   }
 };
 
 const handleTouchStart = (memoId, event) => {
-  galleryState.value[memoId].touchStartX = event.touches[0].clientX;
+  ensureGalleryState(memoId).touchStartX = event.touches[0].clientX;
 };
 
 const handleTouchMove = (memoId, event) => {
-  if (galleryState.value[memoId].touchStartX === 0) return;
+  if (ensureGalleryState(memoId).touchStartX === 0) return;
+  // Prevent horizontal swipes from triggering browser navigation on mobile
+  if (Math.abs(event.touches[0].clientX - galleryState.value[memoId].touchStartX) > 10) {
+    event.preventDefault();
+  }
 };
 
 const handleTouchEnd = (memoId, event) => {
-  if (galleryState.value[memoId].touchStartX === 0) return;
+  const state = ensureGalleryState(memoId);
+  if (state.touchStartX === 0) return;
   const touchEndX = event.changedTouches[0].clientX;
-  const diffX = galleryState.value[memoId].touchStartX - touchEndX;
+  const diffX = state.touchStartX - touchEndX;
 
-  if (Math.abs(diffX) > 50) { // Threshold for swipe
-      if (diffX > 0) { // Swipe left
-          nextImage(memoId);
-      } else { // Swipe right
-          prevImage(memoId);
-      }
+  if (Math.abs(diffX) > 50) {
+    if (diffX > 0) {
+      nextImage(memoId);
+    } else {
+      prevImage(memoId);
+    }
   }
 
-  galleryState.value[memoId].touchStartX = 0;
+  state.touchStartX = 0;
 };
 
-onMounted(() => {
-  subscribeToMemos();
-  watch(() => auth.currentUser, (currentUser) => {
+watch(
+  () => auth.currentUser,
+  (currentUser) => {
     if (currentUser) {
       subscribeToMemos();
     } else {
       if (unsubscribeFromMemos) unsubscribeFromMemos();
       memos.value = [];
     }
-  });
+  },
+);
 
-  watch(memos, (newMemos) => {
-    newMemos.forEach(memo => {
-      if (!galleryState.value[memo.id]) {
-        galleryState.value[memo.id] = { currentIndex: 0, touchStartX: 0 };
-      }
-    });
-  }, { deep: true });
+watch(
+  memos,
+  (newMemos) => {
+    newMemos.forEach((memo) => ensureGalleryState(memo.id));
+  },
+  { deep: true },
+);
+
+onMounted(() => {
+  subscribeToMemos();
 });
 
 onUnmounted(() => {
@@ -314,7 +364,6 @@ onUnmounted(() => {
     unsubscribeFromMemos();
   }
 });
-
 </script>
 
 <style scoped>
@@ -390,16 +439,16 @@ onUnmounted(() => {
 }
 
 .memo-card:nth-child(odd):hover {
-  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.2), 
-              0 12px 24px rgba(0, 0, 0, 0.4), 
-              0 8px 12px rgba(0, 0, 0, 0.5), 
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.2),
+              0 12px 24px rgba(0, 0, 0, 0.4),
+              0 8px 12px rgba(0, 0, 0, 0.5),
               0 0 30px 10px rgba(255, 0, 255, 0.5);
 }
 
 .memo-card:nth-child(even):hover {
-  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.2), 
-              0 12px 24px rgba(0, 0, 0, 0.4), 
-              0 8px 12px rgba(0, 0, 0, 0.5), 
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.2),
+              0 12px 24px rgba(0, 0, 0, 0.4),
+              0 8px 12px rgba(0, 0, 0, 0.5),
               0 0 30px 10px rgba(0, 255, 255, 0.5);
 }
 
@@ -418,12 +467,12 @@ onUnmounted(() => {
 }
 
 .photo-gallery {
-    display: flex;
-    transition: transform 0.3s ease-in-out;
+  display: flex;
+  transition: transform 0.3s ease-in-out;
 }
 
 .photo-item {
-    flex: 0 0 100%;
+  flex: 0 0 100%;
 }
 
 .photo-item img {
@@ -450,21 +499,19 @@ onUnmounted(() => {
   padding: 1rem;
   display: flex;
   flex-direction: column;
-  justify-content: space-between; /* Push details to top, footer to bottom */
+  justify-content: space-between;
   pointer-events: none;
-  opacity: 0; /* Hidden by default */
+  opacity: 0;
   transition: opacity 0.3s ease-in-out;
 }
 
 .memo-card:hover .memo-content {
-  opacity: 1; /* Show on hover */
+  opacity: 1;
 }
-
 
 .memo-content > * {
-    pointer-events: auto;
+  pointer-events: auto;
 }
-
 
 .memo-description {
   font-size: 1.8em;
@@ -473,74 +520,63 @@ onUnmounted(() => {
   margin-bottom: 0.15rem;
   font-family: 'Great Vibes', cursive;
   opacity: 0;
-  transform: translateY(-20px);
-  transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
+  animation: fadeIn 1s forwards;
+  text-shadow: 0 0 10px #ff00ff, 0 0 20px #00ffff;
 }
 
 .memo-card:hover .memo-description {
-  opacity: 1;
-  transform: translateY(0);
+  animation-delay: 0.1s;
 }
 
 .memo-meta {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
   gap: 1rem;
-  font-size: 0.9em;
-  color: magenta;
-  margin-bottom: 0.25rem;
-  font-weight: 700;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
 }
 
 .meta-item {
   display: inline-flex;
   align-items: center;
+  gap: 0.35rem;
+  background: rgba(0, 0, 0, 0.35);
+  padding: 0.35rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.8em;
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25), 0 0 10px rgba(255, 255, 255, 0.15);
 }
 
 .meta-icon {
-  width: 1em;
-  height: 1em;
+  width: 1rem;
+  height: 1rem;
   fill: currentColor;
-  margin-right: 0.35em;
+  opacity: 0.8;
 }
 
 .memo-hashtags {
-  text-align: center;
-  margin-bottom: 0.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.6rem;
 }
 
 .hashtag {
-  display: inline-block;
-  background-color: rgba(0, 0, 0, 0.2);
-  color: magenta;
-  padding: 0.3em 0.7em;
-  border-radius: 1rem;
-  font-size: 0.8em;
-  font-weight: 700;
-  border: 1px solid rgba(255, 25, 255, 0.2);
-  margin: 0.2rem;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.hashtag:hover {
-  background-color: rgba(255, 25, 255, 0.3);
-  border-color: rgba(255, 25, 255, 0.6);
+  background: rgba(0, 0, 0, 0.35);
   color: #fff;
-  transform: scale(1.05);
+  padding: 0.35rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.85em;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25), 0 0 10px rgba(255, 255, 255, 0.15);
 }
 
 .memo-footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-top: 0.25rem;
-  padding-right:0.25rem;
-  padding-left:0.25rem;
-  border-top: 0.0625rem solid magenta;
-  font-size: 1em;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
   color: #f595ff;
 }
 
@@ -549,7 +585,8 @@ onUnmounted(() => {
   gap: 2rem;
 }
 
-.edit-button, .delete-button {
+.edit-button,
+.delete-button {
   background: none;
   border: none;
   color: turquoise;
@@ -560,7 +597,8 @@ onUnmounted(() => {
   transition: color 0.3s;
 }
 
-.edit-button:hover, .delete-button:hover {
+.edit-button:hover,
+.delete-button:hover {
   text-decoration: none;
   color: magenta;
 }
@@ -569,9 +607,10 @@ onUnmounted(() => {
   color: #ff6b6b;
 }
 
-.gallery-nav, .gallery-dots {
-    position: absolute;
-    z-index: 3; 
+.gallery-nav,
+.gallery-dots {
+  position: absolute;
+  z-index: 3;
 }
 
 .gallery-nav {
@@ -594,20 +633,21 @@ onUnmounted(() => {
 
 .gallery-nav:hover,
 .gallery-nav:active {
-    transform: translateY(-50%) scale(3);
+  transform: translateY(-50%) scale(3);
 }
 
 .gallery-nav:focus {
-    outline: none;
+  outline: none;
 }
 
 .gallery-nav.visible {
-    opacity: 1;
+  opacity: 1;
 }
 
 .prev-btn {
   left: 0.625rem;
 }
+
 .next-btn {
   right: 0.625rem;
 }
@@ -654,7 +694,7 @@ onUnmounted(() => {
   }
 
   .memo-footer {
-    display:flex;
+    display: flex;
     flex-direction: row;
     justify-content: space-between;
     align-items: center;

@@ -444,6 +444,7 @@ watch(() => props.user, (newUser) => {
   background-color: transparent;
   box-shadow: inset 0 0 10px var(--bubble-inner-shadow-color), 0 0 15px var(--bubble-outer-shadow-color);
   will-change: transform;
+  backface-visibility: hidden;
 }
 
 .plan-card.hovered, .plan-card.focused {
