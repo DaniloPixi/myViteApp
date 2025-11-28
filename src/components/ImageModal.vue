@@ -1,21 +1,66 @@
 <template>
-  <div v-if="isVisible" class="image-modal-overlay" @click.self="close" @keydown.esc="close" @keydown.left="prevMedia" @keydown.right="nextMedia" tabindex="0" ref="modal">
+  <div
+    v-if="isVisible"
+    class="image-modal-overlay"
+    @click.self="close"
+    @keydown.esc="close"
+    @keydown.left="prevMedia"
+    @keydown.right="nextMedia"
+    tabindex="0"
+    ref="modal"
+    role="dialog"
+    aria-modal="true"
+    aria-label="Media viewer"
+  >
     <div class="modal-container">
-      <div class="image-modal-content"
-           @touchstart.passive="handleTouchStart"
-           @touchmove.passive="handleTouchMove"
-           @touchend="handleTouchEnd">
-
+      <div
+        class="image-modal-content"
+        @touchstart.passive="handleTouchStart"
+        @touchmove.passive="handleTouchMove"
+        @touchend="handleTouchEnd"
+      >
         <!-- Navigation Buttons -->
-        <button v-if="hasMultipleMedia" @click.stop="prevMedia" class="nav-btn prev-btn" :disabled="isFirstMedia">&lsaquo;</button>
-        <button v-if="hasMultipleMedia" @click.stop="nextMedia" class="nav-btn next-btn" :disabled="isLastMedia">&rsaquo;</button>
+        <button
+          v-if="hasMultipleMedia"
+          @click.stop="prevMedia"
+          class="nav-btn prev-btn"
+          :disabled="isFirstMedia"
+        >
+          &lsaquo;
+        </button>
+        <button
+          v-if="hasMultipleMedia"
+          @click.stop="nextMedia"
+          class="nav-btn next-btn"
+          :disabled="isLastMedia"
+        >
+          &rsaquo;
+        </button>
 
         <!-- Media Slider -->
-        <div class="image-slider" :style="{ transform: `translateX(-${currentIndex * 100}%)` }">
-          <div v-for="(item, index) in mediaItems" :key="index" class="slide">
+        <div
+          class="image-slider"
+          :style="{ transform: `translateX(-${currentIndex * 100}%)` }"
+        >
+          <div
+            v-for="(item, index) in mediaItems"
+            :key="index"
+            class="slide"
+          >
             <div class="image-container">
-               <video v-if="item.resource_type === 'video'" :src="getOptimizedUrl(item.url, { isVideo: true, width: 1200 })" controls autoplay loop playsinline></video>
-               <img v-else :src="getOptimizedUrl(item.url, { width: 1200 })" alt="Enlarged media" />
+              <video
+                v-if="item.resource_type === 'video'"
+                :src="getOptimizedUrl(item.url, { isVideo: true, width: 1200 })"
+                controls
+                autoplay
+                loop
+                playsinline
+              ></video>
+              <img
+                v-else
+                :src="getOptimizedUrl(item.url, { width: 1200 })"
+                alt="Enlarged media"
+              />
             </div>
           </div>
         </div>
@@ -25,9 +70,16 @@
       <div class="bottom-controls">
         <!-- Dots Indicator -->
         <div v-if="hasMultipleMedia" class="dots-indicator">
-          <span v-for="(_, index) in mediaItems" :key="index" class="dot" :class="[getDotClass(index), { active: currentIndex === index }]"></span>
+          <button
+            v-for="(_, index) in mediaItems"
+            :key="index"
+            type="button"
+            class="dot"
+            :class="[getDotClass(index), { active: currentIndex === index }]"
+            @click.stop="currentIndex = index"
+          ></button>
         </div>
-        <!-- New Bottom Close Button -->
+        <!-- Bottom Close Button -->
         <button @click="close" class="close-btn-bottom">Close</button>
       </div>
     </div>
@@ -35,7 +87,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, nextTick } from 'vue';
+import { ref, computed, watch, nextTick, onUnmounted } from 'vue';
 import { usePhotoUtils } from '../composables/usePhotoUtils';
 
 const { getOptimizedUrl } = usePhotoUtils();
@@ -55,16 +107,58 @@ const touchStartX = ref(0);
 // Computed properties
 const hasMultipleMedia = computed(() => props.mediaItems.length > 1);
 const isFirstMedia = computed(() => currentIndex.value === 0);
-const isLastMedia = computed(() => currentIndex.value === props.mediaItems.length - 1);
+const isLastMedia = computed(
+  () => currentIndex.value === props.mediaItems.length - 1
+);
 
-// Watchers
-watch(() => props.isVisible, (newValue) => {
-  if (newValue) {
-    currentIndex.value = props.startIndex;
-    nextTick(() => {
-      modal.value?.focus(); // Set focus for keyboard events
-    });
+// Watch modal visibility: init index, focus, lock scroll
+watch(
+  () => props.isVisible,
+  (newValue) => {
+    if (newValue) {
+      const maxIndex = Math.max(0, props.mediaItems.length - 1);
+      const safeStart = Math.min(
+        Math.max(props.startIndex, 0),
+        maxIndex
+      );
+      currentIndex.value = safeStart;
+
+      // lock body scroll
+      document.body.style.overflow = 'hidden';
+
+      nextTick(() => {
+        modal.value?.focus(); // Set focus for keyboard events
+      });
+    } else {
+      // restore scroll
+      document.body.style.overflow = '';
+    }
   }
+);
+
+// When currentIndex changes, pause non-visible videos, play visible
+watch(currentIndex, async (newIndex) => {
+  await nextTick();
+  const root = modal.value;
+  if (!root) return;
+
+  const slides = root.querySelectorAll('.slide');
+  slides.forEach((slide, index) => {
+    const video = slide.querySelector('video');
+    if (!video) return;
+
+    if (index === newIndex) {
+      video.play().catch(() => {});
+    } else {
+      video.pause();
+      video.currentTime = 0;
+    }
+  });
+});
+
+// Cleanup on unmount
+onUnmounted(() => {
+  document.body.style.overflow = '';
 });
 
 // Methods
@@ -92,7 +186,7 @@ const handleTouchStart = (event) => {
 };
 
 const handleTouchMove = (event) => {
-  // We leave this function empty on purpose.
+  // intentionally left empty
 };
 
 const handleTouchEnd = (event) => {
@@ -101,15 +195,16 @@ const handleTouchEnd = (event) => {
   const touchEndX = event.changedTouches[0].clientX;
   const diffX = touchStartX.value - touchEndX;
 
-  if (diffX > 50) { // Swiped left
+  if (diffX > 50) {
+    // Swiped left
     nextMedia();
-  } else if (diffX < -50) { // Swiped right
+  } else if (diffX < -50) {
+    // Swiped right
     prevMedia();
   }
 
   touchStartX.value = 0; // Reset
 };
-
 </script>
 
 <style scoped>
@@ -165,7 +260,8 @@ const handleTouchEnd = (event) => {
   justify-content: center;
 }
 
-.image-container img, .image-container video {
+.image-container img,
+.image-container video {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
@@ -177,15 +273,15 @@ const handleTouchEnd = (event) => {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  background: rgba(255, 255, 255, 0.1); /* More transparent */
+  background: rgba(255, 255, 255, 0.1);
   color: magenta;
-  border: none; 
-  backdrop-filter: blur(10px); /* Frosted glass effect */
-  -webkit-backdrop-filter: blur(10px); /* For Safari */
+  border: none;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   border-radius: 50%;
-  width: 50px;  /* Slightly larger */
-  height: 50px; /* Slightly larger */
-  font-size: 30px; /* Larger icon */
+  width: 50px;
+  height: 50px;
+  font-size: 30px;
   cursor: pointer;
   z-index: 5;
   transition: background 0.3s ease, transform 0.2s ease;
@@ -203,7 +299,7 @@ const handleTouchEnd = (event) => {
 
 .nav-btn:hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.2);
-  transform: translateY(-50%) scale(1.05); /* Slight scale effect on hover */
+  transform: translateY(-50%) scale(1.05);
 }
 
 .nav-btn:disabled {
@@ -217,8 +313,12 @@ const handleTouchEnd = (event) => {
   outline: none;
 }
 
-.prev-btn { left: 20px; }
-.next-btn { right: 20px; }
+.prev-btn {
+  left: 20px;
+}
+.next-btn {
+  right: 20px;
+}
 
 .bottom-controls {
   display: flex;
@@ -237,8 +337,11 @@ const handleTouchEnd = (event) => {
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.4);
+  border: none;
+  padding: 0;
+  background: rgba(255, 255, 255, 0.35);
   transition: transform 0.3s ease, background-color 0.3s ease;
+  cursor: pointer;
 }
 
 .dot.active {
@@ -247,13 +350,12 @@ const handleTouchEnd = (event) => {
 }
 
 .dot.dot-magenta {
-    background-color: magenta;
+  background-color: magenta;
 }
 
 .dot.dot-turquoise {
-    background-color: turquoise;
+  background-color: turquoise;
 }
-
 
 .close-btn-bottom {
   background: transparent;
@@ -266,11 +368,13 @@ const handleTouchEnd = (event) => {
   font-size: 1.5rem;
   font-weight: 500;
   transition: all 0.2s ease;
-  box-shadow: inset 0 0 8px rgba(255, 0, 255, 0.5), 0 0 8px rgba(255, 0, 255, 0.5);
+  box-shadow: inset 0 0 8px rgba(255, 0, 255, 0.5),
+    0 0 8px rgba(255, 0, 255, 0.5);
 }
 
 .close-btn-bottom:hover {
-  box-shadow: inset 0 0 12px rgba(255, 0, 255, 0.8), 0 0 12px rgba(255, 0, 255, 0.8);
+  box-shadow: inset 0 0 12px rgba(255, 0, 255, 0.8),
+    0 0 12px rgba(255, 0, 255, 0.8);
 }
 
 .close-btn-bottom:focus,
