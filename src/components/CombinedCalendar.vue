@@ -173,25 +173,105 @@ const attributes = computed(() => {
 
 /* --- SLOWER ANIMATION --- */
 
-/* Set transition properties ONLY on the active classes */
-.modal-enter-active,
-.modal-leave-active {
-  transition: opacity 0.6s ease-in-out; /* Slower fade */
-}
+/* --- GALACTIC MODAL SPAWN (INTENSIFIED) --- */
 
-.modal-enter-active .modal-content,
-.modal-leave-active .modal-content {
-  transition: transform 0.6s cubic-bezier(0.25, 0.8, 0.55, 1.25); /* Slower transform */
-}
-
-/* Set the start state for enter and end state for leave */
+/* overlay fade */
 .modal-enter-from,
 .modal-leave-to {
   opacity: 0;
 }
 
-.modal-enter-from .modal-content,
-.modal-leave-to .modal-content {
-  transform: scale(0.1);
+.modal-enter-active,
+.modal-leave-active {
+  transition: opacity 0.45s ease-in-out;
 }
+
+/* starry halo behind the modal */
+.modal-content::before {
+  content: "";
+  position: absolute;
+  inset: -45%;
+  background:
+    radial-gradient(circle at 15% 5%, rgba(0, 255, 255, 0.6), transparent 60%),
+    radial-gradient(circle at 85% 95%, rgba(255, 0, 255, 0.6), transparent 60%),
+    radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.45), transparent 55%);
+  opacity: 0;
+  filter: blur(22px);
+  mix-blend-mode: screen;
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* core warp-in / warp-out for the modal panel */
+@keyframes modal-warp-in {
+  0% {
+    transform: scale(0.12) rotate3d(0.5, -0.35, 0, -38deg);
+    filter: blur(22px);
+    box-shadow:
+      0 0 0 rgba(255, 0, 255, 0),
+      0 0 0 rgba(0, 255, 255, 0);
+  }
+  55% {
+    transform: scale(1.12) rotate3d(0.18, -0.12, 0, 10deg);
+    filter: blur(6px);
+    box-shadow:
+      0 0 45px rgba(255, 0, 255, 0.9),
+      0 0 80px rgba(0, 255, 255, 0.7);
+  }
+  100% {
+    transform: scale(1) rotate3d(0, 0, 0, 0deg);
+    filter: blur(0);
+    box-shadow:
+      0 0 26px rgba(255, 0, 255, 0.55),
+      0 0 40px rgba(0, 255, 255, 0.35);
+  }
+}
+
+@keyframes modal-warp-out {
+  0% {
+    transform: scale(1) rotate3d(0, 0, 0, 0deg);
+    filter: blur(0);
+    box-shadow:
+      0 0 26px rgba(255, 0, 255, 0.55),
+      0 0 40px rgba(0, 255, 255, 0.35);
+  }
+  100% {
+    transform: scale(0.65) rotate3d(-0.3, 0.25, 0, -20deg);
+    filter: blur(16px);
+    box-shadow:
+      0 0 4px rgba(255, 0, 255, 0),
+      0 0 8px rgba(0, 255, 255, 0);
+  }
+}
+
+/* halo fade/settle animation */
+@keyframes fade-halo-in {
+  0%   { opacity: 0; transform: scale(0.7); }
+  50%  { opacity: 1; transform: scale(1.1); }
+  100% { opacity: 0.65; transform: scale(1); }
+}
+
+@keyframes fade-halo-out {
+  0%   { opacity: 0.65; transform: scale(1); }
+  100% { opacity: 0; transform: scale(0.85); }
+}
+
+/* hook animations into Vue's transition classes */
+.modal-enter-active .modal-content {
+  animation: modal-warp-in 0.6s cubic-bezier(0.25, 0.85, 0.5, 1.4) forwards;
+}
+
+.modal-leave-active .modal-content {
+  animation: modal-warp-out 0.4s ease-in forwards;
+}
+
+.modal-enter-active .modal-content::before {
+  animation: fade-halo-in 0.7s ease-out forwards;
+}
+
+.modal-leave-active .modal-content::before {
+  animation: fade-halo-out 0.35s ease-in forwards;
+}
+
+
 </style>
