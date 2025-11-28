@@ -264,11 +264,7 @@ app.post('/api/send-love', authenticateToken, checkDb, async (req, res) => {
         res.status(500).json({ success: false, message: 'Internal server error while sending notification.' });
     }
 });
-app.use(
-  '/api/quests',
-  authMiddleware,
-  questsRouter(db, sendPushNotification)
-);
+
 app.use('/api', apiRouter);
 
 export const handler = serverless(app);

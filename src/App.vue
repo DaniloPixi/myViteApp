@@ -56,7 +56,7 @@
                 <div v-if="currentView === 'home'">
                   <button @click="sendLoveNotification" class="love-button">Send Love</button>
                     <div class="calendar-container">
-                      <DailyQuestWidget />
+                      <DailyQuestWidget  :currentUserId= "authUser?.uid || null "/>
                         <CombinedCalendar
                             :memos="memos"
                             :plans="plans"
