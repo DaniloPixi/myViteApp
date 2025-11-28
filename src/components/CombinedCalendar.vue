@@ -22,11 +22,26 @@
             <div class="modal-content" @click.stop :style="modalStyle">
                 <button @click="closeModal" class="close-button">&times;</button>
                 <div v-for="attr in modalAttributes" :key="attr.key">
-                    <p :class="attr.customData.type === 'memo' ? 'memo-text' : 'plan-text'">
-                        <span class="event-title">{{ attr.customData.type === 'memo' ? 'Memo: ' : 'Plan: ' }}</span>
-                        {{ attr.customData.text }}
-                    </p>
-                </div>
+  <p
+    :class="{
+      'memo-text': attr.customData.type === 'memo',
+      'plan-text': attr.customData.type === 'plan',
+      'quest-text': attr.customData.type === 'quest',
+    }"
+  >
+    <span class="event-title">
+      {{
+        attr.customData.type === 'memo'
+          ? 'Memo: '
+          : attr.customData.type === 'plan'
+          ? 'Plan: '
+          : 'Quest: '
+      }}
+    </span>
+    {{ attr.customData.text }}
+  </p>
+</div>
+
             </div>
         </div>
     </Transition>
@@ -36,7 +51,7 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { Calendar } from 'v-calendar';
-
+import { getAllQuests, questVersion } from '../composables/useDailyQuests';
 const props = defineProps({
   memos: { type: Array, default: () => [] },
   plans: { type: Array, default: () => [] },
@@ -76,22 +91,69 @@ const processDate = (value) => {
   }
   return date;
 };
-
 const attributes = computed(() => {
-  const memoEvents = props.memos.map(memo => {
-    const date = processDate(memo.date);
-    if (!date) return null;
-    return { key: `memo-${memo.id}`, dates: date, dot: { color: 'magenta', class: 'memo-dot' }, customData: { type: 'memo', text: memo.description || 'Memo' } };
-  }).filter(Boolean);
+  // Make this computed reactive to quest changes
+  const _ = questVersion.value;
 
-  const planEvents = props.plans.map(plan => {
-    const date = processDate(plan.date);
-    if (!date) return null;
-    return { key: `plan-${plan.id}`, dates: date, dot: { color: 'turquoise', class: 'plan-dot' }, customData: { type: 'plan', text: plan.text || 'Plan' } };
-  }).filter(Boolean);
+  // memos
+  const memoEvents = props.memos
+    .map((memo) => {
+      const date = processDate(memo.date);
+      if (!date) return null;
+      return {
+        key: `memo-${memo.id}`,
+        dates: date,
+        dot: { color: 'magenta', class: 'memo-dot' },
+        customData: {
+          type: 'memo',
+          text: memo.description || 'Memo',
+        },
+      };
+    })
+    .filter(Boolean);
 
-  return [...memoEvents, ...planEvents];
+  // plans
+  const planEvents = props.plans
+    .map((plan) => {
+      const date = processDate(plan.date);
+      if (!date) return null;
+      return {
+        key: `plan-${plan.id}`,
+        dates: date,
+        dot: { color: 'turquoise', class: 'plan-dot' },
+        customData: {
+          type: 'plan',
+          text: plan.text || 'Plan',
+        },
+      };
+    })
+    .filter(Boolean);
+
+  // quests
+  let questEvents = [];
+  if (typeof window !== 'undefined') {
+    questEvents = getAllQuests()
+      .filter((q) => q.completed)
+      .map((q) => {
+        const date = processDate(q.date);
+        if (!date) return null;
+        return {
+          key: `quest-${q.date}`,
+          dates: date,
+          dot: { color: 'gold', class: 'quest-dot' },
+          customData: {
+            type: 'quest',
+            text: q.text || 'Daily quest completed',
+          },
+        };
+      })
+      .filter(Boolean);
+  }
+
+  return [...memoEvents, ...planEvents, ...questEvents];
 });
+
+
 </script>
 
 <style>
@@ -179,6 +241,9 @@ const attributes = computed(() => {
 .modal-enter-from,
 .modal-leave-to {
   opacity: 0;
+}
+.modal-content .quest-text {
+  color: gold;
 }
 
 .modal-enter-active,
@@ -272,6 +337,9 @@ const attributes = computed(() => {
 .modal-leave-active .modal-content::before {
   animation: fade-halo-out 0.35s ease-in forwards;
 }
-
+.custom-calendar .vc-dot.quest-dot {
+  background: radial-gradient(circle, gold, #ffb400) !important;
+  box-shadow: 0 0 6px rgba(255, 215, 0, 0.9);
+}
 
 </style>

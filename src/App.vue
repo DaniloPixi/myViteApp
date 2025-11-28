@@ -56,6 +56,7 @@
                 <div v-if="currentView === 'home'">
                   <button @click="sendLoveNotification" class="love-button">Send Love</button>
                     <div class="calendar-container">
+                      <DailyQuestWidget />
                         <CombinedCalendar
                             :memos="memos"
                             :plans="plans"
@@ -112,6 +113,7 @@ import ScrollToTopButton from './components/ScrollToTopButton.vue';
 import InAppNotification from './components/InAppNotification.vue';
 import CursorTrail from './components/CursorTrail.vue';
 import P5StarfieldBackground from './components/P5StarfieldBackground.vue';
+import DailyQuestWidget from './components/DailyQuestWidget.vue';
 
 
 // --- PWA Auto-Update Logic ---

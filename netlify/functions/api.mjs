@@ -11,7 +11,7 @@ import { v2 as cloudinary } from 'cloudinary';
 // Import route handlers
 import createPlansRouter from './routes/plans.mjs';
 import createMemosRouter from './routes/memos.mjs';
-
+import questsRouter from './routes/quests.mjs';
 let db;
 
 // --- Dual-Environment Firebase Initialization ---
@@ -264,7 +264,11 @@ app.post('/api/send-love', authenticateToken, checkDb, async (req, res) => {
         res.status(500).json({ success: false, message: 'Internal server error while sending notification.' });
     }
 });
-
+app.use(
+  '/api/quests',
+  authMiddleware,
+  questsRouter(db, sendPushNotification)
+);
 app.use('/api', apiRouter);
 
 export const handler = serverless(app);
