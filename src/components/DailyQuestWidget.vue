@@ -1,5 +1,6 @@
 <template>
-  <div class="daily-quest-card">
+  <!-- NOT COMPLETED STATE: full card -->
+  <div v-if="!quest || !quest.completed" class="daily-quest-card">
     <div class="dq-header">
       <span class="dq-label">Daily Quest</span>
       <span class="dq-date">{{ formattedDate }}</span>
@@ -12,16 +13,23 @@
     <div class="dq-footer">
       <button
         class="dq-btn"
-        :disabled="quest?.completed || loading"
+        :disabled="loading"
         @click="completeQuest"
       >
         <span v-if="loading">Working...</span>
-        <span v-else-if="quest?.completed">Quest completed ✨</span>
         <span v-else>Mark as completed</span>
       </button>
     </div>
   </div>
+
+  <!-- COMPLETED STATE: minimal pill -->
+  <div v-else class="daily-quest-completed">
+    <span class="dq-completed-pill">
+      Quest completed ✨
+    </span>
+  </div>
 </template>
+
 
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue';
@@ -210,5 +218,29 @@ watch(
   box-shadow:
     inset 0 0 6px rgba(0, 255, 255, 0.7),
     0 0 10px rgba(0, 255, 255, 0.5);
+}
+.daily-quest-completed {
+  display: flex;
+  justify-content: center;
+  margin-top: 6px;
+  margin-bottom: 0.75rem;
+}
+
+.dq-completed-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  letter-spacing: 0.02em;
+  color: #00f7ff;
+  border: 1px solid rgba(0, 255, 255, 0.7);
+  background: radial-gradient(circle at 0% 0%, rgba(0, 255, 255, 0.18), transparent 55%),
+              radial-gradient(circle at 100% 100%, rgba(255, 0, 255, 0.22), transparent 55%),
+              rgba(0, 0, 0, 0.7);
+  box-shadow:
+    0 0 10px rgba(0, 255, 255, 0.5),
+    0 0 14px rgba(255, 0, 255, 0.35);
 }
 </style>
