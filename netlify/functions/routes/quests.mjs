@@ -24,13 +24,32 @@ export default function createQuestsRouter(db, sendPushNotification) {
 
     try {
       const displayName = name || email || 'Your partner';
+      const title = 'Quest not finished 👀';
+      const body = `${displayName} just completed today\'s quest. Yours is… not.`;
+      const link = '/#/calendar';
 
-      const title = 'Daily Quest completed ✨';
-      const body = `${displayName} completed today's quest: "${text}"`;
+      // 🔍 Check completions from Firestore (admin db, not client)
+      const questRef = db.collection('dailyQuests').doc(date); // date is already "YYYY-MM-DD"
+      const questSnap = await questRef.get();
 
-      const link = '/#/calendar'; // where the app should open
+      let shouldSend = true;
 
-      await sendPushNotification(title, body, link, uid);
+      if (questSnap.exists) {
+        const data = questSnap.data();
+        const completions = data.completions || {};
+        const completedUids = Object.keys(completions).filter(
+          (id) => completions[id],
+        );
+
+        // In a 2-person app: if 2+ people have completed, both are done -> no need to side-eye anyone
+        if (completedUids.length >= 2) {
+          shouldSend = false;
+        }
+      }
+
+      if (shouldSend) {
+        await sendPushNotification(title, body, link, uid);
+      }
 
       return res.status(200).json({ success: true });
     } catch (error) {
@@ -42,6 +61,7 @@ export default function createQuestsRouter(db, sendPushNotification) {
       });
     }
   });
+
 
   return router;
 }

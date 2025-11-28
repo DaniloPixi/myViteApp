@@ -1,6 +1,6 @@
 // src/composables/useDailyQuest.js
 import { ref } from 'vue';
-import { db } from '../firebase'; // adjust path if your firebase file lives elsewhere
+import { db } from '../firebase'; // adjust if your firebase file lives elsewhere
 import {
   doc,
   getDoc,
@@ -97,12 +97,13 @@ export async function getOrCreateQuestForDate(date = new Date()) {
     return existing;
   }
 
-  // create new quest
+  // create new quest (no completions yet)
   const newQuest = {
     date: key,
     text: pickRandomQuestText(),
-    completed: false,
+    completed: false,          // "has anyone completed?"
     completedAt: null,
+    completions: {},           // per-user completion map: { [uid]: true }
     createdAt: serverTimestamp(),
   };
 
@@ -114,30 +115,52 @@ export async function getOrCreateQuestForDate(date = new Date()) {
   return { id: key, ...newQuest };
 }
 
-// PUBLIC: mark quest completed for a given date
-export async function markQuestCompleted(date = new Date()) {
+/**
+ * PUBLIC: mark quest completed for a given date, for a specific user.
+ *
+ * This:
+ *  - ensures the quest exists
+ *  - sets completions[currentUserId] = true (if currentUserId provided)
+ *  - keeps `completed` = true as "someone has done it"
+ */
+export async function markQuestCompleted(date = new Date(), currentUserId = null) {
   const key = dateKeyFromLocal(date);
   const questDocRef = doc(db, 'dailyQuests', key);
 
-  // ensure existence: if doc doesn't exist, create with random text
   let snap = await getDoc(questDocRef);
+
   if (!snap.exists()) {
+    // If there's no quest yet, create one with a random text and mark this user as completed
+    const completions = currentUserId ? { [currentUserId]: true } : {};
+
     const newQuest = {
       date: key,
       text: pickRandomQuestText(),
-      completed: true,
+      completed: true,              // at least one person completed
       completedAt: serverTimestamp(),
+      completions,
       createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
     };
+
     await setDoc(questDocRef, newQuest, { merge: true });
   } else {
+    const data = snap.data();
+    const completions = { ...(data.completions || {}) };
+
+    if (currentUserId) {
+      completions[currentUserId] = true;
+    }
+
     await setDoc(
       questDocRef,
       {
         completed: true,
         completedAt: serverTimestamp(),
+        completions,
+        updatedAt: serverTimestamp(),
       },
-      { merge: true }
+      { merge: true },
     );
   }
 
