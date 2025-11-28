@@ -1,6 +1,6 @@
-// src/composables/useDailyQuest.js
+// src/composables/useDailyQuests.js
 import { ref } from 'vue';
-import { db } from '../firebase'; // adjust if your firebase file lives elsewhere
+import { db } from '../firebase'; // adjust path if needed
 import {
   doc,
   getDoc,
@@ -8,6 +8,8 @@ import {
   collection,
   getDocs,
   serverTimestamp,
+  query,
+  where,
 } from 'firebase/firestore';
 
 const QUEST_POOL = [
@@ -27,11 +29,12 @@ const QUEST_POOL = [
 
 export const questVersion = ref(0);
 
-// in-memory cache of quests from Firestore
+// in-memory cache of quests from Firestore, per user
 const questCache = ref({
   items: [],
   loaded: false,
   loading: false,
+  userId: null,
 });
 
 function bumpQuestVersion() {
@@ -43,22 +46,37 @@ function dateKeyFromLocal(date) {
   const year = d.getFullYear();
   const month = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
-  // This uses *local* date (not UTC truncation)
+  // local date
   return `${year}-${month}-${day}`;
 }
 
 function pickRandomQuestText() {
   const idx = Math.floor(Math.random() * QUEST_POOL.length);
-  return (
-    QUEST_POOL[idx] ||
-    "Do one small kind thing for the other today."
-  );
+  return QUEST_POOL[idx] || 'Do one small kind thing for the other today.';
 }
 
-async function fetchAllQuestsFromFirestore() {
+async function fetchAllQuestsFromFirestore(userId) {
+  if (!userId) {
+    questCache.value.items = [];
+    questCache.value.loaded = true;
+    questCache.value.userId = null;
+    return;
+  }
+
+  // reset cache if user changed
+  if (questCache.value.userId !== userId) {
+    questCache.value.items = [];
+    questCache.value.loaded = false;
+    questCache.value.loading = false;
+  }
+
   questCache.value.loading = true;
   try {
-    const snap = await getDocs(collection(db, 'dailyQuests'));
+    const q = query(
+      collection(db, 'dailyQuests'),
+      where('userId', '==', userId),
+    );
+    const snap = await getDocs(q);
     const list = [];
     snap.forEach((docSnap) => {
       const data = docSnap.data();
@@ -69,26 +87,38 @@ async function fetchAllQuestsFromFirestore() {
     });
     questCache.value.items = list;
     questCache.value.loaded = true;
+    questCache.value.userId = userId;
     bumpQuestVersion(); // trigger reactive updates (calendar, etc.)
   } catch (e) {
-    console.warn('[useDailyQuest] Failed to fetch quests', e);
+    console.warn('[useDailyQuests] Failed to fetch quests', e);
   } finally {
     questCache.value.loading = false;
   }
 }
 
-async function ensureQuestsLoaded() {
+async function ensureQuestsLoaded(userId) {
+  if (!userId) return;
+  if (questCache.value.userId !== userId) {
+    questCache.value.items = [];
+    questCache.value.loaded = false;
+    questCache.value.loading = false;
+  }
   if (questCache.value.loaded || questCache.value.loading) return;
-  await fetchAllQuestsFromFirestore();
+  await fetchAllQuestsFromFirestore(userId);
 }
 
-// PUBLIC: get or create quest for a given date
-export async function getOrCreateQuestForDate(date = new Date()) {
-  const key = dateKeyFromLocal(date);
-  const questDocRef = doc(db, 'dailyQuests', key);
+// PUBLIC: get or create quest for a given date FOR A SPECIFIC USER
+export async function getOrCreateQuestForDate(date = new Date(), userId) {
+  if (!userId) {
+    throw new Error('[useDailyQuests] userId is required for getOrCreateQuestForDate');
+  }
 
-  // ensure cache is loading in background, but don't block on it
-  ensureQuestsLoaded();
+  const key = dateKeyFromLocal(date);
+  const docId = `${userId}_${key}`;
+  const questDocRef = doc(db, 'dailyQuests', docId);
+
+  // start loading cache in background
+  ensureQuestsLoaded(userId);
 
   const snap = await getDoc(questDocRef);
 
@@ -97,77 +127,62 @@ export async function getOrCreateQuestForDate(date = new Date()) {
     return existing;
   }
 
-  // create new quest (no completions yet)
+  // create new quest for THIS user only
   const newQuest = {
+    userId,
     date: key,
     text: pickRandomQuestText(),
-    completed: false,          // "has anyone completed?"
+    completed: false,
     completedAt: null,
-    completions: {},           // per-user completion map: { [uid]: true }
     createdAt: serverTimestamp(),
   };
 
   await setDoc(questDocRef, newQuest, { merge: true });
 
-  // refresh cache
-  await fetchAllQuestsFromFirestore();
+  // refresh cache for this user
+  await fetchAllQuestsFromFirestore(userId);
 
-  return { id: key, ...newQuest };
+  return { id: docId, ...newQuest };
 }
 
-/**
- * PUBLIC: mark quest completed for a given date, for a specific user.
- *
- * This:
- *  - ensures the quest exists
- *  - sets completions[currentUserId] = true (if currentUserId provided)
- *  - keeps `completed` = true as "someone has done it"
- */
-export async function markQuestCompleted(date = new Date(), currentUserId = null) {
+// PUBLIC: mark quest completed for a given date FOR A SPECIFIC USER
+export async function markQuestCompleted(date = new Date(), userId) {
+  if (!userId) {
+    throw new Error('[useDailyQuests] userId is required for markQuestCompleted');
+  }
+
   const key = dateKeyFromLocal(date);
-  const questDocRef = doc(db, 'dailyQuests', key);
+  const docId = `${userId}_${key}`;
+  const questDocRef = doc(db, 'dailyQuests', docId);
 
   let snap = await getDoc(questDocRef);
 
   if (!snap.exists()) {
-    // If there's no quest yet, create one with a random text and mark this user as completed
-    const completions = currentUserId ? { [currentUserId]: true } : {};
-
+    // no quest yet for this user/date → create and mark completed
     const newQuest = {
+      userId,
       date: key,
       text: pickRandomQuestText(),
-      completed: true,              // at least one person completed
+      completed: true,
       completedAt: serverTimestamp(),
-      completions,
       createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
     };
-
     await setDoc(questDocRef, newQuest, { merge: true });
   } else {
-    const data = snap.data();
-    const completions = { ...(data.completions || {}) };
-
-    if (currentUserId) {
-      completions[currentUserId] = true;
-    }
-
     await setDoc(
       questDocRef,
       {
         completed: true,
         completedAt: serverTimestamp(),
-        completions,
-        updatedAt: serverTimestamp(),
       },
       { merge: true },
     );
   }
 
   // refresh cache
-  await fetchAllQuestsFromFirestore();
+  await fetchAllQuestsFromFirestore(userId);
 
-  // re-read the doc so we return consistent data
+  // re-read
   snap = await getDoc(questDocRef);
   return {
     id: snap.id,
@@ -175,8 +190,10 @@ export async function markQuestCompleted(date = new Date(), currentUserId = null
   };
 }
 
-// PUBLIC: get all quests (from cache; ensures background load)
-export function getAllQuests() {
-  ensureQuestsLoaded();
+// PUBLIC: get all quests for a given user (from cache)
+export function getAllQuests(userId) {
+  if (!userId) return [];
+  ensureQuestsLoaded(userId);
+  if (questCache.value.userId !== userId) return [];
   return questCache.value.items;
 }

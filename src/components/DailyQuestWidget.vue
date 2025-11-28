@@ -1,6 +1,6 @@
 <template>
   <!-- NOT COMPLETED FOR THIS USER: full card -->
-  <div v-if="!isCompletedForMe" class="daily-quest-card">
+  <div v-if="!quest || !quest.completed" class="daily-quest-card">
     <div class="dq-header">
       <span class="dq-label">Daily Quest</span>
       <span class="dq-date">{{ formattedDate }}</span>
@@ -44,7 +44,7 @@ const props = defineProps({
     type: [String, Date],
     default: () => new Date(),
   },
-  // who is completing the quest – pass the authenticated user's uid
+  // this user's uid (must be provided)
   currentUserId: {
     type: String,
     default: null,
@@ -66,23 +66,16 @@ const formattedDate = computed(() =>
   }),
 );
 
-// 🔑 Is this quest completed for THIS user?
-const isCompletedForMe = computed(() => {
-  if (!quest.value) return false;
-
-  // If we know who the user is and we have a completions map, use that
-  if (props.currentUserId && quest.value.completions) {
-    return !!quest.value.completions[props.currentUserId];
+async function loadQuest() {
+  if (!props.currentUserId) {
+    console.warn('[DailyQuestWidget] currentUserId is missing, cannot load quest');
+    quest.value = null;
+    return;
   }
 
-  // Fallback: global completed flag
-  return !!quest.value.completed;
-});
-
-async function loadQuest() {
   loading.value = true;
   try {
-    const q = await getOrCreateQuestForDate(parsedDate.value);
+    const q = await getOrCreateQuestForDate(parsedDate.value, props.currentUserId);
     quest.value = q;
     emit('quest-updated', q);
   } catch (e) {
@@ -93,16 +86,21 @@ async function loadQuest() {
 }
 
 async function completeQuest() {
-  if (isCompletedForMe.value || loading.value) return;
+  if (!props.currentUserId) {
+    console.warn('[DailyQuestWidget] currentUserId is missing, cannot complete quest');
+    return;
+  }
+  if (quest.value?.completed || loading.value) return;
+
   loading.value = true;
   try {
-    // 1) update Firestore with per-user completion
+    // 1) update this user's quest doc
     const updated = await markQuestCompleted(parsedDate.value, props.currentUserId);
     quest.value = updated;
     emit('quest-completed', updated);
     emit('quest-updated', updated);
 
-    // 2) notify backend to send push to the other user
+    // 2) notify backend to ping the other user
     const payload = {
       date: updated.date || parsedDate.value.toISOString().slice(0, 10),
       text: updated.text,
@@ -149,7 +147,7 @@ onMounted(() => {
 });
 
 watch(
-  () => props.date,
+  () => [props.date, props.currentUserId],
   () => {
     loadQuest();
   },
