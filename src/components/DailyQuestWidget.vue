@@ -44,11 +44,6 @@ const props = defineProps({
     type: [String, Date],
     default: () => new Date(),
   },
-  // this user's uid (must be provided)
-  currentUserId: {
-    type: String,
-    default: null,
-  },
 });
 
 const emit = defineEmits(['quest-completed', 'quest-updated']);
@@ -66,16 +61,23 @@ const formattedDate = computed(() =>
   }),
 );
 
+// always derive the uid from Firebase Auth
+const currentUserId = computed(() => {
+  const user = auth.currentUser;
+  return user ? user.uid : null;
+});
+
 async function loadQuest() {
-  if (!props.currentUserId) {
-    console.warn('[DailyQuestWidget] currentUserId is missing, cannot load quest');
+  const uid = currentUserId.value;
+  if (!uid) {
+    console.warn('[DailyQuestWidget] No authenticated user, cannot load quest');
     quest.value = null;
     return;
   }
 
   loading.value = true;
   try {
-    const q = await getOrCreateQuestForDate(parsedDate.value, props.currentUserId);
+    const q = await getOrCreateQuestForDate(parsedDate.value, uid);
     quest.value = q;
     emit('quest-updated', q);
   } catch (e) {
@@ -86,8 +88,9 @@ async function loadQuest() {
 }
 
 async function completeQuest() {
-  if (!props.currentUserId) {
-    console.warn('[DailyQuestWidget] currentUserId is missing, cannot complete quest');
+  const uid = currentUserId.value;
+  if (!uid) {
+    console.warn('[DailyQuestWidget] No authenticated user, cannot complete quest');
     return;
   }
   if (quest.value?.completed || loading.value) return;
@@ -95,7 +98,7 @@ async function completeQuest() {
   loading.value = true;
   try {
     // 1) update this user's quest doc
-    const updated = await markQuestCompleted(parsedDate.value, props.currentUserId);
+    const updated = await markQuestCompleted(parsedDate.value, uid);
     quest.value = updated;
     emit('quest-completed', updated);
     emit('quest-updated', updated);
@@ -147,7 +150,7 @@ onMounted(() => {
 });
 
 watch(
-  () => [props.date, props.currentUserId],
+  () => props.date,
   () => {
     loadQuest();
   },
