@@ -26,10 +26,9 @@ export default function createQuestsRouter(db, sendPushNotification) {
       const displayName = name || email || 'Your partner';
 
       const title = 'Daily Quest completed ✨';
-      const body = `${displayName} completed today\'s quest: "${text}"`;
+      const body = `${displayName} completed today's quest: "${text}"`;
 
-      // where the app should open when the notification is tapped
-      const link = '/#/calendar';
+      const link = '/#/calendar'; // where the app should open
 
       await sendPushNotification(title, body, link, uid);
 

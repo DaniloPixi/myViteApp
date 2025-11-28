@@ -265,6 +265,12 @@ app.post('/api/send-love', authenticateToken, checkDb, async (req, res) => {
     }
 });
 
+
+app.use((req, res, next) => {
+  console.log('INCOMING', req.method, req.path);
+  next();
+});
+
 app.use('/api', apiRouter);
 
 export const handler = serverless(app);

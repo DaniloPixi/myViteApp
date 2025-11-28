@@ -79,42 +79,38 @@ async function completeQuest() {
     emit('quest-completed', updated);
     emit('quest-updated', updated);
 
-    // Build the payload for your backend
     const payload = {
       date: updated.date || parsedDate.value.toISOString().slice(0, 10),
       text: updated.text,
     };
 
     try {
-      // 🔑 Get Firebase ID token of current user
       const user = auth.currentUser;
       if (!user) {
         console.warn('[DailyQuestWidget] No authenticated user, cannot notify backend');
       } else {
         const idToken = await user.getIdToken();
 
-        const res = await fetch(
-          '/.netlify/functions/api/api/quests', // <- now just /quests
-  {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${idToken}`, // from auth.currentUser.getIdToken()
-    },
-    body: JSON.stringify(payload),
+        const res = await fetch('/api/quests', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${idToken}`, // from auth.currentUser.getIdToken()
   },
-        );
+  body: JSON.stringify(payload),
+});
+
 
         if (!res.ok) {
           console.warn(
-            '[DailyQuestWidget] notify-completed failed:',
+            '[DailyQuestWidget] /api/quests failed:',
             await res.text(),
           );
         }
       }
     } catch (notifyError) {
       console.warn(
-        '[DailyQuestWidget] Failed to call notify-completed:',
+        '[DailyQuestWidget] Failed to call /api/quests:',
         notifyError,
       );
     }
