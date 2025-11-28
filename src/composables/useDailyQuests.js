@@ -108,7 +108,12 @@ async function ensureQuestsLoaded(userId) {
 }
 
 // PUBLIC: get or create quest for a given date FOR A SPECIFIC USER
-export async function getOrCreateQuestForDate(date = new Date(), userId) {
+// ⬇️ now takes userName too, provided by the caller
+export async function getOrCreateQuestForDate(
+  date = new Date(),
+  userId,
+  userName,
+) {
   if (!userId) {
     throw new Error('[useDailyQuests] userId is required for getOrCreateQuestForDate');
   }
@@ -120,16 +125,16 @@ export async function getOrCreateQuestForDate(date = new Date(), userId) {
   // start loading cache in background
   ensureQuestsLoaded(userId);
 
-  const snap = await getDoc(questDocRef);
+  let snap = await getDoc(questDocRef);
 
   if (snap.exists()) {
     const existing = { id: snap.id, ...snap.data() };
     return existing;
   }
 
-  // create new quest for THIS user only
   const newQuest = {
     userId,
+    userName: userName || null,
     date: key,
     text: pickRandomQuestText(),
     completed: false,
@@ -142,11 +147,18 @@ export async function getOrCreateQuestForDate(date = new Date(), userId) {
   // refresh cache for this user
   await fetchAllQuestsFromFirestore(userId);
 
-  return { id: docId, ...newQuest };
+  // re-read to include serverTimestamp, etc.
+  snap = await getDoc(questDocRef);
+  return { id: docId, ...snap.data() };
 }
 
 // PUBLIC: mark quest completed for a given date FOR A SPECIFIC USER
-export async function markQuestCompleted(date = new Date(), userId) {
+// ⬇️ now takes userName too
+export async function markQuestCompleted(
+  date = new Date(),
+  userId,
+  userName,
+) {
   if (!userId) {
     throw new Error('[useDailyQuests] userId is required for markQuestCompleted');
   }
@@ -157,10 +169,16 @@ export async function markQuestCompleted(date = new Date(), userId) {
 
   let snap = await getDoc(questDocRef);
 
+  const baseUpdate = {
+    completed: true,
+    completedAt: serverTimestamp(),
+  };
+
   if (!snap.exists()) {
     // no quest yet for this user/date → create and mark completed
     const newQuest = {
       userId,
+      userName: userName || null,
       date: key,
       text: pickRandomQuestText(),
       completed: true,
@@ -169,11 +187,14 @@ export async function markQuestCompleted(date = new Date(), userId) {
     };
     await setDoc(questDocRef, newQuest, { merge: true });
   } else {
+    const data = snap.data() || {};
+    // patch missing name/text in old docs if needed
     await setDoc(
       questDocRef,
       {
-        completed: true,
-        completedAt: serverTimestamp(),
+        ...baseUpdate,
+        userName: data.userName || userName || null,
+        text: data.text || pickRandomQuestText(),
       },
       { merge: true },
     );
@@ -196,4 +217,56 @@ export function getAllQuests(userId) {
   ensureQuestsLoaded(userId);
   if (questCache.value.userId !== userId) return [];
   return questCache.value.items;
+}
+
+// -------------- EXTRA: calendar-wide quests (all users) --------------
+
+const calendarQuestCache = ref({
+  items: [],
+  loaded: false,
+  loading: false,
+});
+
+async function fetchAllQuestsForCalendar() {
+  calendarQuestCache.value.loading = true;
+  try {
+    const snap = await getDocs(collection(db, 'dailyQuests'));
+    const list = [];
+    snap.forEach((docSnap) => {
+      const data = docSnap.data();
+      list.push({
+        id: docSnap.id,
+        ...data,
+      });
+    });
+    calendarQuestCache.value.items = list;
+    calendarQuestCache.value.loaded = true;
+    // reuse questVersion so calendar recomputes
+    bumpQuestVersion();
+  } catch (e) {
+    console.warn('[useDailyQuests] Failed to fetch all quests for calendar', e);
+  } finally {
+    calendarQuestCache.value.loading = false;
+  }
+}
+
+async function ensureCalendarQuestsLoaded() {
+  if (calendarQuestCache.value.loaded || calendarQuestCache.value.loading) return;
+  await fetchAllQuestsForCalendar();
+}
+
+/**
+ * For calendar only: returns ALL quests (all users, all dates).
+ * Uses a separate cache from the per-user one.
+ */
+export function getAllQuestsForCalendar() {
+  ensureCalendarQuestsLoaded();
+  return calendarQuestCache.value.items;
+}
+
+/**
+ * Alias name, since your component uses `getQuestsForCalendar`.
+ */
+export function getQuestsForCalendar() {
+  return getAllQuestsForCalendar();
 }

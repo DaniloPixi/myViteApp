@@ -29,7 +29,6 @@
     </span>
   </div>
 </template>
-
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue';
 import {
@@ -39,10 +38,16 @@ import {
 import { auth } from '../firebase';
 
 const props = defineProps({
-  // optional, defaults to "today" on this device
+  // Date for which we show the quest (usually today)
   date: {
     type: [String, Date],
     default: () => new Date(),
+  },
+  // Optional: pass user id from parent if you want;
+  // otherwise we'll use auth.currentUser.uid
+  currentUserId: {
+    type: String,
+    default: null,
   },
 });
 
@@ -61,23 +66,35 @@ const formattedDate = computed(() =>
   }),
 );
 
-// always derive the uid from Firebase Auth
-const currentUserId = computed(() => {
+// Helper: get uid + friendly name from Firebase auth (or props)
+function getCurrentUserIdentity() {
   const user = auth.currentUser;
-  return user ? user.uid : null;
-});
+  const uid = user?.uid || props.currentUserId || null;
+  const userName =
+    user?.displayName ||
+    user?.email ||
+    null;
+
+  return { uid, userName };
+}
 
 async function loadQuest() {
-  const uid = currentUserId.value;
-  if (!uid) {
-    console.warn('[DailyQuestWidget] No authenticated user, cannot load quest');
-    quest.value = null;
-    return;
-  }
-
   loading.value = true;
   try {
-    const q = await getOrCreateQuestForDate(parsedDate.value, uid);
+    const { uid, userName } = getCurrentUserIdentity();
+
+    if (!uid) {
+      console.warn('[DailyQuestWidget] No userId available in loadQuest');
+      loading.value = false;
+      return;
+    }
+
+    const q = await getOrCreateQuestForDate(
+      parsedDate.value,
+      uid,
+      userName,
+    );
+
     quest.value = q;
     emit('quest-updated', q);
   } catch (e) {
@@ -88,22 +105,30 @@ async function loadQuest() {
 }
 
 async function completeQuest() {
-  const uid = currentUserId.value;
-  if (!uid) {
-    console.warn('[DailyQuestWidget] No authenticated user, cannot complete quest');
-    return;
-  }
   if (quest.value?.completed || loading.value) return;
 
   loading.value = true;
   try {
-    // 1) update this user's quest doc
-    const updated = await markQuestCompleted(parsedDate.value, uid);
+    const { uid, userName } = getCurrentUserIdentity();
+
+    if (!uid) {
+      console.warn('[DailyQuestWidget] No userId available in completeQuest');
+      loading.value = false;
+      return;
+    }
+
+    // 1) Update Firestore
+    const updated = await markQuestCompleted(
+      parsedDate.value,
+      uid,
+      userName,
+    );
+
     quest.value = updated;
     emit('quest-completed', updated);
     emit('quest-updated', updated);
 
-    // 2) notify backend to ping the other user
+    // 2) Notify backend → push notification to the other user
     const payload = {
       date: updated.date || parsedDate.value.toISOString().slice(0, 10),
       text: updated.text,
@@ -112,7 +137,9 @@ async function completeQuest() {
     try {
       const user = auth.currentUser;
       if (!user) {
-        console.warn('[DailyQuestWidget] No authenticated user, cannot notify backend');
+        console.warn(
+          '[DailyQuestWidget] No authenticated user, cannot notify backend',
+        );
       } else {
         const idToken = await user.getIdToken();
 
@@ -156,6 +183,7 @@ watch(
   },
 );
 </script>
+
 
 <style scoped>
 .daily-quest-card {

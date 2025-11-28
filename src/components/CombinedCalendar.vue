@@ -10,48 +10,98 @@
       class="custom-calendar"
     >
       <template #day-content="{ day, attributes }">
-        <div class="custom-day-content" @click="openModal(attributes, $event)">
-          <span class="day-label">{{ day.day }}</span>
-        </div>
-      </template>
+  <div class="custom-day-content" @click="openModal(attributes, $event)">
+    <!-- day number -->
+    <span class="day-label">{{ day.day }}</span>
+
+    <!-- quest bars -->
+    <div
+      class="quest-bar quest-bar-left"
+      v-if="attributes.some(a => a.customData?.type === 'quest' && a.customData.side === 'left')"
+    ></div>
+
+    <div
+      class="quest-bar quest-bar-right"
+      v-if="attributes.some(a => a.customData?.type === 'quest' && a.customData.side === 'right')"
+    ></div>
+
+    <!-- custom dots row for memos & plans -->
+    <div class="custom-day-dots">
+      <span
+        v-for="(attr, idx) in attributes.filter(a => a.customData?.type === 'memo' || a.customData?.type === 'plan')"
+        :key="idx"
+        class="custom-day-dot"
+        :class="[
+          attr.customData.type === 'memo' ? 'memo-dot' : 'plan-dot'
+        ]"
+      ></span>
+    </div>
+  </div>
+</template>
+
     </Calendar>
 
     <!-- Centered Modal with Animation -->
     <Transition name="modal">
-        <div v-if="isModalVisible" class="modal-overlay" @click="closeModal">
-            <div class="modal-content" @click.stop :style="modalStyle">
-                <button @click="closeModal" class="close-button">&times;</button>
-                <div v-for="attr in modalAttributes" :key="attr.key">
-  <p
-    :class="{
-      'memo-text': attr.customData.type === 'memo',
-      'plan-text': attr.customData.type === 'plan',
-      'quest-text': attr.customData.type === 'quest',
-    }"
+  <div
+    v-if="isModalVisible"
+    class="modal-overlay"
+    @click="closeModal"
   >
-    <span class="event-title">
-      {{
-        attr.customData.type === 'memo'
-          ? 'Memo: '
-          : attr.customData.type === 'plan'
-          ? 'Plan: '
-          : 'Quest: '
-      }}
-    </span>
-    {{ attr.customData.text }}
-  </p>
-</div>
+    <div
+      class="modal-content"
+      @click.stop
+      :style="modalStyle"
+    >
+      <button @click="closeModal" class="close-button">&times;</button>
 
-            </div>
+      <div v-for="attr in modalAttributes" :key="attr.key">
+        <!-- MEMO -->
+        <p
+          v-if="attr.customData && attr.customData.type === 'memo'"
+          class="memo-text"
+        >
+          <span class="event-title">Memo: </span>
+          {{ attr.customData.text }}
+        </p>
+
+        <!-- PLAN -->
+        <p
+          v-else-if="attr.customData && attr.customData.type === 'plan'"
+          class="plan-text"
+        >
+          <span class="event-title">Plan: </span>
+          {{ attr.customData.text }}
+        </p>
+
+        <!-- QUEST -->
+        <div
+          v-else-if="attr.customData && attr.customData.type === 'quest'"
+          class="quest-block"
+        >
+          <p class="quest-meta">
+            Quest – {{ attr.customData.userName }} –
+            <span class="quest-status">
+              {{ attr.customData.completed ? 'completed' : 'failed' }}
+            </span>
+          </p>
+          <p class="quest-text">
+            {{ attr.customData.text }}
+          </p>
         </div>
-    </Transition>
+      </div>
+    </div>
+  </div>
+</Transition>
+
   </div>
 </template>
 
 <script setup>
 import { ref, computed } from 'vue';
 import { Calendar } from 'v-calendar';
-import { getAllQuests, questVersion } from '../composables/useDailyQuests';
+import { questVersion,
+  getQuestsForCalendar, } from '../composables/useDailyQuests';
 const props = defineProps({
   memos: { type: Array, default: () => [] },
   plans: { type: Array, default: () => [] },
@@ -130,29 +180,42 @@ const attributes = computed(() => {
     .filter(Boolean);
 
   // quests
-  let questEvents = [];
-  if (typeof window !== 'undefined') {
-    questEvents = getAllQuests()
-      .filter((q) => q.completed)
-      .map((q) => {
-        const date = processDate(q.date);
-        if (!date) return null;
-        return {
-          key: `quest-${q.date}`,
-          dates: date,
-          dot: { color: 'gold', class: 'quest-dot' },
-          customData: {
-            type: 'quest',
-            text: q.text || 'Daily quest completed',
-          },
-        };
-      })
-      .filter(Boolean);
-  }
+  questVersion.value; // force recompute when quests change
 
-  return [...memoEvents, ...planEvents, ...questEvents];
+  const allQuests = getQuestsForCalendar() || [];
+
+  const questsByDate = allQuests
+    .filter((q) => q.date) // date is "YYYY-MM-DD"
+    .reduce((acc, q) => {
+      const key = q.date;
+      if (!acc[key]) acc[key] = [];
+      acc[key].push(q);
+      return acc;
+    }, {});
+
+  const questAttrs = [];
+
+  Object.entries(questsByDate).forEach(([dateStr, questList]) => {
+    // at most 2 for your couple
+    questList.slice(0, 2).forEach((q, idx) => {
+      const side = idx === 0 ? 'left' : 'right';
+      questAttrs.push({
+        key: `quest-${dateStr}-${q.userId}`,
+        dates: dateStr,
+        customData: {
+          type: 'quest',
+          side,
+          userId: q.userId,
+          userName: q.userName ,
+          text: q.text || '',
+          completed: !!q.completed,
+        },
+      });
+    });
+  });
+
+  return [...memoEvents, ...planEvents, ...questAttrs];
 });
-
 
 </script>
 
@@ -202,7 +265,7 @@ const attributes = computed(() => {
 .custom-calendar .vc-weekday { font-weight: 600; }
 .custom-day-content { width: 100%; height: 100%; cursor: pointer; }
 .day-label { color: #dbb406; font-family: 'Great Vibes', cursive; font-style: italic; font-size: 1.2em; }
-.custom-calendar .vc-dots { gap: 4px; }
+.custom-calendar .vc-dots { display:none }
 .custom-calendar .vc-dot.memo-dot { background: magenta !important; }
 .custom-calendar .vc-dot.plan-dot { background: turquoise !important; }
 --vc-nav-container { background-color: transparent; }
@@ -340,6 +403,100 @@ const attributes = computed(() => {
 .custom-calendar .vc-dot.quest-dot {
   background: radial-gradient(circle, gold, #ffb400) !important;
   box-shadow: 0 0 6px rgba(255, 215, 0, 0.9);
+}
+/* Make sure the custom day content can position stuff */
+.custom-day-content {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+/* The day number you already had */
+.day-label {
+  color: #dbb406;
+  font-family: 'Great Vibes', cursive;
+  font-style: italic;
+  font-size: 1.2em;
+  position: relative;
+  z-index: 1;
+}
+
+/* Row of dots below the number */
+.custom-day-dots {
+  display: flex;
+  gap: 4px;
+  margin-top: 2px;
+  z-index: 1;
+}
+
+.custom-day-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+/* Reuse your colors */
+.custom-day-dot.memo-dot {
+  background: magenta;
+  box-shadow: 0 0 4px rgba(255, 0, 255, 0.9);
+}
+
+.custom-day-dot.plan-dot {
+  background: turquoise;
+  box-shadow: 0 0 4px rgba(0, 255, 255, 0.9);
+}
+
+/* Quest vertical bars, anchored to the sides of the day cell */
+.quest-bar {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  width: 3px;
+  border-radius: 999px;
+  opacity: 0.95;
+  z-index: 0;
+}
+
+/* Left bar – magenta */
+.quest-bar-left {
+  left: 3px;
+  background: linear-gradient(to bottom, magenta, rgba(255, 0, 255, 0.4));
+  box-shadow: 0 0 6px rgba(255, 0, 255, 0.7);
+}
+
+/* Right bar – cyan */
+.quest-bar-right {
+  right: 3px;
+  background: linear-gradient(to bottom, cyan, rgba(0, 255, 255, 0.4));
+  box-shadow: 0 0 6px rgba(0, 255, 255, 0.7);
+}
+/* Quest entries in the modal */
+.modal-content .quest-block {
+  margin-top: 10px;
+  margin-bottom: 8px;
+}
+
+.modal-content .quest-meta {
+  color: gold;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.modal-content .quest-status {
+  text-transform: lowercase;
+}
+
+.modal-content .quest-text {
+  margin-top: 2px;
+  color: gold;
+  font-size: 0.9rem;
+  font-style: italic;
+  opacity: 0.9;
 }
 
 </style>
