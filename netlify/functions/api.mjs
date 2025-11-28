@@ -11,7 +11,7 @@ import { v2 as cloudinary } from 'cloudinary';
 // Import route handlers
 import createPlansRouter from './routes/plans.mjs';
 import createMemosRouter from './routes/memos.mjs';
-import questsRouter from './routes/quests.mjs';
+import createQuestsRouter from './routes/quests.mjs';
 let db;
 
 // --- Dual-Environment Firebase Initialization ---
@@ -225,7 +225,7 @@ apiRouter.use(checkDb);
 // Feature-specific routes
 apiRouter.use('/plans', createPlansRouter(db, sendPushNotification));
 apiRouter.use('/memos', createMemosRouter(db, cloudinary, extractPublicId, sendPushNotification));
-
+apiRouter.use('/quests', createQuestsRouter(db, sendPushNotification));
 // Standalone registration endpoint (can be kept here or moved)
 app.post('/api/register', authenticateToken, checkDb, async (req, res) => {
   const { token } = req.body;

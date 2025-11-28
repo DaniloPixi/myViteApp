@@ -94,15 +94,15 @@ async function completeQuest() {
         const idToken = await user.getIdToken();
 
         const res = await fetch(
-          '/.netlify/functions/api/api/quests/notify-completed',
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${idToken}`, // <<<<<< THIS is what authenticateToken reads
-            },
-            body: JSON.stringify(payload),
-          },
+          '/.netlify/functions/api/api/quests', // <- now just /quests
+  {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${idToken}`, // from auth.currentUser.getIdToken()
+    },
+    body: JSON.stringify(payload),
+  },
         );
 
         if (!res.ok) {
