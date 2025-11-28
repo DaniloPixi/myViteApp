@@ -1,6 +1,6 @@
 <template>
-  <!-- NOT COMPLETED STATE: full card -->
-  <div v-if="!quest || !quest.completed" class="daily-quest-card">
+  <!-- NOT COMPLETED FOR THIS USER: full card -->
+  <div v-if="!isCompletedForMe" class="daily-quest-card">
     <div class="dq-header">
       <span class="dq-label">Daily Quest</span>
       <span class="dq-date">{{ formattedDate }}</span>
@@ -22,7 +22,7 @@
     </div>
   </div>
 
-  <!-- COMPLETED STATE: minimal pill -->
+  <!-- COMPLETED FOR THIS USER: minimal pill -->
   <div v-else class="daily-quest-completed">
     <span class="dq-completed-pill">
       Quest completed ✨
@@ -30,21 +30,21 @@
   </div>
 </template>
 
-
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue';
 import {
   getOrCreateQuestForDate,
   markQuestCompleted,
-} from '../composables/useDailyQuests'; // <-- make sure this path/name matches your file
+} from '../composables/useDailyQuests';
 import { auth } from '../firebase';
+
 const props = defineProps({
   // optional, defaults to "today" on this device
   date: {
     type: [String, Date],
     default: () => new Date(),
   },
-  // who is completing the quest – you can wire this to your auth user uid later
+  // who is completing the quest – pass the authenticated user's uid
   currentUserId: {
     type: String,
     default: null,
@@ -66,6 +66,19 @@ const formattedDate = computed(() =>
   }),
 );
 
+// 🔑 Is this quest completed for THIS user?
+const isCompletedForMe = computed(() => {
+  if (!quest.value) return false;
+
+  // If we know who the user is and we have a completions map, use that
+  if (props.currentUserId && quest.value.completions) {
+    return !!quest.value.completions[props.currentUserId];
+  }
+
+  // Fallback: global completed flag
+  return !!quest.value.completed;
+});
+
 async function loadQuest() {
   loading.value = true;
   try {
@@ -78,15 +91,18 @@ async function loadQuest() {
     loading.value = false;
   }
 }
+
 async function completeQuest() {
-  if (quest.value?.completed || loading.value) return;
+  if (isCompletedForMe.value || loading.value) return;
   loading.value = true;
   try {
+    // 1) update Firestore with per-user completion
     const updated = await markQuestCompleted(parsedDate.value, props.currentUserId);
     quest.value = updated;
     emit('quest-completed', updated);
     emit('quest-updated', updated);
 
+    // 2) notify backend to send push to the other user
     const payload = {
       date: updated.date || parsedDate.value.toISOString().slice(0, 10),
       text: updated.text,
@@ -100,14 +116,13 @@ async function completeQuest() {
         const idToken = await user.getIdToken();
 
         const res = await fetch('/api/quests', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-    Authorization: `Bearer ${idToken}`, // from auth.currentUser.getIdToken()
-  },
-  body: JSON.stringify(payload),
-});
-
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${idToken}`,
+          },
+          body: JSON.stringify(payload),
+        });
 
         if (!res.ok) {
           console.warn(
@@ -128,7 +143,6 @@ async function completeQuest() {
     loading.value = false;
   }
 }
-
 
 onMounted(() => {
   loadQuest();
@@ -219,6 +233,7 @@ watch(
     inset 0 0 6px rgba(0, 255, 255, 0.7),
     0 0 10px rgba(0, 255, 255, 0.5);
 }
+
 .daily-quest-completed {
   display: flex;
   justify-content: center;
