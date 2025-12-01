@@ -1,6 +1,6 @@
 // src/composables/useTimeCapsules.js
 import { ref, computed } from 'vue';
-import { auth } from '../firebase'; // same place you import auth elsewhere
+import { auth } from '../firebase';
 
 const capsules = ref([]);
 const loading = ref(false);
@@ -57,6 +57,7 @@ async function fetchTimeCapsules() {
       list = [];
     }
 
+    // 🔹 IMPORTANT: no per-user filtering here – whatever backend returns is what everyone sees
     capsules.value = list;
     initialized = true;
   } catch (e) {
@@ -74,7 +75,7 @@ function ensureLoadedOnce() {
 }
 
 // Helpers for UI
-function isLocked(capsule) {
+export function isLocked(capsule) {
   if (!capsule || !capsule.unlockAt) return false;
   const now = Date.now();
   const t = new Date(capsule.unlockAt).getTime();
@@ -83,10 +84,12 @@ function isLocked(capsule) {
 }
 
 // if backend only sets openedAt, treat that as opened too
-function isOpened(capsule) {
+export function isOpened(capsule) {
   return !!capsule?.opened || !!capsule?.openedAt;
 }
 
+// All capsules, sorted by unlock time ascending.
+// 🔹 No user-based filtering here.
 const sortedCapsules = computed(() => {
   ensureLoadedOnce();
   return [...capsules.value].sort((a, b) => {
@@ -96,6 +99,7 @@ const sortedCapsules = computed(() => {
   });
 });
 
+// Convenience subsets by time only (not by user)
 const upcomingCapsules = computed(() => {
   const now = Date.now();
   return sortedCapsules.value.filter((c) => {

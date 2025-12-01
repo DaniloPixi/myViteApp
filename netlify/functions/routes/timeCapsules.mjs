@@ -22,7 +22,7 @@ export default function createTimeCapsulesRouter(db, sendPushNotification) {
 
   /**
    * GET /api/time-capsules
-   * List all capsules relevant to the current user (sent OR received).
+   * List ALL capsules for any authenticated user.
    */
   router.get('/', async (req, res) => {
     const { uid } = req.user || {};
@@ -34,30 +34,18 @@ export default function createTimeCapsulesRouter(db, sendPushNotification) {
 
     try {
       const col = db.collection('timeCapsules');
+      const snap = await col.get();
 
-      // Firestore doesn't support OR directly, so we do two queries and merge
-      const sentSnap = await col.where('fromUid', '==', uid).get();
-      const recvSnap = await col.where('toUid', '==', uid).get();
-
-      const docsMap = new Map();
-
-      sentSnap.forEach((docSnap) => {
-        docsMap.set(docSnap.id, { id: docSnap.id, ...docSnap.data() });
+      const items = [];
+      snap.forEach((docSnap) => {
+        items.push({ id: docSnap.id, ...docSnap.data() });
       });
-
-      recvSnap.forEach((docSnap) => {
-        if (!docsMap.has(docSnap.id)) {
-          docsMap.set(docSnap.id, { id: docSnap.id, ...docSnap.data() });
-        }
-      });
-
-      const items = Array.from(docsMap.values());
 
       // Optional: sort by unlockAt ascending
       items.sort((a, b) => {
         const da = a.unlockAt ? new Date(a.unlockAt).getTime() : 0;
-        const dbv = b.unlockAt ? new Date(b.unlockAt).getTime() : 0;
-        return da - dbv;
+        const db = b.unlockAt ? new Date(b.unlockAt).getTime() : 0;
+        return da - db;
       });
 
       return res.status(200).json({ success: true, items });

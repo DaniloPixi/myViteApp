@@ -127,7 +127,7 @@
   });
   
   // TODO: replace with real partner UID + name
-  const PARTNER_UID = 'PUT_PARTNER_UID_HERE';
+  const PARTNER_UID = 'AWAdDBGujGMAwzywnc8CVaBAst83';
   const PARTNER_NAME = 'Eva';
   
   // --- auth context ---
@@ -686,7 +686,7 @@
 
   .tc-card {
     flex: 0 1 calc(33.333% - 0.75rem); /* ~3 per row */
-    border-radius: 18px;
+    border-radius: 75px;
   }
 }
 
