@@ -109,6 +109,7 @@ async function ensureQuestsLoaded(userId) {
 
 // PUBLIC: get or create quest for a given date FOR A SPECIFIC USER
 // ⬇️ now takes userName too, provided by the caller
+// PUBLIC: get or create quest for a given date FOR A SPECIFIC USER
 export async function getOrCreateQuestForDate(
   date = new Date(),
   userId,
@@ -122,7 +123,7 @@ export async function getOrCreateQuestForDate(
   const docId = `${userId}_${key}`;
   const questDocRef = doc(db, 'dailyQuests', docId);
 
-  // start loading cache in background
+  // start loading per-user cache in background
   ensureQuestsLoaded(userId);
 
   let snap = await getDoc(questDocRef);
@@ -144,16 +145,23 @@ export async function getOrCreateQuestForDate(
 
   await setDoc(questDocRef, newQuest, { merge: true });
 
-  // refresh cache for this user
+  // refresh per-user cache
   await fetchAllQuestsFromFirestore(userId);
 
-  // re-read to include serverTimestamp, etc.
+  // 🔥 invalidate calendar-wide cache so next calendar read refetches
+  calendarQuestCache.value.loaded = false;
+  calendarQuestCache.value.items = [];
+  calendarQuestCache.value.loading = false;
+
+  // re-read so we return whatever Firestore actually has (timestamps, etc.)
   snap = await getDoc(questDocRef);
   return { id: docId, ...snap.data() };
 }
 
+
 // PUBLIC: mark quest completed for a given date FOR A SPECIFIC USER
 // ⬇️ now takes userName too
+// PUBLIC: mark quest completed for a given date FOR A SPECIFIC USER
 export async function markQuestCompleted(
   date = new Date(),
   userId,
@@ -188,7 +196,6 @@ export async function markQuestCompleted(
     await setDoc(questDocRef, newQuest, { merge: true });
   } else {
     const data = snap.data() || {};
-    // patch missing name/text in old docs if needed
     await setDoc(
       questDocRef,
       {
@@ -200,8 +207,13 @@ export async function markQuestCompleted(
     );
   }
 
-  // refresh cache
+  // refresh per-user cache
   await fetchAllQuestsFromFirestore(userId);
+
+  // 🔥 invalidate calendar-wide cache so it will refetch on next access
+  calendarQuestCache.value.loaded = false;
+  calendarQuestCache.value.items = [];
+  calendarQuestCache.value.loading = false;
 
   // re-read
   snap = await getDoc(questDocRef);
@@ -210,6 +222,7 @@ export async function markQuestCompleted(
     ...snap.data(),
   };
 }
+
 
 // PUBLIC: get all quests for a given user (from cache)
 export function getAllQuests(userId) {

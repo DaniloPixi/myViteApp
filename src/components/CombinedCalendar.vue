@@ -10,92 +10,104 @@
       class="custom-calendar"
     >
       <template #day-content="{ day, attributes }">
-  <div class="custom-day-content" @click="openModal(attributes, $event)">
-    <!-- day number -->
-    <span class="day-label">{{ day.day }}</span>
+        <div class="custom-day-content" @click="openModal(attributes, $event)">
+          <!-- day number -->
+          <span class="day-label">{{ day.day }}</span>
 
-    <!-- quest bars -->
-    <div
-      class="quest-bar quest-bar-left"
-      v-if="attributes.some(a => a.customData?.type === 'quest' && a.customData.side === 'left')"
-    ></div>
+          <!-- quest bars: ONLY if that user's quest is completed -->
+          <div
+            class="quest-bar quest-bar-left"
+            v-if="attributes.some(a =>
+              a.customData?.type === 'quest' &&
+              a.customData.side === 'left' &&
+              a.customData.completed
+            )"
+          ></div>
 
-    <div
-      class="quest-bar quest-bar-right"
-      v-if="attributes.some(a => a.customData?.type === 'quest' && a.customData.side === 'right')"
-    ></div>
+          <div
+            class="quest-bar quest-bar-right"
+            v-if="attributes.some(a =>
+              a.customData?.type === 'quest' &&
+              a.customData.side === 'right' &&
+              a.customData.completed
+            )"
+          ></div>
 
-    <!-- custom dots row for memos & plans -->
-    <div class="custom-day-dots">
-      <span
-        v-for="(attr, idx) in attributes.filter(a => a.customData?.type === 'memo' || a.customData?.type === 'plan')"
-        :key="idx"
-        class="custom-day-dot"
-        :class="[
-          attr.customData.type === 'memo' ? 'memo-dot' : 'plan-dot'
-        ]"
-      ></span>
-    </div>
-  </div>
-</template>
-
+          <!-- custom dots row for memos & plans -->
+          <div class="custom-day-dots">
+            <span
+              v-for="(attr, idx) in attributes.filter(a =>
+                a.customData?.type === 'memo' ||
+                a.customData?.type === 'plan'
+              )"
+              :key="idx"
+              class="custom-day-dot"
+              :class="[
+                attr.customData.type === 'memo' ? 'memo-dot' : 'plan-dot'
+              ]"
+            ></span>
+          </div>
+        </div>
+      </template>
     </Calendar>
 
     <!-- Centered Modal with Animation -->
     <Transition name="modal">
-  <div
-    v-if="isModalVisible"
-    class="modal-overlay"
-    @click="closeModal"
-  >
-    <div
-      class="modal-content"
-      @click.stop
-      :style="modalStyle"
-    >
-      <button @click="closeModal" class="close-button">&times;</button>
-
-      <div v-for="attr in modalAttributes" :key="attr.key">
-        <!-- MEMO -->
-        <p
-          v-if="attr.customData && attr.customData.type === 'memo'"
-          class="memo-text"
-        >
-          <span class="event-title">Memo: </span>
-          {{ attr.customData.text }}
-        </p>
-
-        <!-- PLAN -->
-        <p
-          v-else-if="attr.customData && attr.customData.type === 'plan'"
-          class="plan-text"
-        >
-          <span class="event-title">Plan: </span>
-          {{ attr.customData.text }}
-        </p>
-
-        <!-- QUEST -->
+      <div
+        v-if="isModalVisible"
+        class="modal-overlay"
+        @click="closeModal"
+      >
         <div
-          v-else-if="attr.customData && attr.customData.type === 'quest'"
-          class="quest-block"
+          class="modal-content"
+          @click.stop
+          :style="modalStyle"
         >
-          <p class="quest-meta">
-            Quest – {{ attr.customData.userName }} –
-            <span class="quest-status">
-              {{ attr.customData.completed ? 'completed' : 'failed' }}
-            </span>
-          </p>
-          <p class="quest-text">
-            {{ attr.customData.text }}
-          </p>
+          <button @click="closeModal" class="close-button">&times;</button>
+
+          <div v-for="attr in modalAttributes" :key="attr.key">
+            <!-- MEMO -->
+            <p
+              v-if="attr.customData && attr.customData.type === 'memo'"
+              class="memo-text"
+            >
+              <span class="event-title">Memo: </span>
+              {{ attr.customData.text }}
+            </p>
+
+            <!-- PLAN -->
+            <p
+              v-else-if="attr.customData && attr.customData.type === 'plan'"
+              class="plan-text"
+            >
+              <span class="event-title">Plan: </span>
+              {{ attr.customData.text }}
+            </p>
+
+            <!-- QUEST -->
+            <div
+              v-else-if="attr.customData && attr.customData.type === 'quest'"
+              class="quest-block"
+            >
+              <p class="quest-meta">
+                Quest –
+                {{ attr.customData.userName || 'Unknown' }}
+                –
+                <span class="quest-status">
+                  {{ attr.customData.completed ? 'completed' : 'failed' }}
+                </span>
+              </p>
+              <p class="quest-text">
+                {{ attr.customData.text }}
+              </p>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
-  </div>
-</Transition>
-
+    </Transition>
   </div>
 </template>
+
 
 <script setup>
 import { ref, computed } from 'vue';

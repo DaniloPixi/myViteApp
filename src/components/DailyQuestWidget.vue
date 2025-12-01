@@ -1,5 +1,5 @@
 <template>
-  <!-- NOT COMPLETED FOR THIS USER: full card -->
+  <!-- NOT COMPLETED STATE: full card -->
   <div v-if="!quest || !quest.completed" class="daily-quest-card">
     <div class="dq-header">
       <span class="dq-label">Daily Quest</span>
@@ -20,20 +20,48 @@
         <span v-else>Mark as completed</span>
       </button>
     </div>
+
+    <!-- Stats & progress -->
+    <div class="dq-stats" v-if="statsReady">
+      <span v-if="streak > 0" class="dq-streak">
+        Streak: {{ streak }} day{{ streak === 1 ? '' : 's' }} 🔥
+      </span>
+      <span v-if="monthDayIndex > 0" class="dq-month">
+        This month: {{ monthCompletedCount }} / {{ monthDayIndex }} quests
+        <span v-if="allDoneSoFar" class="dq-month-flag">
+          – perfect so far 💫
+        </span>
+      </span>
+    </div>
   </div>
 
-  <!-- COMPLETED FOR THIS USER: minimal pill -->
+  <!-- COMPLETED STATE: minimal pill -->
   <div v-else class="daily-quest-completed">
     <span class="dq-completed-pill">
       Quest completed ✨
     </span>
+
+    <!-- Stats & progress even when completed -->
+    <div class="dq-stats" v-if="statsReady">
+      <span v-if="streak > 0" class="dq-streak">
+        Streak: {{ streak }} day{{ streak === 1 ? '' : 's' }} 🔥
+      </span>
+      <span v-if="monthDayIndex > 0" class="dq-month">
+        This month: {{ monthCompletedCount }} / {{ monthDayIndex }} quests
+        <span v-if="allDoneSoFar" class="dq-month-flag">
+          – perfect so far 💫
+        </span>
+      </span>
+    </div>
   </div>
 </template>
+
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue';
 import {
   getOrCreateQuestForDate,
   markQuestCompleted,
+  getAllQuests,
 } from '../composables/useDailyQuests';
 import { auth } from '../firebase';
 
@@ -56,6 +84,12 @@ const emit = defineEmits(['quest-completed', 'quest-updated']);
 const quest = ref(null);
 const loading = ref(false);
 
+// stats
+const statsReady = ref(false);
+const streak = ref(0);
+const monthCompletedCount = ref(0);
+const monthDayIndex = ref(0);
+
 const parsedDate = computed(() => new Date(props.date));
 
 const formattedDate = computed(() =>
@@ -65,6 +99,15 @@ const formattedDate = computed(() =>
     day: '2-digit',
   }),
 );
+
+// local helper: same date formatting as composable
+function dateKeyLocal(date) {
+  const d = new Date(date);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
 
 // Helper: get uid + friendly name from Firebase auth (or props)
 function getCurrentUserIdentity() {
@@ -77,6 +120,66 @@ function getCurrentUserIdentity() {
 
   return { uid, userName };
 }
+
+// compute streak + monthly progress for this user
+function computeStats(uid) {
+  statsReady.value = false;
+  if (!uid) return;
+
+  const all = getAllQuests(uid) || [];
+  if (!all.length) {
+    streak.value = 0;
+    monthCompletedCount.value = 0;
+    monthDayIndex.value = parsedDate.value.getDate();
+    statsReady.value = true;
+    return;
+  }
+
+  const current = parsedDate.value;
+  const year = current.getFullYear();
+  const month = current.getMonth(); // 0-based
+  const todayDay = current.getDate();
+  monthDayIndex.value = todayDay;
+
+  // all completed quests in this month (up to today)
+  const monthlyCompletedKeys = new Set();
+
+  all.forEach((q) => {
+    if (!q.date || !q.completed) return;
+    const d = new Date(q.date);
+    if (
+      d.getFullYear() === year &&
+      d.getMonth() === month &&
+      d.getDate() <= todayDay
+    ) {
+      monthlyCompletedKeys.add(dateKeyLocal(d));
+    }
+  });
+
+  monthCompletedCount.value = monthlyCompletedKeys.size;
+
+  // streak: walk backwards from today, day by day, as long as each date is in monthlyCompletedKeys
+  let s = 0;
+  const cursor = new Date(current);
+  while (true) {
+    const key = dateKeyLocal(cursor);
+    if (monthlyCompletedKeys.has(key)) {
+      s++;
+      cursor.setDate(cursor.getDate() - 1);
+    } else {
+      break;
+    }
+  }
+  streak.value = s;
+  statsReady.value = true;
+}
+
+const allDoneSoFar = computed(() => {
+  return (
+    monthDayIndex.value > 0 &&
+    monthCompletedCount.value === monthDayIndex.value
+  );
+});
 
 async function loadQuest() {
   loading.value = true;
@@ -97,6 +200,8 @@ async function loadQuest() {
 
     quest.value = q;
     emit('quest-updated', q);
+
+    computeStats(uid);
   } catch (e) {
     console.warn('[DailyQuestWidget] Failed to load quest', e);
   } finally {
@@ -127,6 +232,9 @@ async function completeQuest() {
     quest.value = updated;
     emit('quest-completed', updated);
     emit('quest-updated', updated);
+
+    // Recompute stats after completion
+    computeStats(uid);
 
     // 2) Notify backend → push notification to the other user
     const payload = {
@@ -183,7 +291,6 @@ watch(
   },
 );
 </script>
-
 
 <style scoped>
 .daily-quest-card {
@@ -265,7 +372,8 @@ watch(
 
 .daily-quest-completed {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
   margin-top: 6px;
   margin-bottom: 0.75rem;
 }
@@ -286,5 +394,28 @@ watch(
   box-shadow:
     0 0 10px rgba(0, 255, 255, 0.5),
     0 0 14px rgba(255, 0, 255, 0.35);
+}
+
+/* New stats section */
+.dq-stats {
+  margin-top: 6px;
+  font-size: 0.8rem;
+  color: #b0e8ff;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dq-streak {
+  color: #ffd27f;
+}
+
+.dq-month {
+  color: #b0e8ff;
+}
+
+.dq-month-flag {
+  color: #ffb400;
+  font-weight: 600;
 }
 </style>
