@@ -1,17 +1,16 @@
 <template>
     <div class="tc-view">
-      <header class="tc-header">
-        <div>
-          <h1 class="tc-title">Time Capsules</h1>
-          <p class="tc-subtitle">
-            Messages for future hearts. Locked until their time.
-          </p>
-        </div>
-  
-        <button class="tc-new-btn" @click="openCreate">
-          New time capsule ✨
-        </button>
-      </header>
+        <header class="tc-header">
+  <div class="tc-header-main">
+    <p class="tc-subtitle">
+      Messages for future hearts. Locked until their time.
+    </p>
+
+    <button class="tc-new-btn" @click="openCreate">
+      New time capsule ✨
+    </button>
+  </div>
+</header>
   
       <div v-if="loading" class="tc-status">Loading capsules...</div>
       <div v-else-if="error" class="tc-status tc-status-error">
@@ -457,31 +456,32 @@
   
   .tc-header {
     display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
-    gap: 1rem;
+    justify-content: center;
     margin-bottom: 1.8rem;
   }
-  
-  .tc-title {
-    margin: 0;
-    font-family: 'Great Vibes', cursive;
-    font-size: 2.7rem;
-    font-weight: normal;
-    color: #ff4fe9;
-    text-shadow: 0 0 12px rgba(255, 79, 233, 0.8);
+
+  .tc-header-main {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem 1.25rem;
+    text-align: center;
   }
   
   .tc-subtitle {
-    margin: 0.2rem 0 0;
-    font-size: 0.9rem;
-    opacity: 0.8;
+    margin: 0;
+    font-family: 'Great Vibes', cursive;
+    font-size: 1.9rem;
+    font-weight: normal;
+    color: #ff4fe9;
+    text-shadow: 0 0 10px rgba(255, 79, 233, 0.7);
   }
   
   .tc-new-btn {
     background: linear-gradient(45deg, #0f0f0f, #f3099270, #360101);
     color: rgb(95, 213, 243);
-    padding: 0.55rem 1.8rem;
+    padding: 0.45rem 1.7rem;
     border: none;
     border-radius: 999px;
     font-family: 'Great Vibes', cursive;
@@ -779,20 +779,22 @@
   /* Responsive */
   
   @media (max-width: 700px) {
-    .tc-header {
+    .tc-header-main {
       flex-direction: column;
-      align-items: flex-start;
+      align-items: center;
+      gap: 0.6rem;
     }
   
     .tc-new-btn {
-      align-self: flex-start;
-      font-size: 1.5rem;
-      padding-inline: 1.4rem;
+      width: 100%;
+      max-width: 260px;
+      font-size: 1.6rem;
     }
   
     .tc-card {
       border-radius: 20px;
     }
   }
-  </style>
+</style>
+
   
