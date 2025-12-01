@@ -40,20 +40,32 @@ registerRoute(
 
 // --- Firebase Background Message Handler ---
 messaging.onBackgroundMessage((payload) => {
-  console.log('[sw.js] Received background message ', payload);
+  const { notification, data } = payload || {};
+  const title = notification?.title || 'Notification';
+  const body = notification?.body || '';
 
-  const notificationTitle = payload.notification.title;
-  const notificationOptions = {
-    body: payload.notification.body,
-    icon: '/manifest-icon-192.maskable.png',
-    vibrate: [200, 100, 200], // Vibration pattern
-    requireInteraction: true, // Keep notification until interacted with
-    priority: 2, // Highest priority for heads-up display
-    data: payload.data
-  };
+  // Show normal notification
+  self.registration.showNotification(title, { body });
 
-  return self.registration.showNotification(notificationTitle, notificationOptions);
+  // If it’s a questCompleted event, poke all windows
+  if (data && data.type === 'questCompleted') {
+    const msg = {
+      type: 'questCompleted',
+      date: data.date,
+      text: data.text,
+      userName: data.userName,
+    };
+
+    self.clients
+      .matchAll({ type: 'window', includeUncontrolled: true })
+      .then((clients) => {
+        clients.forEach((client) => {
+          client.postMessage(msg);
+        });
+      });
+  }
 });
+
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();

@@ -119,7 +119,7 @@ const extractPublicId = (url) => {
     return null;
 };
 
-async function sendPushNotification(title, body, link, excludeUid) {
+async function sendPushNotification(title, body, link, excludeUid, data = null) {
     if (!db) {
         console.log("sendPushNotification: DB not available. Aborting.");
         return;
@@ -156,33 +156,44 @@ async function sendPushNotification(title, body, link, excludeUid) {
         }
 
         const message = {
-            notification: { title, body },
-            webpush: { 
-                fcm_options: { link },
-                notification: {
-                    icon: '/icon.svg',
-                    badge: '/icon.svg'
-                }
+          notification: { title, body },
+        
+          // extra payload for clients / service worker
+          ...(data
+            ? {
+                data: Object.fromEntries(
+                  Object.entries(data).map(([k, v]) => [String(k), String(v)]),
+                ),
+              }
+            : {}),
+        
+          webpush: {
+            fcm_options: { link },
+            notification: {
+              icon: '/icon.svg',
+              badge: '/icon.svg',
             },
-            android: {
-                priority: 'high',
-                notification: {
-                    channel_id: 'high_priority_notifications'
-                }
+          },
+          android: {
+            priority: 'high',
+            notification: {
+              channel_id: 'high_priority_notifications',
             },
-            apns: {
-                headers: {
-                    'apns-push-type': 'alert',
-                    'apns-priority': '10'
-                },
-                payload: {
-                    aps: {
-                        sound: 'default'
-                    }
-                }
+          },
+          apns: {
+            headers: {
+              'apns-push-type': 'alert',
+              'apns-priority': '10',
             },
-            tokens: recipientTokens,
+            payload: {
+              aps: {
+                sound: 'default',
+              },
+            },
+          },
+          tokens: recipientTokens,
         };
+        
         
         const response = await getMessaging().sendEachForMulticast(message);
         console.log(`Successfully sent ${response.successCount} messages.`);

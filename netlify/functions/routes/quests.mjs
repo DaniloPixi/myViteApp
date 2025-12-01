@@ -25,30 +25,38 @@ export default function createQuestsRouter(db, sendPushNotification) {
     try {
       const displayName = name || email || 'Your partner';
       const title = 'Quest not finished 👀';
-      const body = `${displayName} just completed today\'s quest. Yours is… not.`;
+      const body = `${displayName} just completed today’s quest. Yours is… not.`;
       const link = '/#/calendar';
 
-      // 🔍 Check completions from Firestore (admin db, not client)
-      const questRef = db.collection('dailyQuests').doc(date); // date is already "YYYY-MM-DD"
-      const questSnap = await questRef.get();
+      // ✅ NEW: check how many users have completed this date
+      // Schema now: dailyQuests has docs like `${userId}_${date}`
+      // with fields: { userId, date: 'YYYY-MM-DD', completed: true/false, ... }
+      const snap = await db
+        .collection('dailyQuests')
+        .where('date', '==', date)
+        .where('completed', '==', true)
+        .get();
 
-      let shouldSend = true;
+      const completedCount = snap.size;
 
-      if (questSnap.exists) {
-        const data = questSnap.data();
-        const completions = data.completions || {};
-        const completedUids = Object.keys(completions).filter(
-          (id) => completions[id],
-        );
-
-        // In a 2-person app: if 2+ people have completed, both are done -> no need to side-eye anyone
-        if (completedUids.length >= 2) {
-          shouldSend = false;
-        }
-      }
+      // In a 2-person app:
+      // - 0 or 1 completed  -> still someone to side-eye ✅
+      // - 2 or more         -> both done, no need to send
+      const shouldSend = completedCount < 2;
 
       if (shouldSend) {
-        await sendPushNotification(title, body, link, uid);
+        await sendPushNotification(
+          title,
+          body,
+          link,
+          uid, // exclude sender
+          {
+            type: 'questCompleted',
+            date,
+            text,
+            userName: displayName,
+          },
+        );
       }
 
       return res.status(200).json({ success: true });
@@ -61,7 +69,6 @@ export default function createQuestsRouter(db, sendPushNotification) {
       });
     }
   });
-
 
   return router;
 }

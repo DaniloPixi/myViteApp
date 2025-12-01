@@ -10,6 +10,7 @@ import {
   serverTimestamp,
   query,
   where,
+  onSnapshot,
 } from 'firebase/firestore';
 
 const QUEST_POOL = [
@@ -233,6 +234,7 @@ export function getAllQuests(userId) {
 }
 
 // -------------- EXTRA: calendar-wide quests (all users) --------------
+// -------------- EXTRA: calendar-wide quests (all users) --------------
 
 const calendarQuestCache = ref({
   items: [],
@@ -254,19 +256,40 @@ async function fetchAllQuestsForCalendar() {
     });
     calendarQuestCache.value.items = list;
     calendarQuestCache.value.loaded = true;
-    // reuse questVersion so calendar recomputes
+    calendarQuestCache.value.loading = false;
+
+    // bump so any computed using questVersion recomputes (calendar)
     bumpQuestVersion();
   } catch (e) {
     console.warn('[useDailyQuests] Failed to fetch all quests for calendar', e);
-  } finally {
     calendarQuestCache.value.loading = false;
   }
 }
 
-async function ensureCalendarQuestsLoaded() {
+function ensureCalendarQuestsLoaded() {
   if (calendarQuestCache.value.loaded || calendarQuestCache.value.loading) return;
+  // fire and forget
+  fetchAllQuestsForCalendar();
+}
+
+/**
+ * For calendar only: returns ALL quests (all users, all dates).
+ */
+export function getQuestsForCalendar() {
+  ensureCalendarQuestsLoaded();
+  return calendarQuestCache.value.items;
+}
+
+/**
+ * Called when we know something changed (e.g. via push message).
+ * Forces an immediate refetch + bump questVersion.
+ */
+export async function forceReloadCalendarQuests() {
+  calendarQuestCache.value.loaded = false;
+  calendarQuestCache.value.items = [];
   await fetchAllQuestsForCalendar();
 }
+
 
 /**
  * For calendar only: returns ALL quests (all users, all dates).
@@ -277,9 +300,3 @@ export function getAllQuestsForCalendar() {
   return calendarQuestCache.value.items;
 }
 
-/**
- * Alias name, since your component uses `getQuestsForCalendar`.
- */
-export function getQuestsForCalendar() {
-  return getAllQuestsForCalendar();
-}
