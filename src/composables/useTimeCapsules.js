@@ -38,7 +38,26 @@ async function fetchTimeCapsules() {
     }
 
     const data = await res.json();
-    capsules.value = Array.isArray(data.items) ? data.items : [];
+
+    // --- be more forgiving about response shape ---
+    let list = [];
+
+    if (Array.isArray(data)) {
+      list = data;
+    } else if (Array.isArray(data.items)) {
+      list = data.items;
+    } else if (Array.isArray(data.capsules)) {
+      list = data.capsules;
+    } else if (Array.isArray(data.data)) {
+      list = data.data;
+    }
+
+    if (!Array.isArray(list)) {
+      console.warn('[useTimeCapsules] Unexpected response shape from /api/time-capsules:', data);
+      list = [];
+    }
+
+    capsules.value = list;
     initialized = true;
   } catch (e) {
     console.warn('[useTimeCapsules] fetchTimeCapsules failed:', e);
@@ -63,8 +82,9 @@ function isLocked(capsule) {
   return t > now;
 }
 
+// if backend only sets openedAt, treat that as opened too
 function isOpened(capsule) {
-  return !!capsule?.opened;
+  return !!capsule?.opened || !!capsule?.openedAt;
 }
 
 const sortedCapsules = computed(() => {
@@ -124,7 +144,7 @@ export async function createTimeCapsule({ toUid, unlockAt, title, message }) {
   // refresh list so UI sees it
   await fetchTimeCapsules();
 
-  return data; // { success, id }
+  return data; // { success, id } or similar
 }
 
 // UPDATE an existing capsule (only creator, before unlock)
