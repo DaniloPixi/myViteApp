@@ -94,8 +94,8 @@
                 {{ attr.customData.userName || 'Unknown' }}
                 –
                 <span class="quest-status">
-                  {{ attr.customData.completed ? 'completed' : 'failed' }}
-                </span>
+  {{ questStatusFor(attr.customData) }}
+</span>
               </p>
               <p class="quest-text">
                 {{ attr.customData.text }}
@@ -212,22 +212,47 @@ const attributes = computed(() => {
     questList.slice(0, 2).forEach((q, idx) => {
       const side = idx === 0 ? 'left' : 'right';
       questAttrs.push({
-        key: `quest-${dateStr}-${q.userId}`,
-        dates: dateStr,
-        customData: {
-          type: 'quest',
-          side,
-          userId: q.userId,
-          userName: q.userName ,
-          text: q.text || '',
-          completed: !!q.completed,
-        },
+  key: `quest-${dateStr}-${q.userId}`,
+  dates: dateStr,
+  customData: {
+    type: 'quest',
+    side,
+    userId: q.userId,
+    userName: q.userName,
+    text: q.text || '',
+    completed: !!q.completed,
+    date: dateStr, // <-- needed for status logic
+  },
       });
     });
   });
 
   return [...memoEvents, ...planEvents, ...questAttrs];
 });
+// Helper to format quest status based on date + completion
+function questStatusFor(customData) {
+  if (!customData) return '';
+
+  if (customData.completed) return 'completed';
+
+  const dateStr = customData.date; // we’ll make sure this exists in attributes
+  if (!dateStr) return 'not completed';
+
+  // today as YYYY-MM-DD in local time
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const d = String(now.getDate()).padStart(2, '0');
+  const todayKey = `${y}-${m}-${d}`;
+
+  // dates are stored as YYYY-MM-DD → string comparison works
+  if (dateStr < todayKey) {
+    return 'failed';
+  }
+
+  return 'not completed';
+}
+
 
 </script>
 

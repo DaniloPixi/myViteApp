@@ -234,69 +234,64 @@ export function getAllQuests(userId) {
 }
 
 // -------------- EXTRA: calendar-wide quests (all users) --------------
-// -------------- EXTRA: calendar-wide quests (all users) --------------
+// -------------- EXTRA: calendar-wide quests (all users, realtime) --------------
 
 const calendarQuestCache = ref({
   items: [],
-  loaded: false,
-  loading: false,
+  ready: false,
 });
 
-async function fetchAllQuestsForCalendar() {
-  calendarQuestCache.value.loading = true;
-  try {
-    const snap = await getDocs(collection(db, 'dailyQuests'));
-    const list = [];
-    snap.forEach((docSnap) => {
-      const data = docSnap.data();
-      list.push({
-        id: docSnap.id,
-        ...data,
+let calendarUnsub = null;
+
+function attachCalendarListenerOnce() {
+  if (calendarUnsub || calendarQuestCache.value.ready) return;
+
+  const colRef = collection(db, 'dailyQuests');
+
+  calendarUnsub = onSnapshot(
+    colRef,
+    (snap) => {
+      const list = [];
+      snap.forEach((docSnap) => {
+        const data = docSnap.data();
+        list.push({
+          id: docSnap.id,
+          ...data,
+        });
       });
-    });
-    calendarQuestCache.value.items = list;
-    calendarQuestCache.value.loaded = true;
-    calendarQuestCache.value.loading = false;
 
-    // bump so any computed using questVersion recomputes (calendar)
-    bumpQuestVersion();
-  } catch (e) {
-    console.warn('[useDailyQuests] Failed to fetch all quests for calendar', e);
-    calendarQuestCache.value.loading = false;
-  }
-}
+      calendarQuestCache.value.items = list;
+      calendarQuestCache.value.ready = true;
 
-function ensureCalendarQuestsLoaded() {
-  if (calendarQuestCache.value.loaded || calendarQuestCache.value.loading) return;
-  // fire and forget
-  fetchAllQuestsForCalendar();
+      // let everything watching quests recompute (calendar)
+      bumpQuestVersion();
+    },
+    (err) => {
+      console.warn(
+        '[useDailyQuests] onSnapshot failed for calendar quests',
+        err,
+      );
+    },
+  );
 }
 
 /**
  * For calendar only: returns ALL quests (all users, all dates).
+ * A realtime listener keeps this in sync across both users.
  */
 export function getQuestsForCalendar() {
-  ensureCalendarQuestsLoaded();
+  attachCalendarListenerOnce();
   return calendarQuestCache.value.items;
 }
 
 /**
- * Called when we know something changed (e.g. via push message).
- * Forces an immediate refetch + bump questVersion.
+ * Optional: keep this around if something calls it (no-op with realtime).
  */
 export async function forceReloadCalendarQuests() {
-  calendarQuestCache.value.loaded = false;
-  calendarQuestCache.value.items = [];
-  await fetchAllQuestsForCalendar();
+  // With onSnapshot, Firestore pushes updates automatically.
+  // You can leave this as a no-op or force reattach if you like:
+  calendarQuestCache.value.ready = false;
+  attachCalendarListenerOnce();
 }
 
-
-/**
- * For calendar only: returns ALL quests (all users, all dates).
- * Uses a separate cache from the per-user one.
- */
-export function getAllQuestsForCalendar() {
-  ensureCalendarQuestsLoaded();
-  return calendarQuestCache.value.items;
-}
 
