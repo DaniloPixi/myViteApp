@@ -12,6 +12,7 @@ import { v2 as cloudinary } from 'cloudinary';
 import createPlansRouter from './routes/plans.mjs';
 import createMemosRouter from './routes/memos.mjs';
 import createQuestsRouter from './routes/quests.mjs';
+import createTimeCapsulesRouter from './routes/timeCapsules.mjs';
 let db;
 
 // --- Dual-Environment Firebase Initialization ---
@@ -237,6 +238,7 @@ apiRouter.use(checkDb);
 apiRouter.use('/plans', createPlansRouter(db, sendPushNotification));
 apiRouter.use('/memos', createMemosRouter(db, cloudinary, extractPublicId, sendPushNotification));
 apiRouter.use('/quests', createQuestsRouter(db, sendPushNotification));
+apiRouter.use('/time-capsules', createTimeCapsulesRouter(db, sendPushNotification));
 // Standalone registration endpoint (can be kept here or moved)
 app.post('/api/register', authenticateToken, checkDb, async (req, res) => {
   const { token } = req.body;

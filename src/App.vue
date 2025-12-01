@@ -1,13 +1,9 @@
-
 <template>
   <P5StarfieldBackground>
     <CursorTrail />
     <!-- In-App Notification Banner -->
-    <InAppNotification
-      :title="inAppNotification.title"
-      :body="inAppNotification.body"
-      v-model:visible="inAppNotification.visible"
-    />
+    <InAppNotification :title="inAppNotification.title" :body="inAppNotification.body"
+      v-model:visible="inAppNotification.visible" />
 
     <!-- Fixed Notification Controls -->
     <div v-if="user && currentView === 'home' && supportsNotifications" class="notification-control-fixed">
@@ -22,20 +18,15 @@
     </button>
 
     <div class="sticky-header">
-      <Sidebar 
-        v-if="currentView === 'plans' || currentView === 'memos'"
-        v-model:location="locationFilter"
-        v-model:hashtags="hashtagFilter"
-        v-model:date="dateFilter"
-        v-model:time="timeFilter"
-        v-model:duration="durationFilter" 
-      />
+      <Sidebar v-if="currentView === 'plans' || currentView === 'memos'|| currentView === 'capsules'" v-model:location="locationFilter"
+        v-model:hashtags="hashtagFilter" v-model:date="dateFilter" v-model:time="timeFilter"
+        v-model:duration="durationFilter" />
       <header class="page-header" v-if="currentView === 'home'">
-          <h1 v-if="user" class="bounce-in">Welcome, {{ user.displayName || user.email }}</h1>
-          <h1 v-else class="bounce-in">Auth Portal</h1>
+        <h1 v-if="user" class="bounce-in">Welcome, {{ user.displayName || user.email }}</h1>
+        <h1 v-else class="bounce-in">Auth Portal</h1>
       </header>
     </div>
-    
+
 
     <!-- The main content card -->
     <div class="centered-content-container">
@@ -45,9 +36,17 @@
           <div v-if="user">
             <!-- View Navigation -->
             <nav class="view-nav">
-              <a @click="currentView = 'home'" :class="{ active: currentView === 'home' }" :style="getNavStyle('home', 0)">Home</a>
-              <a @click="currentView = 'memos'" :class="{ active: currentView === 'memos' }" :style="getNavStyle('memos', 1)">Moments</a>
-              <a @click="currentView = 'plans'" :class="{ active: currentView === 'plans' }" :style="getNavStyle('plans', 2)">Plans</a>
+              <a @click="currentView = 'home'" :class="{ active: currentView === 'home' }"
+                :style="getNavStyle('home', 0)">Home</a>
+              <a @click="currentView = 'memos'" :class="{ active: currentView === 'memos' }"
+                :style="getNavStyle('memos', 1)">Moments</a>
+              <a @click="currentView = 'plans'" :class="{ active: currentView === 'plans' }"
+                :style="getNavStyle('plans', 2)">Plans</a>
+              <!-- 🔥 NEW: Time Capsules tab -->
+              <a @click="currentView = 'capsules'" :class="{ active: currentView === 'capsules' }"
+                :style="getNavStyle('capsules', 3)">
+                Time Capsules
+              </a>
             </nav>
 
             <!-- Conditional Views -->
@@ -55,29 +54,21 @@
               <div :key="currentView">
                 <div v-if="currentView === 'home'">
                   <button @click="sendLoveNotification" class="love-button">Send Love</button>
-                    <div class="calendar-container">
-                      <DailyQuestWidget />
-                        <CombinedCalendar
-                            :memos="memos"
-                            :plans="plans"
-                        />
-                    </div>
+                  <div class="calendar-container">
+                    <DailyQuestWidget />
+                    <CombinedCalendar :memos="memos" :plans="plans" />
+                  </div>
                 </div>
 
-                <MemosAndMoments v-if="currentView === 'memos'" 
-                  :location-filter="locationFilter"
-                  :hashtag-filter="hashtagFilter"
-                  :date-filter="dateFilter"
-                />
-                <Plans 
-                  v-if="currentView === 'plans'" 
-                  :user="user"
-                  :location-filter="locationFilter"
-                  :hashtag-filter="hashtagFilter"
-                  :date-filter="dateFilter"
-                  :time-filter="timeFilter"
-                  :duration-filter="durationFilter" 
-                />
+                <MemosAndMoments v-if="currentView === 'memos'" :location-filter="locationFilter"
+                  :hashtag-filter="hashtagFilter" :date-filter="dateFilter" />
+                <Plans v-if="currentView === 'plans'" :user="user" :location-filter="locationFilter"
+                  :hashtag-filter="hashtagFilter" :date-filter="dateFilter" :time-filter="timeFilter"
+                  :duration-filter="durationFilter" />
+                  <TimeCapsulesView
+      v-if="currentView === 'capsules'"
+      :date-filter="dateFilter"
+    />
               </div>
             </transition>
           </div>
@@ -114,6 +105,8 @@ import InAppNotification from './components/InAppNotification.vue';
 import CursorTrail from './components/CursorTrail.vue';
 import P5StarfieldBackground from './components/P5StarfieldBackground.vue';
 import DailyQuestWidget from './components/DailyQuestWidget.vue';
+import TimeCapsulesView from './views/TimeCapsulesView.vue';
+
 
 
 // --- PWA Auto-Update Logic ---
@@ -170,11 +163,11 @@ const handleSwitchForm = (formName) => {
 };
 
 const getNavStyle = (view, index) => {
-    const style = { '--active-color': navColors.value[index] };
-    if (currentView.value === view) {
-        style.color = navColors.value[index];
-    }
-    return style;
+  const style = { '--active-color': navColors.value[index] };
+  if (currentView.value === view) {
+    style.color = navColors.value[index];
+  }
+  return style;
 };
 
 // --- Firestore Data Subscription for Calendar ---
@@ -277,8 +270,8 @@ async function sendLoveNotification() {
       }
     });
     if (!response.ok) {
-        const errorBody = await response.json();
-        throw new Error(errorBody.message || `Server responded with ${response.status}`);
+      const errorBody = await response.json();
+      throw new Error(errorBody.message || `Server responded with ${response.status}`);
     }
     const result = await response.json();
     inAppNotification.title = "Message Sent!";
@@ -296,15 +289,15 @@ async function sendTokenToServer(token) {
     const idToken = await user.value.getIdToken(true);
     const response = await fetch('/api/register', {
       method: 'POST',
-      headers: { 
+      headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${idToken}` 
+        'Authorization': `Bearer ${idToken}`
       },
       body: JSON.stringify({ token: token }),
     });
     if (!response.ok) {
-        const errorBody = await response.json();
-        throw new Error(errorBody.message || `Server responded with ${response.status}`);
+      const errorBody = await response.json();
+      throw new Error(errorBody.message || `Server responded with ${response.status}`);
     }
     const result = await response.json();
     console.log('Token successfully registered with the server:', result.message);
@@ -317,28 +310,30 @@ async function sendTokenToServer(token) {
 messaging.onMessage((payload) => {
   console.log('Foreground message received.', payload);
   const { notification } = payload;
-  
+
   if (notification && notification.title && notification.body) {
     inAppNotification.title = notification.title;
     inAppNotification.body = notification.body;
     inAppNotification.visible = true;
   } else {
-      console.warn("Received foreground message with incomplete data.", payload);
+    console.warn("Received foreground message with incomplete data.", payload);
   }
 });
 
 
 // --- Lifecycle Hooks ---
 onMounted(() => {
-  // This code only runs on the client, where `window` is guaranteed to exist.
   supportsNotifications.value = 'Notification' in window;
   if (supportsNotifications.value) {
     notificationPermission.value = Notification.permission;
   }
+
   const colors = ['magenta', 'turquoise'];
   const startingColorIndex = Math.round(Math.random());
-  navColors.value = ['home', 'memos', 'plans'].map((_, index) => {
-      return colors[(startingColorIndex + index) % 2];
+
+  // 🔥 include 'capsules' as a 4th item
+  navColors.value = ['home', 'memos', 'plans', 'capsules'].map((_, index) => {
+    return colors[(startingColorIndex + index) % 2];
   });
 });
 
@@ -351,7 +346,6 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-
 .centered-content-container {
   display: flex;
   justify-content: center;
@@ -359,7 +353,8 @@ onUnmounted(() => {
 }
 
 .calendar-container {
-  max-width: 450px; /* Or any other width you prefer */
+  max-width: 450px;
+  /* Or any other width you prefer */
   margin: 0 auto;
 }
 
@@ -368,6 +363,7 @@ onUnmounted(() => {
     transform: scale(0.5);
     opacity: 0;
   }
+
   100% {
     transform: scale(1);
     opacity: 1;
@@ -377,7 +373,8 @@ onUnmounted(() => {
 .love-button {
   font-family: 'Great Vibes', cursive;
   font-size: 1.8rem;
-  background-color: #0e0d0d00; /* A pink/magenta color */
+  background-color: #0e0d0d00;
+  /* A pink/magenta color */
   color: rgb(253, 8, 200);
   padding: 1rem 2rem;
   border-radius: 2rem;
@@ -396,8 +393,8 @@ onUnmounted(() => {
 }
 
 .bounce-in {
-  margin:auto;
-  padding-bottom:0px;
+  margin: auto;
+  padding-bottom: 0px;
   animation: bounce-in 1s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
 }
 
@@ -443,7 +440,8 @@ onUnmounted(() => {
 
 .notification-control-fixed {
   position: fixed;
-  bottom: 5rem; /* Positioned above the logout button */
+  bottom: 5rem;
+  /* Positioned above the logout button */
   left: 1.5rem;
   z-index: 10;
 }
@@ -455,7 +453,8 @@ onUnmounted(() => {
   font-weight: 500;
   cursor: pointer;
   transition: background-color 0.3s;
-  width: 110px; /* To match logout button roughly */
+  width: 110px;
+  /* To match logout button roughly */
   text-align: center;
 }
 
@@ -485,7 +484,7 @@ onUnmounted(() => {
 }
 
 .logout-button:hover {
-    background-color: rgba(245, 8, 245, 0.356);
+  background-color: rgba(245, 8, 245, 0.356);
 }
 
 .card.is-full-width {
@@ -514,7 +513,8 @@ onUnmounted(() => {
 
 @media (max-width: 768px) {
   .view-nav a {
-    font-size: 1.5rem; /* Adjust for smaller screens */
+    font-size: 1.5rem;
+    /* Adjust for smaller screens */
     margin: 0 1rem;
   }
 }
