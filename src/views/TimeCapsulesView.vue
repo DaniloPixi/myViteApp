@@ -27,9 +27,11 @@
   v-for="capsule in displayCapsules"
   :key="capsule.id"
   class="tc-card"
+  :data-capsule-id="capsule.id"
   :class="[
     isMine(capsule) ? 'tc-card-mine' : 'tc-card-theirs',
     isLocked(capsule) ? 'tc-card-locked' : 'tc-card-unlocked',
+    isTouchDevice && focusedCapsuleId === capsule.id ? 'tc-card-focused' : ''
   ]"
 >
   <div class="tc-card-main">
@@ -77,10 +79,11 @@
     >
       <span v-if="isLocked(capsule)">🔒 Locked</span>
       <span v-else-if="isOpened(capsule)">🔓 View</span>
-      <span v-else>Open</span>
+      <span v-else>🔓 Open</span>
     </button>
   </div>
 </div>
+
 
       </div>
   
@@ -108,7 +111,7 @@
   </template>
   
   <script setup>
-  import { ref, computed, onMounted } from 'vue';
+  import { ref, computed, onMounted,onUnmounted } from 'vue';
   import { auth } from '../firebase';
   import {
     useTimeCapsules,
@@ -125,7 +128,41 @@
       default: '',
     },
   });
-  
+  const isTouchDevice = ref(false);
+const focusedCapsuleId = ref(null);
+
+function updateFocusedCapsule() {
+  if (!isTouchDevice.value) return;
+
+  const cards = document.querySelectorAll('.tc-card[data-capsule-id]');
+  if (!cards.length) {
+    focusedCapsuleId.value = null;
+    return;
+  }
+
+  const viewportCenterY = window.innerHeight / 2;
+  let closestId = null;
+  let minDistance = Infinity;
+
+  cards.forEach((el) => {
+    const rect = el.getBoundingClientRect();
+    const centerY = rect.top + rect.height / 2;
+    const distance = Math.abs(centerY - viewportCenterY);
+
+    if (distance < minDistance) {
+      minDistance = distance;
+      closestId = el.dataset.capsuleId;
+    }
+  });
+
+  // Threshold so we don't focus stuff far off-screen
+  if (minDistance < 140) {
+    focusedCapsuleId.value = closestId;
+  } else {
+    focusedCapsuleId.value = null;
+  }
+}
+
   // TODO: replace with real partner UID + name
   const PARTNER_UID = 'AWAdDBGujGMAwzywnc8CVaBAst83';
   const PARTNER_NAME = 'Eva';
@@ -145,8 +182,27 @@
   } = useTimeCapsules();
   
   onMounted(() => {
-    fetchTimeCapsules();
-  });
+  fetchTimeCapsules();
+
+  isTouchDevice.value =
+    typeof window !== 'undefined' &&
+    ('ontouchstart' in window || navigator.maxTouchPoints > 0);
+
+  if (isTouchDevice.value) {
+    // initial calculation
+    setTimeout(updateFocusedCapsule, 200);
+    window.addEventListener('scroll', updateFocusedCapsule, { passive: true });
+    window.addEventListener('resize', updateFocusedCapsule);
+  }
+});
+
+onUnmounted(() => {
+  if (isTouchDevice.value) {
+    window.removeEventListener('scroll', updateFocusedCapsule);
+    window.removeEventListener('resize', updateFocusedCapsule);
+  }
+});
+
   
   // --- filtered list ---
   const displayCapsules = computed(() => {
@@ -447,44 +503,48 @@
 /* CARD – compact pill, ~1/5 of view width, centered content */
 
 .tc-card {
-  position: relative;
-  backdrop-filter: blur(8px);
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #fff;
-  padding: 0.55rem 0.7rem;
+    position: relative;
+    backdrop-filter: blur(8px);
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #fff;
+    padding: 0.55rem 0.7rem;
 
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: space-between;
-  text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    text-align: center;
 
-  flex: 0 1 calc(20% - 0.75rem);  /* target ~5 per row */
-  min-width: 150px;
-  max-width: 190px;
+    flex: 0 1 calc(20% - 0.75rem);
+    min-width: 150px;
+    max-width: 190px;
 
-  background:
-    radial-gradient(
-      circle at 10% 0%,
-      var(--tc-card-glow-a, rgba(0, 255, 255, 0.18)),
-      transparent 60%
-    ),
-    radial-gradient(
-      circle at 90% 100%,
-      var(--tc-card-glow-b, rgba(255, 0, 255, 0.18)),
-      transparent 60%
-    ),
-    rgba(0, 0, 0, 0.26);
+    background:
+      radial-gradient(
+        circle at 10% 0%,
+        var(--tc-card-glow-a, rgba(0, 255, 255, 0.18)),
+        transparent 60%
+      ),
+      radial-gradient(
+        circle at 90% 100%,
+        var(--tc-card-glow-b, rgba(255, 0, 255, 0.18)),
+        transparent 60%
+      ),
+      rgba(0, 0, 0, 0.26);
 
-  box-shadow:
-    inset 0 0 8px var(--bubble-inner-shadow-color, rgba(255, 0, 255, 0.4)),
-    0 0 12px var(--bubble-outer-shadow-color, rgba(0, 255, 255, 0.25));
-  transition:
-    box-shadow 0.3s cubic-bezier(0.25, 0.8, 0.25, 1),
-    background 0.25s ease,
-    border-color 0.25s ease;
-}
+    box-shadow:
+      inset 0 0 8px var(--bubble-inner-shadow-color, rgba(255, 0, 255, 0.4)),
+      0 0 12px var(--bubble-outer-shadow-color, rgba(0, 255, 255, 0.25));
+    transition:
+      box-shadow 0.3s cubic-bezier(0.25, 0.8, 0.25, 1),
+      background 0.25s ease,
+      border-color 0.25s ease,
+      transform 0.22s cubic-bezier(0.25, 0.8, 0.25, 1);
+    -webkit-font-smoothing: antialiased;
+    backface-visibility: hidden;
+  }
+
 
 .tc-card:hover {
   background:
@@ -687,8 +747,19 @@
   .tc-card {
     flex: 0 1 calc(33.333% - 0.75rem); /* ~3 per row */
     border-radius: 75px;
+    transform: scale(0.9);
+  }
+
+  .tc-card-focused {
+    transform: scale(1.3);
+    z-index: 2;
+    box-shadow:
+      inset 0 0 16px var(--bubble-inner-shadow-color, rgba(255, 0, 255, 0.7)),
+      0 0 22px var(--bubble-outer-shadow-color, rgba(0, 255, 255, 0.5));
   }
 }
+
+
 
 @media (max-width: 500px) {
   .tc-card {
