@@ -128,6 +128,9 @@
               <span v-if="isUploading" class="tc-media-upload-status">
                 Uploading… {{ uploadProgress }}%
               </span>
+              <span v-if="mediaPreviews.length" class="tc-media-count">
+                {{ mediaPreviews.length }}/3 attached
+              </span>
             </div>
 
             <div v-if="mediaPreviews.length" class="tc-media-previews">
@@ -137,9 +140,9 @@
                 class="tc-media-preview-item"
               >
                 <img
-                  v-if="preview.resource_type === 'image'"
+                  v-if="preview.resource_type === 'image' || !preview.resource_type"
                   :src="preview.url"
-                  :class="{ 'tc-media-adult-blur': preview.isAdult }"
+                  class="tc-media-thumb"
                 />
                 <video
                   v-else-if="preview.resource_type === 'video'"
@@ -156,17 +159,13 @@
                 >
                   ×
                 </button>
-
-                <button
-                  class="tc-media-adult-flag"
-                  @click.prevent="toggleAdultFlag(idx)"
-                  :class="{ 'tc-media-adult-flag-on': preview.isAdult }"
-                >
-                  18+
-                </button>
               </div>
             </div>
           </div>
+
+          <p v-if="localError" class="tc-error">
+            {{ localError }}
+          </p>
         </div>
       </div>
 
@@ -226,7 +225,6 @@ const props = defineProps({
   isSubmitting: { type: Boolean, default: false },
   submitError: { type: String, default: '' },
 
-  // Cloudinary config comes from parent (TimeCapsulesView)
   cloudinaryCloudName: { type: String, required: true },
   cloudinaryUploadPreset: { type: String, required: true },
 });
@@ -238,17 +236,18 @@ const formMessage = ref('');
 const formUnlockAt = ref('');
 const formRecipient = ref('partner'); // 'partner' | 'me'
 
-// media state (similar to memos)
-const mediaPreviews = ref([]); // { url, file?, resource_type, isAdult, source: 'new' | 'existing' }
+// media state
+// { url, file?, resource_type, source: 'new' | 'existing' }
+const mediaPreviews = ref([]);
 const isUploading = ref(false);
 const uploadProgress = ref(0);
 const localError = ref('');
 
-// merge parent submitting + local uploading
+// derived submitting state
 const isSubmitting = computed(() => props.isSubmitting || isUploading.value);
 const submitError = computed(() => props.submitError || localError.value);
 
-// title/subtitle depend on create vs edit
+// title/subtitle
 const modalTitle = computed(() =>
   props.capsule ? 'Edit your capsule' : 'Drop a new capsule into time'
 );
@@ -259,7 +258,6 @@ const modalSubtitle = computed(() =>
     : 'Choose who it’s for, when it unlocks, and what future hearts will read.'
 );
 
-// Recipient summary for editing
 const recipientSummary = computed(() => {
   const c = props.capsule;
   if (!c) return '';
@@ -270,7 +268,7 @@ const recipientSummary = computed(() => {
   return 'To your partner.';
 });
 
-// Initialize / update form when capsule prop changes
+// init/reset when capsule changes
 watch(
   () => props.capsule,
   (capsule) => {
@@ -302,14 +300,12 @@ watch(
         mediaPreviews.value = capsule.photos.map((media) => ({
           url: media.url,
           resource_type: media.resource_type || 'image',
-          isAdult: !!media.isAdult,
           source: 'existing',
         }));
       } else {
         mediaPreviews.value = [];
       }
     } else {
-      // Creating a new capsule: reset fields & prefill unlockAt to "tomorrow"
       formTitle.value = '';
       formMessage.value = '';
 
@@ -335,17 +331,19 @@ function emitClose() {
 
 /**
  * File handling / previews
+ * Limit total to 3 items.
  */
 function handleFileChange(event) {
   const files = Array.from(event.target.files || []);
-  const limit = 10;
+  const limit = 3;
   const remaining = limit - mediaPreviews.value.length;
 
   if (files.length > remaining) {
-    localError.value =
-      remaining <= 0
-        ? 'You’ve reached the maximum of 10 media files.'
-        : `You can only add ${remaining} more file${remaining === 1 ? '' : 's'}.`;
+    if (remaining <= 0) {
+      localError.value = 'You can only attach up to 3 media files per capsule.';
+    } else {
+      localError.value = `You can only add ${remaining} more file${remaining === 1 ? '' : 's'}.`;
+    }
     event.target.value = '';
     return;
   }
@@ -357,7 +355,6 @@ function handleFileChange(event) {
     mediaPreviews.value.push({
       url: URL.createObjectURL(file),
       file,
-      isAdult: false,
       resource_type,
       source: 'new',
     });
@@ -377,16 +374,10 @@ function removeMedia(index) {
   mediaPreviews.value.splice(index, 1);
 }
 
-function toggleAdultFlag(index) {
-  const item = mediaPreviews.value[index];
-  if (!item) return;
-  item.isAdult = !item.isAdult;
-}
-
 /**
- * Upload only the "new" files to Cloudinary, return clean objects for backend.
+ * Upload only the "new" files to Cloudinary.
  * Returns:
- *  - Array of { url, resource_type, isAdult } on success
+ *  - Array of { url, resource_type } on success
  *  - null on failure
  */
 async function uploadFiles() {
@@ -395,7 +386,6 @@ async function uploadFiles() {
   );
 
   if (!filesToUpload.length) {
-    // nothing new to upload
     return [];
   }
 
@@ -429,7 +419,6 @@ async function uploadFiles() {
 
       uploadedMedia.push({
         url: data.secure_url,
-        isAdult: !!preview.isAdult,
         resource_type: data.resource_type || resourceType,
       });
 
@@ -461,15 +450,13 @@ async function submitForm() {
 
   const newMedia = await uploadFiles();
   if (newMedia === null) {
-    // upload error already shown
     return;
   }
 
   const existingMedia = mediaPreviews.value
     .filter((p) => p.source === 'existing')
-    .map(({ url, isAdult, resource_type }) => ({
+    .map(({ url, resource_type }) => ({
       url,
-      isAdult: !!isAdult,
       resource_type: resource_type || 'image',
     }));
 
@@ -479,7 +466,7 @@ async function submitForm() {
     title: formTitle.value,
     message: formMessage.value,
     unlockAtLocal: formUnlockAt.value,
-    recipient: formRecipient.value, // used only on create
+    recipient: formRecipient.value,
     photos,
   });
 }
@@ -512,7 +499,7 @@ async function submitForm() {
   background:
     radial-gradient(circle at 15% 0%, rgba(0, 255, 255, 0.18), transparent 60%),
     radial-gradient(circle at 85% 100%, rgba(255, 0, 255, 0.2), transparent 65%),
-    rgba(0, 0, 0, 0.9); /* ~90% opaque */
+    rgba(0, 0, 0, 0.9);
   box-shadow:
     0 0 22px rgba(255, 0, 255, 0.55),
     0 0 34px rgba(0, 255, 255, 0.45);
@@ -840,6 +827,11 @@ async function submitForm() {
   color: #7ef7ff;
 }
 
+.tc-media-count {
+  font-size: 0.75rem;
+  opacity: 0.85;
+}
+
 .tc-media-previews {
   margin-top: 0.5rem;
   display: grid;
@@ -855,16 +847,12 @@ async function submitForm() {
   box-shadow: 0 0 8px rgba(255, 0, 255, 0.35);
 }
 
-.tc-media-preview-item img,
+.tc-media-thumb,
 .tc-media-video {
   display: block;
   width: 100%;
   height: 70px;
   object-fit: cover;
-}
-
-.tc-media-adult-blur {
-  filter: blur(8px);
 }
 
 .tc-media-remove {
@@ -879,25 +867,6 @@ async function submitForm() {
   color: #ff6b6b;
   font-size: 0.9rem;
   cursor: pointer;
-}
-
-.tc-media-adult-flag {
-  position: absolute;
-  bottom: 3px;
-  right: 3px;
-  border-radius: 4px;
-  border: 1px solid rgba(255, 255, 255, 0.8);
-  background: rgba(0, 0, 0, 0.7);
-  color: #f5f5ff;
-  font-size: 0.6rem;
-  padding: 1px 4px;
-  cursor: pointer;
-}
-
-.tc-media-adult-flag-on {
-  background: #ff6b6b;
-  color: #000;
-  border-color: #ff6b6b;
 }
 
 /* Modal footer */
@@ -1001,7 +970,7 @@ async function submitForm() {
   color: #ff6b6b;
 }
 
-/* Responsive tweaks */
+/* Responsive */
 
 @media (max-width: 700px) {
   .tc-modal {

@@ -19,47 +19,37 @@
         </p>
       </div>
 
-      <!-- MESSAGE -->
       <div class="tc-read-message-wrap">
         <p class="tc-read-message">
           {{ capsule.message || 'No message text.' }}
         </p>
       </div>
 
-      <!-- MEDIA GALLERY (NEW) -->
+      <!-- Media gallery -->
       <div
         v-if="capsule.photos && capsule.photos.length"
-        class="tc-read-media"
+        class="tc-read-media-gallery"
       >
         <div
-          v-for="(media, idx) in capsule.photos"
-          :key="idx"
+          v-for="(media, index) in capsule.photos"
+          :key="index"
           class="tc-read-media-item"
         >
           <img
             v-if="media.resource_type === 'image' || !media.resource_type"
             :src="media.url"
-            :class="{ 'tc-read-media-blur': media.isAdult }"
+            class="tc-read-media-img"
           />
           <video
             v-else-if="media.resource_type === 'video'"
             :src="media.url"
-            muted
-            loop
-            playsinline
             class="tc-read-media-video"
+            controls
+            playsinline
           ></video>
-
-          <span
-            v-if="media.isAdult"
-            class="tc-read-media-badge"
-          >
-            18+
-          </span>
         </div>
       </div>
 
-      <!-- META -->
       <div class="tc-read-meta">
         <p v-if="capsule.createdAt" class="tc-meta-line">
           <span class="tc-meta-label">Written</span>
@@ -71,7 +61,6 @@
         </p>
       </div>
 
-      <!-- FOOTER -->
       <div class="tc-modal-footer">
         <div class="tc-modal-footer-left">
           <p class="tc-footer-note">
@@ -82,9 +71,9 @@
               >
                 <path
                   d="M12.1 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5
-                     2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81
-                     14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.65
-                     11.54l-1.25 1.31z"
+                   2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81
+                   14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.65
+                   11.54l-1.25 1.31z"
                   fill="none"
                   stroke="magenta"
                   stroke-width="0.9"
@@ -137,7 +126,6 @@ function formatDate(raw) {
   });
 }
 
-// still available if you want it later
 const fromLabel = computed(() => (props.isMine ? 'You' : props.partnerName));
 </script>
 
@@ -158,7 +146,7 @@ const fromLabel = computed(() => (props.isMine ? 'You' : props.partnerName));
   z-index: 2600;
 }
 
-/* This sits on top of .modal-content animation from the calendar CSS */
+/* Same 70% width shell */
 .tc-modal {
   position: relative;
   width: min(70vw, 640px);
@@ -168,15 +156,13 @@ const fromLabel = computed(() => (props.isMine ? 'You' : props.partnerName));
   background:
     radial-gradient(circle at 15% 0%, rgba(0, 255, 255, 0.18), transparent 60%),
     radial-gradient(circle at 85% 100%, rgba(255, 0, 255, 0.2), transparent 65%),
-    rgba(0, 0, 0, 0.9); /* ~90% opaque, more transparency than before */
+    rgba(0, 0, 0, 0.9);
   box-shadow:
     0 0 22px rgba(255, 0, 255, 0.55),
     0 0 34px rgba(0, 255, 255, 0.45);
   padding: 1.6rem 1.7rem 1.2rem;
   color: #f5f5ff;
   overflow: hidden;
-
-  /* subtle continuous glow between magenta and cyan */
   animation: modal-glow 6s ease-in-out infinite alternate;
 }
 
@@ -274,7 +260,7 @@ const fromLabel = computed(() => (props.isMine ? 'You' : props.partnerName));
   text-transform: uppercase;
   letter-spacing: 0.12em;
   opacity: 0.9;
-  color: turquoise; /* cyan-ish project color */
+  color: turquoise;
 }
 
 .tc-modal-label-dot {
@@ -318,11 +304,9 @@ const fromLabel = computed(() => (props.isMine ? 'You' : props.partnerName));
   box-shadow:
     0 0 16px rgba(255, 0, 255, 0.6),
     0 0 20px rgba(0, 255, 255, 0.45);
-
   animation: message-border-glow 4.5s ease-in-out infinite alternate;
 }
 
-/* animated magenta-cyan glow */
 @keyframes message-border-glow {
   0% {
     border-color: rgba(255, 0, 255, 0.8);
@@ -359,7 +343,6 @@ const fromLabel = computed(() => (props.isMine ? 'You' : props.partnerName));
 .tc-read-message-wrap::before {
   top: 0;
   background: linear-gradient(to bottom, rgba(0, 0, 0, 0.95), transparent);
-  padding:0;
 }
 
 .tc-read-message-wrap::after {
@@ -378,51 +361,35 @@ const fromLabel = computed(() => (props.isMine ? 'You' : props.partnerName));
   text-shadow: 0 0 6px rgba(255, 0, 255, 0.3);
 }
 
-/* MEDIA GALLERY (NEW) */
+/* Media gallery – bigger items */
 
-.tc-read-media {
-  margin-top: 0.8rem;
-  margin-bottom: 0.4rem;
+.tc-read-media-gallery {
+  margin-top: 0.9rem;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
-  gap: 0.45rem;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 0.55rem;
 }
 
 .tc-read-media-item {
   position: relative;
-  border-radius: 10px;
+  border-radius: 12px;
   overflow: hidden;
   background: rgba(0, 0, 0, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.16);
   box-shadow:
-    0 0 10px rgba(255, 0, 255, 0.45),
-    0 0 16px rgba(0, 255, 255, 0.45);
+    0 0 12px rgba(255, 0, 255, 0.45),
+    0 0 16px rgba(0, 255, 255, 0.35);
 }
 
-.tc-read-media-item img,
+.tc-read-media-img,
 .tc-read-media-video {
   display: block;
   width: 100%;
-  height: 80px;
+  height: 120px;
   object-fit: cover;
 }
 
-.tc-read-media-blur {
-  filter: blur(8px);
-}
-
-.tc-read-media-badge {
-  position: absolute;
-  right: 4px;
-  bottom: 4px;
-  font-size: 0.65rem;
-  padding: 1px 5px;
-  border-radius: 4px;
-  border: 1px solid rgba(255, 255, 255, 0.85);
-  background: rgba(0, 0, 0, 0.85);
-  color: #ffffff;
-}
-
-/* meta info – cyan on a high-contrast pill */
+/* meta info */
 
 .tc-read-meta {
   margin-top: 0.9rem;
@@ -483,7 +450,6 @@ const fromLabel = computed(() => (props.isMine ? 'You' : props.partnerName));
 .tc-footer-icon svg {
   width: 18px;
   height: 18px;
-  
   filter: drop-shadow(0 0 6px rgba(255, 0, 255, 0.7));
 }
 
@@ -555,13 +521,9 @@ const fromLabel = computed(() => (props.isMine ? 'You' : props.partnerName));
     max-height: 220px;
   }
 
-  .tc-read-media {
-    grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
-  }
-
-  .tc-read-media-item img,
+  .tc-read-media-img,
   .tc-read-media-video {
-    height: 70px;
+    height: 110px;
   }
 
   .tc-modal-footer {
