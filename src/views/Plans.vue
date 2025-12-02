@@ -85,7 +85,6 @@
 
   </div>
 </template>
-
 <script setup>
 import { ref, onMounted, onUnmounted, computed, watch } from 'vue';
 import { getFirestore, collection, query, orderBy, onSnapshot } from 'firebase/firestore';
@@ -121,9 +120,10 @@ const hoveredPlanId = ref(null);
 const mousePosition = ref({ x: 0, y: 0 });
 const isTouchDevice = ref(false);
 
+// ---------- visual styling ----------
 const colorPalette = [
-  { inner: 'rgba(255, 3, 220, 0.5)', outer: 'rgba(255, 3, 220, 0.3)', color: 'magenta' }, // Magenta
-  { inner: 'rgba(3, 220, 255, 0.5)', outer: 'rgba(3, 220, 255, 0.3)', color: 'turquoise' }, // Turquoise
+  { inner: 'rgba(255, 3, 220, 0.5)', outer: 'rgba(255, 3, 220, 0.3)', color: 'magenta' },   // Magenta
+  { inner: 'rgba(3, 220, 255, 0.5)',  outer: 'rgba(3, 220, 255, 0.3)',  color: 'turquoise' } // Turquoise
 ];
 
 const getPlanBubbleStyle = (plan, index) => {
@@ -146,10 +146,9 @@ const getScaleForDesktop = (plan) => {
   if (!plan.rect) return 1;
   const centerX = plan.rect.left + plan.rect.width / 2;
   const centerY = plan.rect.top + plan.rect.height / 2;
-  const distance = Math.sqrt(Math.pow(centerX - mousePosition.value.x, 2) + Math.pow(centerY - mousePosition.value.y, 2));
-  const maxDistance = 300; // Affects the "magnetic" range
-  const scale = Math.max(1, 1.5 - (distance / maxDistance));
-  return scale;
+  const distance = Math.hypot(centerX - mousePosition.value.x, centerY - mousePosition.value.y);
+  const maxDistance = 300;
+  return Math.max(1, 1.5 - distance / maxDistance);
 };
 
 const getScaleForMobile = (plan) => {
@@ -158,8 +157,7 @@ const getScaleForMobile = (plan) => {
   const cardCenterY = plan.rect.top + plan.rect.height / 2;
   const distance = Math.abs(viewportCenterY - cardCenterY);
   const maxDistance = window.innerHeight / 2;
-  const scale = Math.max(1, 1.3 - (distance / maxDistance));
-  return scale;
+  return Math.max(1, 1.3 - distance / maxDistance);
 };
 
 const handleMousemove = (event) => {
@@ -194,26 +192,54 @@ const handleOutsideClick = () => {
   clearHovered();
 };
 
-const filteredPlans = computed(() => {
-  return plans.value.filter(plan => {
-    const locationMatch = !props.locationFilter || plan.location.toLowerCase().includes(props.locationFilter.toLowerCase());
-    const hashtagMatch = !props.hashtagFilter || (plan.hashtags && plan.hashtags.some(tag => tag.toLowerCase() === ('#' + props.hashtagFilter).toLowerCase()));
-    const dateMatch = !props.dateFilter || plan.date === props.dateFilter;
-    
-    const durationMatch = props.durationFilter.length === 0 || (plan.time && props.durationFilter.some(d => plan.time.includes(d)));
+// ---------- filter helpers ----------
+const normalizeHashtag = (value) => {
+  const v = (value || '').trim().toLowerCase();
+  if (!v) return '';
+  return v.startsWith('#') ? v : `#${v}`;
+};
 
+const filteredPlans = computed(() => {
+  const locationFilter = props.locationFilter.trim().toLowerCase();
+  const hashtagFilter = normalizeHashtag(props.hashtagFilter);
+  const dateFilter = props.dateFilter;
+  const timeFilter = props.timeFilter;
+  const durationFilter = props.durationFilter || [];
+
+  return plans.value.filter(plan => {
+    // location
+    const locationMatch =
+      !locationFilter ||
+      (plan.location && plan.location.toLowerCase().includes(locationFilter));
+
+    // hashtags
+    const normalizedHashtags = Array.isArray(plan.hashtags)
+      ? plan.hashtags.map(normalizeHashtag)
+      : [];
+    const hashtagMatch =
+      !hashtagFilter || normalizedHashtags.includes(hashtagFilter);
+
+    // date (plan.date is assumed to be 'YYYY-MM-DD')
+    const dateMatch = !dateFilter || plan.date === dateFilter;
+
+    // time: sidebar gives an HH:mm string; plan.time contains 'HH:mm, Duration'
     const timeMatch = (() => {
-      if (!props.timeFilter) return true; // No time filter applied
-      if (!plan.time) return false; // Plan has no time, so it can't match
+      if (!timeFilter) return true;
+      if (!plan.time) return false;
 
       const timeRegex = /\d{2}:\d{2}/;
       const planTimeMatch = plan.time.match(timeRegex);
-
-      if (!planTimeMatch) return false; // Plan has a time string but not in HH:mm format
+      if (!planTimeMatch) return false;
 
       const planTime = planTimeMatch[0];
-      return planTime === props.timeFilter;
+      return planTime === timeFilter;
     })();
+
+    // duration: durationFilter is e.g. ['All day', 'All night']
+    // and you encode duration inside plan.time text (e.g. '18:00, All night')
+    const durationMatch =
+      !durationFilter.length ||
+      (plan.time && durationFilter.some(d => plan.time.includes(d)));
 
     return locationMatch && hashtagMatch && dateMatch && timeMatch && durationMatch;
   });
@@ -238,8 +264,8 @@ const focusedPlanId = computed(() => {
     }
   });
 
-  // Threshold to consider a card "focused"
-  if (minDistance < 100) { // Adjust this threshold as needed
+  // threshold
+  if (minDistance < 100) {
     return closestPlan;
   }
 
@@ -247,7 +273,7 @@ const focusedPlanId = computed(() => {
 });
 
 const getAuthToken = async () => {
-  if (!props.user) throw new Error("User not authenticated");
+  if (!props.user) throw new Error('User not authenticated');
   return await props.user.getIdToken(true);
 };
 
@@ -259,35 +285,39 @@ const subscribeToPlans = () => {
     const db = getFirestore();
     const plansQuery = query(collection(db, 'plans'), orderBy('date', 'desc'));
 
-    unsubscribeFromPlans = onSnapshot(plansQuery, (snapshot) => {
-      plans.value = snapshot.docs.map(doc => {
-        const data = doc.data();
-        const date = new Date(data.date);
-        if (data.time) {
-          const timeParts = data.time.match(/(\d{2}):(\d{2})/);
-          if (timeParts) {
-            date.setHours(timeParts[1], timeParts[2]);
+    unsubscribeFromPlans = onSnapshot(
+      plansQuery,
+      (snapshot) => {
+        plans.value = snapshot.docs.map(doc => {
+          const data = doc.data();
+          const date = new Date(data.date);
+          if (data.time) {
+            const timeParts = data.time.match(/(\d{2}):(\d{2})/);
+            if (timeParts) {
+              date.setHours(timeParts[1], timeParts[2]);
+            }
           }
-        }
-        return {
-          id: doc.id,
-          ...data,
-          creationDate: data.createdAt ? data.createdAt.toDate() : new Date(),
-          fullDate: date,
-          rect: null, // Initialize rect property
-        };
-      });
-      isLoading.value = false;
-      // Initial rect calculation after data is loaded
-      setTimeout(updatePlanRects, 100);
-    }, (error) => {
-      console.error("Error fetching plans in real-time:", error);
-      fetchError.value = "Failed to load plans. Please check your connection and try again.";
-      isLoading.value = false;
-    });
+          return {
+            id: doc.id,
+            ...data,
+            creationDate: data.createdAt ? data.createdAt.toDate() : new Date(),
+            fullDate: date,
+            rect: null,
+          };
+        });
+        isLoading.value = false;
+        // Initial rect calculation after data is loaded
+        setTimeout(updatePlanRects, 100);
+      },
+      (error) => {
+        console.error('Error fetching plans in real-time:', error);
+        fetchError.value = 'Failed to load plans. Please check your connection and try again.';
+        isLoading.value = false;
+      }
+    );
   } catch (error) {
-    console.error("Error setting up plans subscription:", error);
-    fetchError.value = "An unexpected error occurred. Please refresh the page.";
+    console.error('Error setting up plans subscription:', error);
+    fetchError.value = 'An unexpected error occurred. Please refresh the page.';
     isLoading.value = false;
   }
 };
@@ -302,9 +332,9 @@ const handleSave = async (planData) => {
     const url = editingPlan.value ? `/api/plans/${editingPlan.value.id}` : '/api/plans';
 
     const response = await fetch(url, {
-      method: method,
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-      body: JSON.stringify(planData)
+      method,
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify(planData),
     });
 
     if (!response.ok) {
@@ -313,7 +343,6 @@ const handleSave = async (planData) => {
     }
 
     closeFormModal();
-
   } catch (error) {
     submitError.value = `Error: ${error.message}`;
   } finally {
@@ -326,11 +355,11 @@ const handleDelete = async () => {
     const token = await getAuthToken();
     const response = await fetch(`/api/plans/${planToDeleteId.value}`, {
       method: 'DELETE',
-      headers: { 'Authorization': `Bearer ${token}` }
+      headers: { Authorization: `Bearer ${token}` },
     });
     if (!response.ok) throw new Error('Failed to delete plan');
   } catch (error) {
-    console.error("Error deleting plan:", error);
+    console.error('Error deleting plan:', error);
   } finally {
     isDeleteModalVisible.value = false;
   }
@@ -367,23 +396,31 @@ const formatDate = (dateString) => {
 };
 
 const formatTime = (timeString) => {
-    if (!timeString) return '';
-    const parts = timeString.split(', ');
-    const timePart = parts.find(p => /^\d{2}:\d{2}$/.test(p));
-    const durationPart = parts.find(p => ['All day', 'All night', 'Indetermined'].includes(p));
-    let formattedTime = '';
-    if (timePart) {
-        const [hours, minutes] = timePart.split(':');
-        const date = new Date();
-        date.setHours(hours, minutes, 0, 0);
-        formattedTime = date.toLocaleTimeString(navigator.language, { hour: 'numeric', minute: '2-digit', hour12: true });
-    }
-    return [formattedTime, durationPart].filter(Boolean).join(', ') || timeString;
+  if (!timeString) return '';
+  const parts = timeString.split(', ');
+  const timePart = parts.find(p => /^\d{2}:\d{2}$/.test(p));
+  const durationPart = parts.find(p => ['All day', 'All night', 'Indetermined'].includes(p));
+  let formattedTime = '';
+  if (timePart) {
+    const [hours, minutes] = timePart.split(':');
+    const date = new Date();
+    date.setHours(hours, minutes, 0, 0);
+    formattedTime = date.toLocaleTimeString(navigator.language, {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
+  }
+  return [formattedTime, durationPart].filter(Boolean).join(', ') || timeString;
 };
 
 onMounted(() => {
   isTouchDevice.value = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-  const titles = ["What's on your mind, beautiful?", "What shall we do, my love?", "Create a new adventure..."];
+  const titles = [
+    "What's on your mind, beautiful?",
+    'What shall we do, my love?',
+    'Create a new adventure...',
+  ];
   createButtonTitle.value = titles[Math.floor(Math.random() * titles.length)];
   if (props.user) {
     subscribeToPlans();
@@ -403,16 +440,19 @@ onUnmounted(() => {
   }
 });
 
-watch(() => props.user, (newUser) => {
-  if (newUser) {
-    subscribeToPlans();
-  } else {
-    if (unsubscribeFromPlans) unsubscribeFromPlans();
-    plans.value = [];
+watch(
+  () => props.user,
+  (newUser) => {
+    if (newUser) {
+      subscribeToPlans();
+    } else {
+      if (unsubscribeFromPlans) unsubscribeFromPlans();
+      plans.value = [];
+    }
   }
-});
-
+);
 </script>
+
 
 <style scoped>
 .plans-view { max-width: 1200px; margin: 0 auto; padding: 1rem; }

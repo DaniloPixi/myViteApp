@@ -1,4 +1,5 @@
 <template>
+  
     <div class="tc-view">
         <header class="tc-header">
   <div class="tc-header-main">
@@ -111,7 +112,7 @@
   </template>
   
   <script setup>
-  import { ref, computed, onMounted,onUnmounted } from 'vue';
+  import { ref, computed, onMounted, onUnmounted } from 'vue';
   import { auth } from '../firebase';
   import {
     useTimeCapsules,
@@ -127,42 +128,48 @@
       type: String,
       default: '',
     },
+    // '' | 'locked' | 'unlocked'
+    lockStatusFilter: {
+      type: String,
+      default: '',
+    },
   });
+  
   const isTouchDevice = ref(false);
-const focusedCapsuleId = ref(null);
-
-function updateFocusedCapsule() {
-  if (!isTouchDevice.value) return;
-
-  const cards = document.querySelectorAll('.tc-card[data-capsule-id]');
-  if (!cards.length) {
-    focusedCapsuleId.value = null;
-    return;
-  }
-
-  const viewportCenterY = window.innerHeight / 2;
-  let closestId = null;
-  let minDistance = Infinity;
-
-  cards.forEach((el) => {
-    const rect = el.getBoundingClientRect();
-    const centerY = rect.top + rect.height / 2;
-    const distance = Math.abs(centerY - viewportCenterY);
-
-    if (distance < minDistance) {
-      minDistance = distance;
-      closestId = el.dataset.capsuleId;
+  const focusedCapsuleId = ref(null);
+  
+  function updateFocusedCapsule() {
+    if (!isTouchDevice.value) return;
+  
+    const cards = document.querySelectorAll('.tc-card[data-capsule-id]');
+    if (!cards.length) {
+      focusedCapsuleId.value = null;
+      return;
     }
-  });
-
-  // Threshold so we don't focus stuff far off-screen
-  if (minDistance < 140) {
-    focusedCapsuleId.value = closestId;
-  } else {
-    focusedCapsuleId.value = null;
+  
+    const viewportCenterY = window.innerHeight / 2;
+    let closestId = null;
+    let minDistance = Infinity;
+  
+    cards.forEach((el) => {
+      const rect = el.getBoundingClientRect();
+      const centerY = rect.top + rect.height / 2;
+      const distance = Math.abs(centerY - viewportCenterY);
+  
+      if (distance < minDistance) {
+        minDistance = distance;
+        closestId = el.dataset.capsuleId;
+      }
+    });
+  
+    // Threshold so we don't focus stuff far off-screen
+    if (minDistance < 140) {
+      focusedCapsuleId.value = closestId;
+    } else {
+      focusedCapsuleId.value = null;
+    }
   }
-}
-
+  
   // TODO: replace with real partner UID + name
   const PARTNER_UID = 'AWAdDBGujGMAwzywnc8CVaBAst83';
   const PARTNER_NAME = 'Eva';
@@ -182,32 +189,32 @@ function updateFocusedCapsule() {
   } = useTimeCapsules();
   
   onMounted(() => {
-  fetchTimeCapsules();
-
-  isTouchDevice.value =
-    typeof window !== 'undefined' &&
-    ('ontouchstart' in window || navigator.maxTouchPoints > 0);
-
-  if (isTouchDevice.value) {
-    // initial calculation
-    setTimeout(updateFocusedCapsule, 200);
-    window.addEventListener('scroll', updateFocusedCapsule, { passive: true });
-    window.addEventListener('resize', updateFocusedCapsule);
-  }
-});
-
-onUnmounted(() => {
-  if (isTouchDevice.value) {
-    window.removeEventListener('scroll', updateFocusedCapsule);
-    window.removeEventListener('resize', updateFocusedCapsule);
-  }
-});
-
+    fetchTimeCapsules();
+  
+    isTouchDevice.value =
+      typeof window !== 'undefined' &&
+      ('ontouchstart' in window || navigator.maxTouchPoints > 0);
+  
+    if (isTouchDevice.value) {
+      // initial calculation
+      setTimeout(updateFocusedCapsule, 200);
+      window.addEventListener('scroll', updateFocusedCapsule, { passive: true });
+      window.addEventListener('resize', updateFocusedCapsule);
+    }
+  });
+  
+  onUnmounted(() => {
+    if (isTouchDevice.value) {
+      window.removeEventListener('scroll', updateFocusedCapsule);
+      window.removeEventListener('resize', updateFocusedCapsule);
+    }
+  });
   
   // --- filtered list ---
   const displayCapsules = computed(() => {
     let list = sortedCapsules.value || [];
   
+    // Filter by date (unlockAt or createdAt)
     if (props.dateFilter) {
       const target = new Date(props.dateFilter);
       if (!Number.isNaN(target.getTime())) {
@@ -229,6 +236,13 @@ onUnmounted(() => {
           );
         });
       }
+    }
+  
+    // Filter by lock status
+    if (props.lockStatusFilter === 'locked') {
+      list = list.filter((capsule) => isLocked(capsule));
+    } else if (props.lockStatusFilter === 'unlocked') {
+      list = list.filter((capsule) => !isLocked(capsule));
     }
   
     return list;
@@ -258,10 +272,38 @@ onUnmounted(() => {
   
   function recipientLabel(capsule) {
     if (!capsule) return '';
-    if (isSelfCapsule(capsule)) return 'yourself';
-    if (capsule.toUid === PARTNER_UID) return PARTNER_NAME || 'partner';
-    if (capsule.toUid === currentUid.value) return 'you';
-    return 'someone';
+  
+    const me = currentUid.value;
+  
+    // No auth yet or weird data
+    if (!me || !capsule.toUid) {
+      return 'someone';
+    }
+  
+    // Self-capsule, seen by its owner
+    if (capsule.fromUid === me && capsule.toUid === me) {
+      return 'yourself';
+    }
+  
+    // Capsule addressed to me
+    if (capsule.toUid === me) {
+      return 'you';
+    }
+  
+    // Capsule where they wrote to themselves (but I'm looking at it)
+    if (capsule.fromUid === capsule.toUid) {
+      return 'themselves';
+    }
+  
+    // 2-user world:
+    // if it's not to me and not a self-capsule,
+    // it's to "the other person".
+    if (PARTNER_UID && capsule.toUid === PARTNER_UID) {
+      return PARTNER_NAME || 'them';
+    }
+  
+    // Fallback
+    return PARTNER_NAME || 'them';
   }
   
   function canEdit(capsule) {
@@ -418,6 +460,7 @@ onUnmounted(() => {
     }
   }
   </script>
+  
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap');
 
@@ -506,7 +549,7 @@ onUnmounted(() => {
     position: relative;
     backdrop-filter: blur(8px);
     border-radius: 999px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 2px solid rgba(255, 255, 255, 0.1);
     color: #fff;
     padding: 0.55rem 0.7rem;
 
@@ -521,21 +564,21 @@ onUnmounted(() => {
     max-width: 190px;
 
     background:
-      radial-gradient(
-        circle at 10% 0%,
-        var(--tc-card-glow-a, rgba(0, 255, 255, 0.18)),
-        transparent 60%
-      ),
-      radial-gradient(
-        circle at 90% 100%,
-        var(--tc-card-glow-b, rgba(255, 0, 255, 0.18)),
-        transparent 60%
-      ),
-      rgba(0, 0, 0, 0.26);
+    radial-gradient(
+      circle at 10% 0%,
+      var(--tc-card-glow-a, rgba(0, 255, 255, 0)), /* was ~0.18 */
+      transparent 60%
+    ),
+    radial-gradient(
+      circle at 90% 100%,
+      var(--tc-card-glow-b, rgba(255, 0, 255, 0)), /* was ~0.18 */
+      transparent 60%
+    ),
+    rgba(0, 0, 0, 0); /* was 0.26 – base panel is much lighter now */
 
-    box-shadow:
-      inset 0 0 8px var(--bubble-inner-shadow-color, rgba(255, 0, 255, 0.4)),
-      0 0 12px var(--bubble-outer-shadow-color, rgba(0, 255, 255, 0.25));
+  box-shadow:
+    inset 0 0 6px var(--bubble-inner-shadow-color, rgba(255, 0, 255, 0.35)),
+    0 0 11px var(--bubble-outer-shadow-color, rgba(0, 255, 255, 0.22));
     transition:
       box-shadow 0.3s cubic-bezier(0.25, 0.8, 0.25, 1),
       background 0.25s ease,
@@ -545,24 +588,25 @@ onUnmounted(() => {
     backface-visibility: hidden;
   }
 
-
-.tc-card:hover {
+  .tc-card:hover {
   background:
     radial-gradient(
       circle at 10% 0%,
-      var(--tc-card-glow-a, rgba(0, 255, 255, 0.22)),
+      var(--tc-card-glow-a, rgba(0, 255, 255, 0.16)),
       transparent 60%
     ),
     radial-gradient(
       circle at 90% 100%,
-      var(--tc-card-glow-b, rgba(255, 0, 255, 0.22)),
+      var(--tc-card-glow-b, rgba(255, 0, 255, 0.16)),
       transparent 60%
     ),
-    rgba(0, 0, 0, 0.34);
+    rgba(0, 0, 0, 0.18);
+
   box-shadow:
-    inset 0 0 12px var(--bubble-inner-shadow-color, rgba(255, 0, 255, 0.55)),
-    0 0 18px var(--bubble-outer-shadow-color, rgba(0, 255, 255, 0.35));
+    inset 0 0 10px var(--bubble-inner-shadow-color, rgba(255, 0, 255, 0.5)),
+    0 0 14px var(--bubble-outer-shadow-color, rgba(0, 255, 255, 0.32));
 }
+
 
 /* mine/theirs tweaks + color variables */
 
@@ -731,7 +775,7 @@ onUnmounted(() => {
   }
 }
 
-@media (max-width: 700px) {
+@media (max-width: 600px) {
   .tc-header-main {
     flex-direction: column;
     align-items: center;
@@ -747,17 +791,20 @@ onUnmounted(() => {
   .tc-card {
     flex: 0 1 calc(33.333% - 0.75rem); /* ~3 per row */
     border-radius: 75px;
-    transform: scale(0.9);
+    transform: scale(1);                 /* draw at native size */
+    transform-origin: center center;
+    will-change: transform, box-shadow;  /* hint for smoother anim, but keeps crisp base */
   }
 
   .tc-card-focused {
-    transform: scale(1.3);
+    transform: scale(1.20);              /* small bump, less destructive */
     z-index: 2;
     box-shadow:
-      inset 0 0 16px var(--bubble-inner-shadow-color, rgba(255, 0, 255, 0.7)),
-      0 0 22px var(--bubble-outer-shadow-color, rgba(0, 255, 255, 0.5));
+      inset 0 0 14px var(--bubble-inner-shadow-color, rgba(255, 0, 255, 0.6)),
+      0 0 20px var(--bubble-outer-shadow-color, rgba(0, 255, 255, 0.45));
   }
 }
+
 
 
 

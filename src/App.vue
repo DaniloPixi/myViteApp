@@ -2,12 +2,19 @@
   <P5StarfieldBackground>
     <CursorTrail />
     <!-- In-App Notification Banner -->
-    <InAppNotification :title="inAppNotification.title" :body="inAppNotification.body"
-      v-model:visible="inAppNotification.visible" />
+    <InAppNotification
+      :title="inAppNotification.title"
+      :body="inAppNotification.body"
+      v-model:visible="inAppNotification.visible"
+    />
 
     <!-- Fixed Notification Controls -->
     <div v-if="user && currentView === 'home' && supportsNotifications" class="notification-control-fixed">
-      <button v-if="notificationPermission !== 'granted'" @click="enableNotifications" class="notification-btn enable">
+      <button
+        v-if="notificationPermission !== 'granted'"
+        @click="enableNotifications"
+        class="notification-btn enable"
+      >
         Enable Notifs
       </button>
     </div>
@@ -18,15 +25,21 @@
     </button>
 
     <div class="sticky-header">
-      <Sidebar v-if="currentView === 'plans' || currentView === 'memos'|| currentView === 'capsules'" v-model:location="locationFilter"
-        v-model:hashtags="hashtagFilter" v-model:date="dateFilter" v-model:time="timeFilter"
-        v-model:duration="durationFilter" />
+      <Sidebar
+    v-if="currentView === 'plans' || currentView === 'memos' || currentView === 'capsules'"
+    v-model:location="locationFilter"
+    v-model:hashtags="hashtagFilter"
+    v-model:date="dateFilter"
+    v-model:time="timeFilter"
+    v-model:duration="durationFilter"
+    v-model:lockStatus="lockStatusFilter"
+    :enabled-filters="enabledFilters"
+  />
       <header class="page-header" v-if="currentView === 'home'">
         <h1 v-if="user" class="bounce-in">Welcome, {{ user.displayName || user.email }}</h1>
         <h1 v-else class="bounce-in">Auth Portal</h1>
       </header>
     </div>
-
 
     <!-- The main content card -->
     <div class="centered-content-container">
@@ -36,15 +49,27 @@
           <div v-if="user">
             <!-- View Navigation -->
             <nav class="view-nav">
-              <a @click="currentView = 'home'" :class="{ active: currentView === 'home' }"
-                :style="getNavStyle('home', 0)">Home</a>
-              <a @click="currentView = 'memos'" :class="{ active: currentView === 'memos' }"
-                :style="getNavStyle('memos', 1)">Moments</a>
-              <a @click="currentView = 'plans'" :class="{ active: currentView === 'plans' }"
-                :style="getNavStyle('plans', 2)">Plans</a>
+              <a
+                @click="currentView = 'home'"
+                :class="{ active: currentView === 'home' }"
+                :style="getNavStyle('home', 0)"
+              >Home</a>
+              <a
+                @click="currentView = 'memos'"
+                :class="{ active: currentView === 'memos' }"
+                :style="getNavStyle('memos', 1)"
+              >Moments</a>
+              <a
+                @click="currentView = 'plans'"
+                :class="{ active: currentView === 'plans' }"
+                :style="getNavStyle('plans', 2)"
+              >Plans</a>
               <!-- 🔥 NEW: Time Capsules tab -->
-              <a @click="currentView = 'capsules'" :class="{ active: currentView === 'capsules' }"
-                :style="getNavStyle('capsules', 3)">
+              <a
+                @click="currentView = 'capsules'"
+                :class="{ active: currentView === 'capsules' }"
+                :style="getNavStyle('capsules', 3)"
+              >
                 Time Capsules
               </a>
             </nav>
@@ -60,15 +85,26 @@
                   </div>
                 </div>
 
-                <MemosAndMoments v-if="currentView === 'memos'" :location-filter="locationFilter"
-                  :hashtag-filter="hashtagFilter" :date-filter="dateFilter" />
-                <Plans v-if="currentView === 'plans'" :user="user" :location-filter="locationFilter"
-                  :hashtag-filter="hashtagFilter" :date-filter="dateFilter" :time-filter="timeFilter"
-                  :duration-filter="durationFilter" />
-                  <TimeCapsulesView
-      v-if="currentView === 'capsules'"
-      :date-filter="dateFilter"
-    />
+                <MemosAndMoments
+                  v-if="currentView === 'memos'"
+                  :location-filter="locationFilter"
+                  :hashtag-filter="hashtagFilter"
+                  :date-filter="dateFilter"
+                />
+                <Plans
+                  v-if="currentView === 'plans'"
+                  :user="user"
+                  :location-filter="locationFilter"
+                  :hashtag-filter="hashtagFilter"
+                  :date-filter="dateFilter"
+                  :time-filter="timeFilter"
+                  :duration-filter="durationFilter"
+                />
+                <TimeCapsulesView
+                v-if="currentView === 'capsules'"
+  :date-filter="dateFilter"
+  :lock-status-filter="lockStatusFilter"
+                />
               </div>
             </transition>
           </div>
@@ -88,7 +124,7 @@
 </template>
 
 <script setup>
-import { ref, watch, onUnmounted, onMounted, reactive } from 'vue';
+import { ref, watch, onUnmounted, onMounted, reactive, computed } from 'vue';
 import { useRegisterSW } from 'virtual:pwa-register/vue';
 import { auth, messaging } from './firebase';
 import { getFirestore, collection, query, orderBy, onSnapshot } from 'firebase/firestore';
@@ -106,8 +142,6 @@ import CursorTrail from './components/CursorTrail.vue';
 import P5StarfieldBackground from './components/P5StarfieldBackground.vue';
 import DailyQuestWidget from './components/DailyQuestWidget.vue';
 import TimeCapsulesView from './views/TimeCapsulesView.vue';
-
-
 
 // --- PWA Auto-Update Logic ---
 const { needRefresh, updateServiceWorker } = useRegisterSW();
@@ -145,6 +179,24 @@ const hashtagFilter = ref('');
 const dateFilter = ref('');
 const timeFilter = ref('');
 const durationFilter = ref([]);
+const lockStatusFilter = ref('');
+
+// --- Enabled filters per view ---
+const enabledFilters = computed(() => {
+  if (currentView.value === 'memos') {
+    // Memos & Moments: location + hashtag + date
+    return ['location', 'hashtags', 'date'];
+  }
+  if (currentView.value === 'plans') {
+    // Plans: full set
+    return ['location', 'hashtags', 'date', 'time', 'duration'];
+  }
+  if (currentView.value === 'capsules') {
+    // Time Capsules: only date for now
+    return ['date','lockStatus'];
+  }
+  return [];
+});
 
 // --- Watch for view changes & reset filters ---
 watch(currentView, (newView) => {
@@ -155,6 +207,7 @@ watch(currentView, (newView) => {
   dateFilter.value = '';
   timeFilter.value = '';
   durationFilter.value = [];
+  lockStatusFilter.value = '';
 });
 
 // --- Component Switching ---
@@ -177,34 +230,42 @@ const setupDataListeners = () => {
 
   // Memos listener
   const memosQuery = query(collection(db, 'memos'), orderBy('createdAt', 'desc'));
-  unsubscribeMemos = onSnapshot(memosQuery, (snapshot) => {
-    memos.value = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-  }, (err) => {
-    console.error("Error fetching memos for calendar:", err);
-  });
+  unsubscribeMemos = onSnapshot(
+    memosQuery,
+    (snapshot) => {
+      memos.value = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    },
+    (err) => {
+      console.error('Error fetching memos for calendar:', err);
+    }
+  );
 
   // Plans listener
   const plansQuery = query(collection(db, 'plans'), orderBy('date', 'desc'));
-  unsubscribePlans = onSnapshot(plansQuery, (snapshot) => {
-    plans.value = snapshot.docs.map(doc => {
-      const data = doc.data();
-      const date = new Date(data.date);
-      if (data.time) {
-        const timeParts = data.time.match(/(\d{2}):(\d{2})/);
-        if (timeParts) {
-          date.setHours(timeParts[1], timeParts[2]);
+  unsubscribePlans = onSnapshot(
+    plansQuery,
+    (snapshot) => {
+      plans.value = snapshot.docs.map(doc => {
+        const data = doc.data();
+        const date = new Date(data.date);
+        if (data.time) {
+          const timeParts = data.time.match(/(\d{2}):(\d{2})/);
+          if (timeParts) {
+            date.setHours(timeParts[1], timeParts[2]);
+          }
         }
-      }
-      return {
-        id: doc.id,
-        ...data,
-        creationDate: doc.createTime ? doc.createTime.toDate() : new Date(),
-        fullDate: date,
-      };
-    });
-  }, (err) => {
-    console.error("Error fetching plans for calendar:", err);
-  });
+        return {
+          id: doc.id,
+          ...data,
+          creationDate: doc.createTime ? doc.createTime.toDate() : new Date(),
+          fullDate: date,
+        };
+      });
+    },
+    (err) => {
+      console.error('Error fetching plans for calendar:', err);
+    }
+  );
 };
 
 const clearDataListeners = () => {
@@ -274,7 +335,7 @@ async function sendLoveNotification() {
       throw new Error(errorBody.message || `Server responded with ${response.status}`);
     }
     const result = await response.json();
-    inAppNotification.title = "Message Sent!";
+    inAppNotification.title = 'Message Sent!';
     inAppNotification.body = "You've sent an 'I love you' notification.";
     inAppNotification.visible = true;
   } catch (error) {
@@ -316,10 +377,9 @@ messaging.onMessage((payload) => {
     inAppNotification.body = notification.body;
     inAppNotification.visible = true;
   } else {
-    console.warn("Received foreground message with incomplete data.", payload);
+    console.warn('Received foreground message with incomplete data.', payload);
   }
 });
-
 
 // --- Lifecycle Hooks ---
 onMounted(() => {

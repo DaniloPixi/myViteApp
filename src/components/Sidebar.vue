@@ -6,41 +6,136 @@
 
           <!-- Row 1: Location & Hashtags -->
           <div class="filter-row">
-            <div class="filter-group location-group">
-              <input id="location-filter" type="text" :value="location" @input="$emit('update:location', $event.target.value)" placeholder="Location..." />
+            <div
+              class="filter-group location-group"
+              v-if="showLocation"
+            >
+              <input
+                id="location-filter"
+                type="text"
+                :value="location"
+                @input="$emit('update:location', $event.target.value)"
+                placeholder="Location..."
+              />
             </div>
-            <div class="filter-group hashtags-group">
+
+            <div
+              class="filter-group hashtags-group"
+              v-if="showHashtags"
+            >
               <div class="hashtag-buttons">
-                <button v-for="tag in availableHashtags" :key="tag" @click="toggleHashtagFilter(tag)" :class="{ selected: hashtags === tag }">#{{ tag }}</button>
+                <button
+                  v-for="tag in availableHashtags"
+                  :key="tag"
+                  @click="toggleHashtagFilter(tag)"
+                  :class="{ selected: hashtags === tag }"
+                >
+                  #{{ tag }}
+                </button>
               </div>
             </div>
           </div>
 
           <!-- Row 2: Date, Time & Duration -->
           <div class="filter-row">
-            <div class="filter-group date-group">
+            <div
+              class="filter-group date-group"
+              v-if="showDate"
+            >
               <div class="date-input-wrapper">
-                <input id="date-filter" type="date" :value="date" @input="$emit('update:date', $event.target.value)" placeholder="Date..." />
-                <button v-if="date" @click="$emit('update:date', '')" class="clear-btn" title="Clear filter">×</button>
+                <input
+                  id="date-filter"
+                  type="date"
+                  :value="date"
+                  @input="$emit('update:date', $event.target.value)"
+                  placeholder="Date..."
+                />
+                <button
+                  v-if="date"
+                  @click="$emit('update:date', '')"
+                  class="clear-btn"
+                  title="Clear filter"
+                >
+                  ×
+                </button>
               </div>
             </div>
-            <div class="filter-group time-group">
+
+            <div
+              class="filter-group time-group"
+              v-if="showTime"
+            >
               <div class="time-input-wrapper">
-                <StyledTimeInput :modelValue="time" @update:modelValue="$emit('update:time', $event)" />
-                <button v-if="time" @click="$emit('update:time', '')" class="clear-btn" title="Clear filter">×</button>
+                <StyledTimeInput
+                  :modelValue="time"
+                  @update:modelValue="$emit('update:time', $event)"
+                />
+                <button
+                  v-if="time"
+                  @click="$emit('update:time', '')"
+                  class="clear-btn"
+                  title="Clear filter"
+                >
+                  ×
+                </button>
               </div>
             </div>
-            <div class="filter-group duration-group">
+
+            <div
+              class="filter-group duration-group"
+              v-if="showDuration"
+            >
               <div class="duration-buttons">
-                <button v-for="d in availableDurations" :key="d" @click="toggleDurationFilter(d)" :class="{ selected: duration.includes(d) }">{{ d === 'Indetermined' ? '∞' : d }}</button>
+                <button
+                  v-for="d in availableDurations"
+                  :key="d"
+                  @click="toggleDurationFilter(d)"
+                  :class="{ selected: Array.isArray(duration) && duration.includes(d) }"
+                >
+                  {{ d === 'Indetermined' ? '∞' : d }}
+                </button>
               </div>
             </div>
           </div>
 
+       <!-- Row 3: Lock Status (used in Time Capsules) -->
+<div
+  class="filter-row"
+  v-if="showLockStatus"
+>
+  <div class="filter-group lock-status-group">
+    <div class="lock-status-buttons">
+      <button
+        @click="setLockStatus('')"
+        :class="{ selected: !lockStatus }"
+      >
+        All
+      </button>
+      <button
+        @click="setLockStatus('locked')"
+        :class="{ selected: lockStatus === 'locked' }"
+      >
+        Locked
+      </button>
+      <button
+        @click="setLockStatus('unlocked')"
+        :class="{ selected: lockStatus === 'unlocked' }"
+      >
+        Unlocked
+      </button>
+    </div>
+  </div>
+</div>
+
+
         </div>
       </div>
 
-      <button class="toggle-handle" @click="isExpanded = !isExpanded" :class="{ 'expanded': isExpanded }">
+      <button
+        class="toggle-handle"
+        @click="isExpanded = !isExpanded"
+        :class="{ 'expanded': isExpanded }"
+      >
         <span class="arrow">▼</span>
       </button>
     </div>
@@ -48,29 +143,100 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import StyledTimeInput from './StyledTimeInput.vue';
 
 const isExpanded = ref(false);
 
-const props = defineProps(['location', 'hashtags', 'date', 'time', 'duration']);
-const emit = defineEmits(['update:location', 'update:hashtags', 'update:date', 'update:time', 'update:duration']);
+const props = defineProps({
+  location: {
+    type: String,
+    default: '',
+  },
+  hashtags: {
+    type: String,
+    default: '',
+  },
+  date: {
+    type: String,
+    default: '',
+  },
+  time: {
+    type: String,
+    default: '',
+  },
+  duration: {
+    type: [Array, String],
+    default: () => [],
+  },
+  // '' | 'locked' | 'unlocked'
+  lockStatus: {
+    type: String,
+    default: '',
+  },
+  // which filters to show for the current view
+  enabledFilters: {
+    type: Array,
+    default: () => ['location', 'hashtags', 'date', 'time', 'duration'],
+  },
+});
 
-const availableHashtags = ref(['date', 'party', 'food', '18+', 'travel', 'weekend', 'chill', 'friends', 'love', 'random']);
-const toggleHashtagFilter = (tag) => emit('update:hashtags', props.hashtags === tag ? '' : tag);
+const emit = defineEmits([
+  'update:location',
+  'update:hashtags',
+  'update:date',
+  'update:time',
+  'update:duration',
+  'update:lockStatus',
+]);
+
+// Visibility helpers based on enabledFilters
+const showLocation   = computed(() => props.enabledFilters.includes('location'));
+const showHashtags   = computed(() => props.enabledFilters.includes('hashtags'));
+const showDate       = computed(() => props.enabledFilters.includes('date'));
+const showTime       = computed(() => props.enabledFilters.includes('time'));
+const showDuration   = computed(() => props.enabledFilters.includes('duration'));
+const showLockStatus = computed(() => props.enabledFilters.includes('lockStatus'));
+
+const availableHashtags = ref([
+  'date',
+  'party',
+  'food',
+  '18+',
+  'travel',
+  'weekend',
+  'chill',
+  'friends',
+  'love',
+  'random',
+]);
+
+const toggleHashtagFilter = (tag) => {
+  emit('update:hashtags', props.hashtags === tag ? '' : tag);
+};
 
 const availableDurations = ref(['All day', 'All night', 'Indetermined']);
+
 const toggleDurationFilter = (d) => {
-  const newDurations = Array.isArray(props.duration) ? [...props.duration] : (props.duration ? [props.duration] : []);
+  const newDurations = Array.isArray(props.duration)
+    ? [...props.duration]
+    : (props.duration ? [props.duration] : []);
+
   const index = newDurations.indexOf(d);
   if (index > -1) {
     newDurations.splice(index, 1);
   } else {
     newDurations.push(d);
   }
+
   emit('update:duration', newDurations);
 };
+
+const setLockStatus = (value) => {
+  emit('update:lockStatus', value);
+};
 </script>
+
 
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap');
@@ -105,11 +271,16 @@ const toggleDurationFilter = (d) => {
   padding-right: 1.5rem;
   padding-top: 0;
   padding-bottom: 0;
-  transition: max-height 1.2s ease-out, padding-top 1.2s ease-out, padding-bottom 1.2s ease-out, border-color 1.2s ease-out, box-shadow 1.2s ease-out;
+  transition:
+    max-height 1.2s ease-out,
+    padding-top 1.2s ease-out,
+    padding-bottom 1.2s ease-out,
+    border-color 1.2s ease-out,
+    box-shadow 1.2s ease-out;
 }
 
 .filter-content.expanded {
-  max-height: 280px;
+  max-height: 360px;
   padding-top: 1.5rem;
   padding-bottom: 1.5rem;
   border-color: magenta;
@@ -146,11 +317,14 @@ const toggleDurationFilter = (d) => {
   justify-content: center;
 }
 
-.location-group { flex-basis: 180px; }
-.hashtags-group { flex-basis: 300px; flex-grow: 2; }
-.date-group { flex-basis: 130px; }
-.time-group { flex-basis: 120px; }
-.duration-group { flex-basis: 220px; flex-grow: 2; }
+.location-group   { flex-basis: 180px; }
+.hashtags-group   { flex-basis: 300px; flex-grow: 2; }
+.date-group       { flex-basis: 130px; }
+.time-group       { flex-basis: 120px; }
+.duration-group   { flex-basis: 220px; flex-grow: 2; }
+.lock-status-group { flex-basis: 200px; }
+
+/* inputs */
 
 .filter-group input[type="text"],
 .filter-group input[type="date"] {
@@ -164,16 +338,24 @@ const toggleDurationFilter = (d) => {
   font-size: 0.9em;
   font-family: inherit;
   text-align: center;
-  box-shadow: inset 0 0 5px rgba(64, 224, 208, 0.5), 0 0 5px rgba(64, 224, 208, 0.5);
+  box-shadow:
+    inset 0 0 5px rgba(64, 224, 208, 0.5),
+    0 0 5px rgba(64, 224, 208, 0.5);
   transition: box-shadow 0.3s ease;
 }
 
 .filter-group input:focus {
-    outline: none;
-    box-shadow: inset 0 0 8px rgba(64, 224, 208, 0.8), 0 0 8px rgba(64, 224, 208, 0.8);
+  outline: none;
+  box-shadow:
+    inset 0 0 8px rgba(64, 224, 208, 0.8),
+    0 0 8px rgba(64, 224, 208, 0.8);
 }
 
-.hashtag-buttons, .duration-buttons {
+/* buttons groups */
+
+.hashtag-buttons,
+.duration-buttons,
+.lock-status-buttons {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
@@ -181,7 +363,8 @@ const toggleDurationFilter = (d) => {
 }
 
 .hashtag-buttons button,
-.duration-buttons button {
+.duration-buttons button,
+.lock-status-buttons button {
   padding: 0.4em 0.8em;
   border-radius: 15px;
   border: 1px solid turquoise;
@@ -190,16 +373,22 @@ const toggleDurationFilter = (d) => {
   cursor: pointer;
   transition: all 0.3s ease;
   font-size: 0.8em;
-  box-shadow: inset 0 0 4px rgba(64, 224, 208, 0.5), 0 0 4px rgba(64, 224, 208, 0.5);
+  box-shadow:
+    inset 0 0 4px rgba(64, 224, 208, 0.5),
+    0 0 4px rgba(64, 224, 208, 0.5);
 }
 
-.hashtag-buttons button:hover, 
-.duration-buttons button:hover { 
-  box-shadow: inset 0 0 8px rgba(64, 224, 208, 0.8), 0 0 8px rgba(64, 224, 208, 0.8);
+.hashtag-buttons button:hover,
+.duration-buttons button:hover,
+.lock-status-buttons button:hover {
+  box-shadow:
+    inset 0 0 8px rgba(64, 224, 208, 0.8),
+    0 0 8px rgba(64, 224, 208, 0.8);
 }
 
 .hashtag-buttons button.selected,
-.duration-buttons button.selected {
+.duration-buttons button.selected,
+.lock-status-buttons button.selected {
   background-color: turquoise;
   border-color: turquoise;
   color: #000;
@@ -207,19 +396,20 @@ const toggleDurationFilter = (d) => {
   box-shadow: 0 0 10px turquoise;
 }
 
-.date-input-wrapper, .time-input-wrapper {
+.date-input-wrapper,
+.time-input-wrapper {
   display: flex;
   align-items: center;
   gap: 0.4rem;
   justify-content: center;
 }
 
-.clear-btn { 
-  background: none; 
-  border: none; 
-  color: #aaa; 
-  font-size: 1.1em; 
-  cursor: pointer; 
+.clear-btn {
+  background: none;
+  border: none;
+  color: #aaa;
+  font-size: 1.1em;
+  cursor: pointer;
   padding: 0;
   line-height: 1;
   text-shadow: 0 0 5px #aaa;
@@ -249,7 +439,8 @@ const toggleDurationFilter = (d) => {
   border-top: none;
 }
 
-.toggle-handle:focus, .toggle-handle:focus-visible { outline: none; }
+.toggle-handle:focus,
+.toggle-handle:focus-visible { outline: none; }
 
 .arrow { transition: transform 1.2s ease-out; }
 
@@ -264,8 +455,12 @@ const toggleDurationFilter = (d) => {
 
   .filter-group { flex-basis: auto !important; width: 100%; }
 
-  .filter-content.expanded { max-height: 500px; }
+  .filter-content.expanded { max-height: 600px; }
 
-  .hashtag-buttons, .duration-buttons { justify-content: center; }
+  .hashtag-buttons,
+  .duration-buttons,
+  .lock-status-buttons {
+    justify-content: center;
+  }
 }
 </style>
