@@ -2,7 +2,6 @@
   <!-- Uses global animated overlay from calendar + custom capsule styling -->
   <div class="modal-overlay tc-modal-overlay" @click.self="emitClose">
     <div class="modal-content tc-modal">
-      <button class="tc-modal-close" @click="emitClose">×</button>
 
       <div class="tc-modal-header">
         <div class="tc-modal-label">
@@ -13,7 +12,7 @@
           {{ capsule.title || 'Untitled capsule' }}
         </h2>
         <p class="tc-modal-subtitle">
-          {{ isMine ? 'From you' : 'From your partner' }}
+          {{ isMine ? 'From you' : 'From your love' }}
           <span v-if="recipientLabel">
             · To {{ recipientLabel }}
           </span>
@@ -31,11 +30,7 @@
           <span class="tc-meta-label">Written</span>
           <span class="tc-meta-value">{{ formatDate(capsule.createdAt) }}</span>
         </p>
-        <p v-if="capsule.unlockAt" class="tc-meta-line tc-meta-unlock">
-          <span class="tc-meta-label">Unlocks</span>
-          <span class="tc-meta-value">{{ formatDate(capsule.unlockAt) }}</span>
-        </p>
-        <p v-if="capsule.openedAt" class="tc-meta-line tc-meta-opened">
+        <p v-if="capsule.openedAt" class="tc-meta-line">
           <span class="tc-meta-label">Opened</span>
           <span class="tc-meta-value">{{ formatDate(capsule.openedAt) }}</span>
         </p>
@@ -44,7 +39,27 @@
       <div class="tc-modal-footer">
         <div class="tc-modal-footer-left">
           <p class="tc-footer-note">
-            💌 Saved in your shared galaxy of memories.
+            <span class="tc-footer-icon">
+  <svg
+    viewBox="0 0 24 24"
+    aria-hidden="true"
+  >
+    <path
+      d="M12.1 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5
+         2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81
+         14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.65
+         11.54l-1.25 1.31z"
+      fill="none"
+      stroke="magenta"
+      stroke-width="0.9"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+  </svg>
+</span>
+            <span class="tc-footer-text">
+              Saved in your shared galaxy of memories.
+            </span>
           </p>
         </div>
         <div class="tc-modal-footer-right">
@@ -86,7 +101,7 @@ function formatDate(raw) {
   });
 }
 
-// still here if you want it for future tweaks
+// still available if you want it later
 const fromLabel = computed(() => (props.isMine ? 'You' : props.partnerName));
 </script>
 
@@ -99,7 +114,7 @@ const fromLabel = computed(() => (props.isMine ? 'You' : props.partnerName));
   background:
     radial-gradient(circle at 10% 0%, rgba(0, 255, 255, 0.18), transparent 55%),
     radial-gradient(circle at 90% 100%, rgba(255, 0, 255, 0.22), transparent 55%),
-    rgba(0, 0, 0, 0.9);
+    rgba(0, 0, 0, 0.84);
   backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
@@ -107,7 +122,7 @@ const fromLabel = computed(() => (props.isMine ? 'You' : props.partnerName));
   z-index: 2600;
 }
 
-/* This sits on top of .modal-content from the calendar CSS */
+/* This sits on top of .modal-content animation from the calendar CSS */
 .tc-modal {
   position: relative;
   width: 96%;
@@ -117,13 +132,34 @@ const fromLabel = computed(() => (props.isMine ? 'You' : props.partnerName));
   background:
     radial-gradient(circle at 15% 0%, rgba(0, 255, 255, 0.18), transparent 60%),
     radial-gradient(circle at 85% 100%, rgba(255, 0, 255, 0.2), transparent 65%),
-    rgba(0, 0, 0, 0.94);
+    rgba(0, 0, 0, 0.9); /* ~90% opaque, more transparency than before */
   box-shadow:
-    0 0 28px rgba(255, 0, 255, 0.55),
-    0 0 40px rgba(0, 255, 255, 0.45);
+    0 0 22px rgba(255, 0, 255, 0.55),
+    0 0 34px rgba(0, 255, 255, 0.45);
   padding: 1.6rem 1.7rem 1.2rem;
   color: #f5f5ff;
   overflow: hidden;
+
+  /* subtle continuous glow between magenta and cyan */
+  animation: modal-glow 7s ease-in-out infinite alternate;
+}
+
+@keyframes modal-glow {
+  0% {
+    box-shadow:
+      0 0 18px rgba(255, 0, 255, 0.7),
+      0 0 26px rgba(0, 255, 255, 0.35);
+  }
+  50% {
+    box-shadow:
+      0 0 26px rgba(0, 255, 255, 0.7),
+      0 0 40px rgba(255, 0, 255, 0.4);
+  }
+  100% {
+    box-shadow:
+      0 0 20px rgba(255, 0, 255, 0.6),
+      0 0 30px rgba(0, 255, 255, 0.5);
+  }
 }
 
 /* X button */
@@ -165,8 +201,8 @@ const fromLabel = computed(() => (props.isMine ? 'You' : props.partnerName));
 .tc-modal-header::after {
   content: "";
   position: absolute;
-  left: 25%;
-  right: 25%;
+  left: 1%;
+  right: 1%;
   bottom: 0;
   height: 1px;
   background:
@@ -177,7 +213,7 @@ const fromLabel = computed(() => (props.isMine ? 'You' : props.partnerName));
       rgba(0, 255, 255, 0.9),
       transparent
     );
-  opacity: 0.7;
+  opacity: 1;
 }
 
 .tc-modal-label {
@@ -187,7 +223,8 @@ const fromLabel = computed(() => (props.isMine ? 'You' : props.partnerName));
   font-size: 0.8rem;
   text-transform: uppercase;
   letter-spacing: 0.12em;
-  opacity: 0.8;
+  opacity: 0.9;
+  color: turquoise; /* cyan-ish project color */
 }
 
 .tc-modal-label-dot {
@@ -200,12 +237,13 @@ const fromLabel = computed(() => (props.isMine ? 'You' : props.partnerName));
 
 .tc-modal-title {
   margin: 0.3rem 0 0.25rem;
-  font-size: 2.3rem;
+  font-size: 2.4rem;
   font-weight: 500;
   font-family: 'Great Vibes', cursive;
   text-shadow:
-    0 0 10px rgba(255, 0, 255, 0.9),
-    0 0 16px rgba(0, 255, 255, 0.7);
+    0 0 14px rgba(255, 0, 255, 0.95),
+    0 0 22px rgba(0, 255, 255, 0.9),
+    0 0 30px rgba(255, 255, 255, 0.45);
 }
 
 .tc-modal-subtitle {
@@ -219,17 +257,41 @@ const fromLabel = computed(() => (props.isMine ? 'You' : props.partnerName));
 .tc-read-message-wrap {
   position: relative;
   margin-top: 1.1rem;
-  padding: 1rem 1.1rem;
+  padding: 0.4rem 1.1rem;
   border-radius: 16px;
   background:
     radial-gradient(circle at 0% 0%, rgba(255, 255, 255, 0.08), transparent 65%),
-    rgba(0, 0, 0, 0.85);
-  border: 1px solid rgba(255, 255, 255, 0.18);
+    rgba(0, 0, 0, 0.9);
+  border: 1px solid rgba(255, 0, 255, 0.75);
   max-height: 260px;
   overflow-y: auto;
   box-shadow:
-    inset 0 0 14px rgba(0, 0, 0, 0.8),
-    0 0 16px rgba(0, 255, 255, 0.25);
+    0 0 16px rgba(255, 0, 255, 0.6),
+    0 0 20px rgba(0, 255, 255, 0.45);
+
+  animation: message-border-glow 4.5s ease-in-out infinite alternate;
+}
+
+/* animated magenta-cyan glow */
+@keyframes message-border-glow {
+  0% {
+    border-color: rgba(255, 0, 255, 0.8);
+    box-shadow:
+      0 0 16px rgba(255, 0, 255, 0.8),
+      0 0 20px rgba(0, 255, 255, 0.35);
+  }
+  50% {
+    border-color: rgba(0, 255, 255, 0.9);
+    box-shadow:
+      0 0 18px rgba(0, 255, 255, 0.8),
+      0 0 26px rgba(255, 0, 255, 0.45);
+  }
+  100% {
+    border-color: rgba(255, 0, 255, 0.85);
+    box-shadow:
+      0 0 16px rgba(255, 0, 255, 0.75),
+      0 0 22px rgba(0, 255, 255, 0.45);
+  }
 }
 
 /* subtle fading edges for scroll */
@@ -246,35 +308,40 @@ const fromLabel = computed(() => (props.isMine ? 'You' : props.partnerName));
 
 .tc-read-message-wrap::before {
   top: 0;
-  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.9), transparent);
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.95), transparent);
+  padding:0;
 }
 
 .tc-read-message-wrap::after {
   bottom: 0;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.9), transparent);
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.95), transparent);
 }
 
 .tc-read-message {
   margin: 0;
-  font-size: 1.05rem;
+  font-size: 1.3rem;
   line-height: 1.6;
   font-family: 'Great Vibes', cursive;
-  font-weight: 400;
+  font-weight: 600;
   letter-spacing: 0.02em;
-  color: #ffe4ff;
-  text-shadow: 0 0 6px rgba(255, 0, 255, 0.25);
+  color: #ffeaff;
+  text-shadow: 0 0 6px rgba(255, 0, 255, 0.3);
 }
 
-/* meta info */
+/* meta info – cyan on a high-contrast pill */
 
 .tc-read-meta {
-  margin-top: 0.85rem;
-  font-size: 0.78rem;
-  text-align: center;
-  opacity: 0.9;
-  display: flex;
+  margin-top: 0.9rem;
+  display: inline-flex;
   flex-direction: column;
+  align-items: center;
   gap: 0.25rem;
+  padding: 0.5rem 0.9rem;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.9);
+  border: 1px solid rgba(0, 255, 255, 0.55);
+  color: #7ef7ff;
+  align-self: center;
 }
 
 .tc-meta-line {
@@ -289,20 +356,13 @@ const fromLabel = computed(() => (props.isMine ? 'You' : props.partnerName));
   text-transform: uppercase;
   letter-spacing: 0.16em;
   font-size: 0.7rem;
-  opacity: 0.75;
+  opacity: 0.9;
+  color: #7ef7ff;
 }
 
 .tc-meta-value {
   font-size: 0.8rem;
-  color: #f5f5ff;
-}
-
-.tc-meta-unlock .tc-meta-value {
-  color: #ffdf7f;
-}
-
-.tc-meta-opened .tc-meta-value {
-  color: #7ef7ff;
+  color: #c7fdff;
 }
 
 /* Footer */
@@ -317,11 +377,29 @@ const fromLabel = computed(() => (props.isMine ? 'You' : props.partnerName));
 
 .tc-modal-footer-left {
   font-size: 0.78rem;
-  opacity: 0.85;
 }
 
 .tc-footer-note {
   margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.tc-footer-icon svg {
+  width: 18px;
+  height: 18px;
+  
+  filter: drop-shadow(0 0 6px rgba(255, 0, 255, 0.7));
+}
+
+.tc-footer-text {
+  font-family: 'Great Vibes', cursive;
+  font-size: 1.2rem;
+  color: cyan;
+  text-shadow:
+    0 0 8px rgba(0, 255, 255, 0.7),
+    0 0 14px rgba(255, 0, 255, 0.6);
 }
 
 .tc-modal-footer-right {
