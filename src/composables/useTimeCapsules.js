@@ -121,7 +121,7 @@ const unlockedCapsules = computed(() => {
 });
 
 // CREATE a new capsule
-export async function createTimeCapsule({ toUid, unlockAt, title, message }) {
+export async function createTimeCapsule({ toUid, unlockAt, title, message, photos }) {
   const headers = await getAuthHeaders();
 
   const payload = {
@@ -130,6 +130,11 @@ export async function createTimeCapsule({ toUid, unlockAt, title, message }) {
     title: title || '',
     message: message || '',
   };
+
+  // 🔹 include photos if provided
+  if (Array.isArray(photos)) {
+    payload.photos = photos;
+  }
 
   const res = await fetch('/api/time-capsules', {
     method: 'POST',
@@ -152,13 +157,18 @@ export async function createTimeCapsule({ toUid, unlockAt, title, message }) {
 }
 
 // UPDATE an existing capsule (only creator, before unlock)
-export async function updateTimeCapsule(id, { title, message, unlockAt }) {
+export async function updateTimeCapsule(id, { title, message, unlockAt, photos }) {
   const headers = await getAuthHeaders();
 
   const payload = {};
   if (typeof title === 'string') payload.title = title;
   if (typeof message === 'string') payload.message = message;
   if (unlockAt) payload.unlockAt = unlockAt;
+
+  // 🔹 include photos if provided (replace on backend)
+  if (Array.isArray(photos)) {
+    payload.photos = photos;
+  }
 
   const res = await fetch(`/api/time-capsules/${id}`, {
     method: 'PUT',

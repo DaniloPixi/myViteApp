@@ -83,7 +83,7 @@
           </label>
         </div>
 
-        <!-- RIGHT: title + message -->
+        <!-- RIGHT: title + message + media -->
         <div class="tc-modal-column tc-modal-column-message">
           <label class="tc-field">
             <span class="tc-field-label">Title (optional)</span>
@@ -104,6 +104,69 @@
               placeholder="Write like they can’t open it until exactly when they’ll need it most."
             ></textarea>
           </label>
+
+          <!-- Media upload / previews -->
+          <div class="tc-field tc-media-field">
+            <span class="tc-field-label">Media (optional)</span>
+            <div class="tc-media-upload-row">
+              <input
+                id="tc-file-upload"
+                class="tc-media-file-input"
+                type="file"
+                multiple
+                accept="image/*,video/*"
+                :disabled="isSubmitting"
+                @change="handleFileChange"
+              />
+              <label
+                for="tc-file-upload"
+                class="tc-media-upload-button"
+                :class="{ 'tc-media-upload-button-disabled': isSubmitting }"
+              >
+                + Add photos / videos
+              </label>
+              <span v-if="isUploading" class="tc-media-upload-status">
+                Uploading… {{ uploadProgress }}%
+              </span>
+            </div>
+
+            <div v-if="mediaPreviews.length" class="tc-media-previews">
+              <div
+                v-for="(preview, idx) in mediaPreviews"
+                :key="idx"
+                class="tc-media-preview-item"
+              >
+                <img
+                  v-if="preview.resource_type === 'image'"
+                  :src="preview.url"
+                  :class="{ 'tc-media-adult-blur': preview.isAdult }"
+                />
+                <video
+                  v-else-if="preview.resource_type === 'video'"
+                  :src="preview.url"
+                  muted
+                  loop
+                  playsinline
+                  class="tc-media-video"
+                ></video>
+
+                <button
+                  class="tc-media-remove"
+                  @click.prevent="removeMedia(idx)"
+                >
+                  ×
+                </button>
+
+                <button
+                  class="tc-media-adult-flag"
+                  @click.prevent="toggleAdultFlag(idx)"
+                  :class="{ 'tc-media-adult-flag-on': preview.isAdult }"
+                >
+                  18+
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -162,6 +225,10 @@ const props = defineProps({
   partnerName: { type: String, default: 'partner' },
   isSubmitting: { type: Boolean, default: false },
   submitError: { type: String, default: '' },
+
+  // Cloudinary config comes from parent (TimeCapsulesView)
+  cloudinaryCloudName: { type: String, required: true },
+  cloudinaryUploadPreset: { type: String, required: true },
 });
 
 const emit = defineEmits(['save', 'close']);
@@ -170,6 +237,16 @@ const formTitle = ref('');
 const formMessage = ref('');
 const formUnlockAt = ref('');
 const formRecipient = ref('partner'); // 'partner' | 'me'
+
+// media state (similar to memos)
+const mediaPreviews = ref([]); // { url, file?, resource_type, isAdult, source: 'new' | 'existing' }
+const isUploading = ref(false);
+const uploadProgress = ref(0);
+const localError = ref('');
+
+// merge parent submitting + local uploading
+const isSubmitting = computed(() => props.isSubmitting || isUploading.value);
+const submitError = computed(() => props.submitError || localError.value);
 
 // title/subtitle depend on create vs edit
 const modalTitle = computed(() =>
@@ -182,11 +259,13 @@ const modalSubtitle = computed(() =>
     : 'Choose who it’s for, when it unlocks, and what future hearts will read.'
 );
 
-// Recipient summary for editing (no auth needed, just from/to comparison)
+// Recipient summary for editing
 const recipientSummary = computed(() => {
   const c = props.capsule;
   if (!c) return '';
-  if (!c.toUid || !c.fromUid) return 'Recipient was set when this capsule was created.';
+  if (!c.toUid || !c.fromUid) {
+    return 'Recipient was set when this capsule was created.';
+  }
   if (c.toUid === c.fromUid) return 'To your future self.';
   return 'To your partner.';
 });
@@ -195,6 +274,9 @@ const recipientSummary = computed(() => {
 watch(
   () => props.capsule,
   (capsule) => {
+    localError.value = '';
+    uploadProgress.value = 0;
+
     if (capsule) {
       formTitle.value = capsule.title || '';
       formMessage.value = capsule.message || '';
@@ -215,7 +297,17 @@ watch(
         formUnlockAt.value = '';
       }
 
-      // Recipient not editable on edit; keep default, used only on create.
+      // existing photos
+      if (Array.isArray(capsule.photos)) {
+        mediaPreviews.value = capsule.photos.map((media) => ({
+          url: media.url,
+          resource_type: media.resource_type || 'image',
+          isAdult: !!media.isAdult,
+          source: 'existing',
+        }));
+      } else {
+        mediaPreviews.value = [];
+      }
     } else {
       // Creating a new capsule: reset fields & prefill unlockAt to "tomorrow"
       formTitle.value = '';
@@ -231,24 +323,164 @@ watch(
 
       formUnlockAt.value = local;
       formRecipient.value = 'partner';
+      mediaPreviews.value = [];
     }
   },
   { immediate: true },
 );
 
-const isSubmitting = computed(() => props.isSubmitting);
-const submitError = computed(() => props.submitError);
-
 function emitClose() {
   emit('close');
 }
 
-function submitForm() {
+/**
+ * File handling / previews
+ */
+function handleFileChange(event) {
+  const files = Array.from(event.target.files || []);
+  const limit = 10;
+  const remaining = limit - mediaPreviews.value.length;
+
+  if (files.length > remaining) {
+    localError.value =
+      remaining <= 0
+        ? 'You’ve reached the maximum of 10 media files.'
+        : `You can only add ${remaining} more file${remaining === 1 ? '' : 's'}.`;
+    event.target.value = '';
+    return;
+  }
+
+  localError.value = '';
+
+  for (const file of files) {
+    const resource_type = file.type.startsWith('video') ? 'video' : 'image';
+    mediaPreviews.value.push({
+      url: URL.createObjectURL(file),
+      file,
+      isAdult: false,
+      resource_type,
+      source: 'new',
+    });
+  }
+
+  event.target.value = '';
+}
+
+function removeMedia(index) {
+  const item = mediaPreviews.value[index];
+  if (!item) return;
+
+  if (item.url && item.url.startsWith('blob:')) {
+    URL.revokeObjectURL(item.url);
+  }
+
+  mediaPreviews.value.splice(index, 1);
+}
+
+function toggleAdultFlag(index) {
+  const item = mediaPreviews.value[index];
+  if (!item) return;
+  item.isAdult = !item.isAdult;
+}
+
+/**
+ * Upload only the "new" files to Cloudinary, return clean objects for backend.
+ * Returns:
+ *  - Array of { url, resource_type, isAdult } on success
+ *  - null on failure
+ */
+async function uploadFiles() {
+  const filesToUpload = mediaPreviews.value.filter(
+    (p) => p.source === 'new' && p.file,
+  );
+
+  if (!filesToUpload.length) {
+    // nothing new to upload
+    return [];
+  }
+
+  isUploading.value = true;
+  uploadProgress.value = 0;
+  localError.value = '';
+
+  const uploadedMedia = [];
+
+  for (let i = 0; i < filesToUpload.length; i++) {
+    const preview = filesToUpload[i];
+    const resourceType = preview.resource_type || 'image';
+
+    const formData = new FormData();
+    formData.append('file', preview.file);
+    formData.append('upload_preset', props.cloudinaryUploadPreset);
+
+    try {
+      const endpoint = `https://api.cloudinary.com/v1_1/${props.cloudinaryCloudName}/${resourceType}/upload`;
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await response.json();
+
+      if (!response.ok || !data.secure_url) {
+        const msg =
+          data.error?.message || data.message || 'File upload failed.';
+        throw new Error(msg);
+      }
+
+      uploadedMedia.push({
+        url: data.secure_url,
+        isAdult: !!preview.isAdult,
+        resource_type: data.resource_type || resourceType,
+      });
+
+      uploadProgress.value = Math.round(
+        ((i + 1) / filesToUpload.length) * 100,
+      );
+    } catch (err) {
+      console.error('[TimeCapsuleFormModal] Upload failed:', err);
+      localError.value = 'Upload failed for one or more files.';
+      isUploading.value = false;
+      return null;
+    }
+  }
+
+  isUploading.value = false;
+  return uploadedMedia;
+}
+
+/**
+ * Submit: upload new media, merge with existing, emit all data upwards.
+ */
+async function submitForm() {
+  if (!formUnlockAt.value) {
+    localError.value = 'Please choose an unlock date & time.';
+    return;
+  }
+
+  localError.value = '';
+
+  const newMedia = await uploadFiles();
+  if (newMedia === null) {
+    // upload error already shown
+    return;
+  }
+
+  const existingMedia = mediaPreviews.value
+    .filter((p) => p.source === 'existing')
+    .map(({ url, isAdult, resource_type }) => ({
+      url,
+      isAdult: !!isAdult,
+      resource_type: resource_type || 'image',
+    }));
+
+  const photos = [...existingMedia, ...newMedia];
+
   emit('save', {
     title: formTitle.value,
     message: formMessage.value,
     unlockAtLocal: formUnlockAt.value,
     recipient: formRecipient.value, // used only on create
+    photos,
   });
 }
 </script>
@@ -374,7 +606,7 @@ function submitForm() {
   box-shadow: 0 0 16px rgba(255, 0, 255, 0.7);
 }
 
-/* Header: match read modal */
+/* Header */
 
 .tc-modal-header {
   margin-bottom: 0.9rem;
@@ -558,6 +790,114 @@ function submitForm() {
 .tc-hint-highlight {
   color: #ffdf7f;
   font-weight: 500;
+}
+
+/* MEDIA FIELD */
+
+.tc-media-field {
+  margin-top: 0.3rem;
+}
+
+.tc-media-upload-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.tc-media-file-input {
+  display: none;
+}
+
+.tc-media-upload-button {
+  display: inline-block;
+  padding: 0.3rem 0.8rem;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 255, 255, 0.7);
+  background: rgba(0, 0, 0, 0.85);
+  color: #7ef7ff;
+  font-size: 0.8rem;
+  cursor: pointer;
+  box-shadow: 0 0 7px rgba(0, 255, 255, 0.6);
+  transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+}
+
+.tc-media-upload-button:hover {
+  border-color: magenta;
+  box-shadow: 0 0 10px rgba(255, 0, 255, 0.7);
+  transform: translateY(-0.5px);
+}
+
+.tc-media-upload-button-disabled {
+  opacity: 0.55;
+  cursor: default;
+  box-shadow: none;
+}
+
+.tc-media-upload-status {
+  font-size: 0.75rem;
+  opacity: 0.85;
+  color: #7ef7ff;
+}
+
+.tc-media-previews {
+  margin-top: 0.5rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+  gap: 0.4rem;
+}
+
+.tc-media-preview-item {
+  position: relative;
+  border-radius: 8px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.9);
+  box-shadow: 0 0 8px rgba(255, 0, 255, 0.35);
+}
+
+.tc-media-preview-item img,
+.tc-media-video {
+  display: block;
+  width: 100%;
+  height: 70px;
+  object-fit: cover;
+}
+
+.tc-media-adult-blur {
+  filter: blur(8px);
+}
+
+.tc-media-remove {
+  position: absolute;
+  top: -0.4rem;
+  right: -0.2rem;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0, 0, 0, 0.85);
+  color: #ff6b6b;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.tc-media-adult-flag {
+  position: absolute;
+  bottom: 3px;
+  right: 3px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  background: rgba(0, 0, 0, 0.7);
+  color: #f5f5ff;
+  font-size: 0.6rem;
+  padding: 1px 4px;
+  cursor: pointer;
+}
+
+.tc-media-adult-flag-on {
+  background: #ff6b6b;
+  color: #000;
+  border-color: #ff6b6b;
 }
 
 /* Modal footer */

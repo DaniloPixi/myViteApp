@@ -1,483 +1,474 @@
 <template>
-  
-    <div class="tc-view">
-        <header class="tc-header">
-  <div class="tc-header-main">
-    <p class="tc-subtitle">
-      Messages for future hearts. Locked until their time.
-    </p>
+  <div class="tc-view">
+    <header class="tc-header">
+      <div class="tc-header-main">
+        <p class="tc-subtitle">
+          Messages for future hearts. Locked until their time.
+        </p>
 
-    <button class="tc-new-btn" @click="openCreate">
-      New time capsule ✨
-    </button>
-  </div>
-</header>
-  
-      <div v-if="loading" class="tc-status">Loading capsules...</div>
-      <div v-else-if="error" class="tc-status tc-status-error">
-        Failed to load time capsules.
+        <button class="tc-new-btn" @click="openCreate">
+          New time capsule ✨
+        </button>
       </div>
-  
-      <div v-else class="tc-list">
-        <div v-if="displayCapsules.length === 0" class="tc-empty">
-          No time capsules yet.<br />
-          Create one and drop it into the future.
+    </header>
+
+    <div v-if="loading" class="tc-status">Loading capsules...</div>
+    <div v-else-if="error" class="tc-status tc-status-error">
+      Failed to load time capsules.
+    </div>
+
+    <div v-else class="tc-list">
+      <div v-if="displayCapsules.length === 0" class="tc-empty">
+        No time capsules yet.<br />
+        Create one and drop it into the future.
+      </div>
+
+      <div
+        v-for="capsule in displayCapsules"
+        :key="capsule.id"
+        class="tc-card"
+        :data-capsule-id="capsule.id"
+        :class="[
+          isMine(capsule) ? 'tc-card-mine' : 'tc-card-theirs',
+          isLocked(capsule) ? 'tc-card-locked' : 'tc-card-unlocked',
+          isTouchDevice && focusedCapsuleId === capsule.id ? 'tc-card-focused' : ''
+        ]"
+      >
+        <div class="tc-card-main">
+          <div class="tc-card-text">
+            <h2 class="tc-card-title">
+              {{ capsule.title || 'Untitled capsule' }}
+            </h2>
+
+            <div class="tc-badges">
+              <span
+                class="tc-badge"
+                :class="isMine(capsule) ? 'tc-badge-mine' : 'tc-badge-theirs'"
+              >
+                {{ isMine(capsule) ? 'From you' : 'From them' }}
+              </span>
+              <span
+                v-if="isSelfCapsule(capsule)"
+                class="tc-badge tc-badge-self"
+              >
+                To yourself
+              </span>
+              <span
+                v-else
+                class="tc-badge tc-badge-target"
+              >
+                To {{ recipientLabel(capsule) }}
+              </span>
+            </div>
+          </div>
         </div>
-  
-        <div
-  v-for="capsule in displayCapsules"
-  :key="capsule.id"
-  class="tc-card"
-  :data-capsule-id="capsule.id"
-  :class="[
-    isMine(capsule) ? 'tc-card-mine' : 'tc-card-theirs',
-    isLocked(capsule) ? 'tc-card-locked' : 'tc-card-unlocked',
-    isTouchDevice && focusedCapsuleId === capsule.id ? 'tc-card-focused' : ''
-  ]"
->
-  <div class="tc-card-main">
-    <div class="tc-card-text">
-      <h2 class="tc-card-title">
-        {{ capsule.title || 'Untitled capsule' }}
-      </h2>
 
-      <div class="tc-badges">
-        <span
-          class="tc-badge"
-          :class="isMine(capsule) ? 'tc-badge-mine' : 'tc-badge-theirs'"
-        >
-          {{ isMine(capsule) ? 'From you' : 'From them' }}
-        </span>
-        <span
-          v-if="isSelfCapsule(capsule)"
-          class="tc-badge tc-badge-self"
-        >
-          To yourself
-        </span>
-        <span
-          v-else
-          class="tc-badge tc-badge-target"
-        >
-          To {{ recipientLabel(capsule) }}
-        </span>
+        <div class="tc-card-actions">
+          <button
+            v-if="canEdit(capsule)"
+            class="tc-btn tc-btn-ghost"
+            @click="openEdit(capsule)"
+          >
+            Edit
+          </button>
+
+          <button
+            class="tc-btn tc-btn-primary"
+            :disabled="isLocked(capsule)"
+            @click="handleOpen(capsule)"
+          >
+            <span v-if="isLocked(capsule)">🔒 Locked</span>
+            <span v-else-if="isOpened(capsule)">🔓 View</span>
+            <span v-else>🔓 Open</span>
+          </button>
+        </div>
       </div>
     </div>
+
+    <!-- CREATE / EDIT MODAL (animated like calendar) -->
+    <Transition name="modal">
+      <TimeCapsuleFormModal
+        v-if="isFormModalVisible"
+        :capsule="editingCapsule"
+        :partner-name="PARTNER_NAME"
+        :is-submitting="saving"
+        :submit-error="submitError"
+        cloudinary-cloud-name="dknmcj1qj"
+        cloudinary-upload-preset="memos_and_moments"
+        @close="closeFormModal"
+        @save="handleSaveCapsule"
+      />
+    </Transition>
+
+    <!-- READ MODAL (animated like calendar) -->
+    <Transition name="modal">
+      <TimeCapsuleReadModal
+        v-if="showReader && readerCapsule"
+        :capsule="readerCapsule"
+        :is-mine="isMine(readerCapsule)"
+        :recipient-label="readerRecipientLabel"
+        :partner-name="PARTNER_NAME"
+        @close="closeReader"
+      />
+    </Transition>
   </div>
+</template>
 
-  <div class="tc-card-actions">
-    <button
-      v-if="canEdit(capsule)"
-      class="tc-btn tc-btn-ghost"
-      @click="openEdit(capsule)"
-    >
-      Edit
-    </button>
+<script setup>
+import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { auth } from '../firebase';
+import {
+  useTimeCapsules,
+  createTimeCapsule,
+  updateTimeCapsule,
+  openTimeCapsule,
+} from '../composables/useTimeCapsules';
+import TimeCapsuleFormModal from '../components/TimeCapsuleFormModal.vue';
+import TimeCapsuleReadModal from '../components/TimeCapsuleReadModal.vue';
 
-    <button
-      class="tc-btn tc-btn-primary"
-      :disabled="isLocked(capsule)"
-      @click="handleOpen(capsule)"
-    >
-      <span v-if="isLocked(capsule)">🔒 Locked</span>
-      <span v-else-if="isOpened(capsule)">🔓 View</span>
-      <span v-else>🔓 Open</span>
-    </button>
-  </div>
-</div>
+const props = defineProps({
+  dateFilter: {
+    type: String,
+    default: '',
+  },
+  // '' | 'locked' | 'unlocked'
+  lockStatusFilter: {
+    type: String,
+    default: '',
+  },
+});
 
+const isTouchDevice = ref(false);
+const focusedCapsuleId = ref(null);
 
-      </div>
-<!-- CREATE / EDIT MODAL (animated like calendar) -->
-<Transition name="modal">
-  <TimeCapsuleFormModal
-    v-if="isFormModalVisible"
-    :capsule="editingCapsule"
-    :partner-name="PARTNER_NAME"
-    :is-submitting="saving"
-    :submit-error="submitError"
-    @close="closeFormModal"
-    @save="handleSaveCapsule"
-  />
-</Transition>
+function updateFocusedCapsule() {
+  if (!isTouchDevice.value) return;
 
-<!-- READ MODAL (animated like calendar) -->
-<Transition name="modal">
-  <TimeCapsuleReadModal
-    v-if="showReader && readerCapsule"
-    :capsule="readerCapsule"
-    :is-mine="isMine(readerCapsule)"
-    :recipient-label="readerRecipientLabel"
-    :partner-name="PARTNER_NAME"
-    @close="closeReader"
-  />
-</Transition>
+  const cards = document.querySelectorAll('.tc-card[data-capsule-id]');
+  if (!cards.length) {
+    focusedCapsuleId.value = null;
+    return;
+  }
 
+  const viewportCenterY = window.innerHeight / 2;
+  let closestId = null;
+  let minDistance = Infinity;
 
-<!-- READ MODAL (with calendar animation) -->
-<Transition name="modal">
-  <TimeCapsuleReadModal
-    v-if="showReader && readerCapsule"
-    :capsule="readerCapsule"
-    :is-mine="isMine(readerCapsule)"
-    :recipient-label="readerRecipientLabel"
-    :partner-name="PARTNER_NAME"
-    @close="closeReader"
-  />
-</Transition>
+  cards.forEach((el) => {
+    const rect = el.getBoundingClientRect();
+    const centerY = rect.top + rect.height / 2;
+    const distance = Math.abs(centerY - viewportCenterY);
 
-    </div>
-  </template>
-  
-  <script setup>
-  import { ref, computed, onMounted, onUnmounted } from 'vue';
-  import { auth } from '../firebase';
-  import {
-    useTimeCapsules,
-    createTimeCapsule,
-    updateTimeCapsule,
-    openTimeCapsule,
-  } from '../composables/useTimeCapsules';
-  import TimeCapsuleFormModal from '../components/TimeCapsuleFormModal.vue';
-  import TimeCapsuleReadModal from '../components/TimeCapsuleReadModal.vue';
-  
-  const props = defineProps({
-    dateFilter: {
-      type: String,
-      default: '',
-    },
-    // '' | 'locked' | 'unlocked'
-    lockStatusFilter: {
-      type: String,
-      default: '',
-    },
-  });
-  
-  const isTouchDevice = ref(false);
-  const focusedCapsuleId = ref(null);
-  
-  function updateFocusedCapsule() {
-    if (!isTouchDevice.value) return;
-  
-    const cards = document.querySelectorAll('.tc-card[data-capsule-id]');
-    if (!cards.length) {
-      focusedCapsuleId.value = null;
-      return;
+    if (distance < minDistance) {
+      minDistance = distance;
+      closestId = el.dataset.capsuleId;
     }
-  
-    const viewportCenterY = window.innerHeight / 2;
-    let closestId = null;
-    let minDistance = Infinity;
-  
-    cards.forEach((el) => {
-      const rect = el.getBoundingClientRect();
-      const centerY = rect.top + rect.height / 2;
-      const distance = Math.abs(centerY - viewportCenterY);
-  
-      if (distance < minDistance) {
-        minDistance = distance;
-        closestId = el.dataset.capsuleId;
-      }
-    });
-  
-    // Threshold so we don't focus stuff far off-screen
-    if (minDistance < 140) {
-      focusedCapsuleId.value = closestId;
-    } else {
-      focusedCapsuleId.value = null;
+  });
+
+  // Threshold so we don't focus stuff far off-screen
+  if (minDistance < 140) {
+    focusedCapsuleId.value = closestId;
+  } else {
+    focusedCapsuleId.value = null;
+  }
+}
+
+// TODO: replace with real partner UID + name
+const PARTNER_UID = 'AWAdDBGujGMAwzywnc8CVaBAst83';
+const PARTNER_NAME = 'Eva';
+
+const CLOUDINARY_CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+const CLOUDINARY_UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
+
+// --- auth context ---
+const currentUser = computed(() => auth.currentUser);
+const currentUid = computed(() => currentUser.value?.uid || null);
+
+// --- composable ---
+const {
+  sortedCapsules,
+  loading,
+  error,
+  fetchTimeCapsules,
+  isLocked,
+  isOpened,
+} = useTimeCapsules();
+
+onMounted(() => {
+  fetchTimeCapsules();
+
+  isTouchDevice.value =
+    typeof window !== 'undefined' &&
+    ('ontouchstart' in window || navigator.maxTouchPoints > 0);
+
+  if (isTouchDevice.value) {
+    // initial calculation
+    setTimeout(updateFocusedCapsule, 200);
+    window.addEventListener('scroll', updateFocusedCapsule, { passive: true });
+    window.addEventListener('resize', updateFocusedCapsule);
+  }
+});
+
+onUnmounted(() => {
+  if (isTouchDevice.value) {
+    window.removeEventListener('scroll', updateFocusedCapsule);
+    window.removeEventListener('resize', updateFocusedCapsule);
+  }
+});
+
+// --- filtered list ---
+const displayCapsules = computed(() => {
+  let list = sortedCapsules.value || [];
+
+  // Filter by date (unlockAt or createdAt)
+  if (props.dateFilter) {
+    const target = new Date(props.dateFilter);
+    if (!Number.isNaN(target.getTime())) {
+      const ty = target.getFullYear();
+      const tm = target.getMonth();
+      const td = target.getDate();
+
+      list = list.filter((capsule) => {
+        const raw = capsule.unlockAt || capsule.createdAt;
+        if (!raw) return false;
+
+        const d = new Date(raw);
+        if (Number.isNaN(d.getTime())) return false;
+
+        return (
+          d.getFullYear() === ty &&
+          d.getMonth() === tm &&
+          d.getDate() === td
+        );
+      });
     }
   }
-  
-  // TODO: replace with real partner UID + name
-  const PARTNER_UID = 'AWAdDBGujGMAwzywnc8CVaBAst83';
-  const PARTNER_NAME = 'Eva';
-  
-  // --- auth context ---
-  const currentUser = computed(() => auth.currentUser);
-  const currentUid = computed(() => currentUser.value?.uid || null);
-  
-  // --- composable ---
-  const {
-    sortedCapsules,
-    loading,
-    error,
-    fetchTimeCapsules,
-    isLocked,
-    isOpened,
-  } = useTimeCapsules();
-  
-  onMounted(() => {
-    fetchTimeCapsules();
-  
-    isTouchDevice.value =
-      typeof window !== 'undefined' &&
-      ('ontouchstart' in window || navigator.maxTouchPoints > 0);
-  
-    if (isTouchDevice.value) {
-      // initial calculation
-      setTimeout(updateFocusedCapsule, 200);
-      window.addEventListener('scroll', updateFocusedCapsule, { passive: true });
-      window.addEventListener('resize', updateFocusedCapsule);
-    }
-  });
-  
-  onUnmounted(() => {
-    if (isTouchDevice.value) {
-      window.removeEventListener('scroll', updateFocusedCapsule);
-      window.removeEventListener('resize', updateFocusedCapsule);
-    }
-  });
-  
-  // --- filtered list ---
-  const displayCapsules = computed(() => {
-    let list = sortedCapsules.value || [];
-  
-    // Filter by date (unlockAt or createdAt)
-    if (props.dateFilter) {
-      const target = new Date(props.dateFilter);
-      if (!Number.isNaN(target.getTime())) {
-        const ty = target.getFullYear();
-        const tm = target.getMonth();
-        const td = target.getDate();
-  
-        list = list.filter((capsule) => {
-          const raw = capsule.unlockAt || capsule.createdAt;
-          if (!raw) return false;
-  
-          const d = new Date(raw);
-          if (Number.isNaN(d.getTime())) return false;
-  
-          return (
-            d.getFullYear() === ty &&
-            d.getMonth() === tm &&
-            d.getDate() === td
-          );
-        });
-      }
-    }
-  
-    // Filter by lock status
-    if (props.lockStatusFilter === 'locked') {
-      list = list.filter((capsule) => isLocked(capsule));
-    } else if (props.lockStatusFilter === 'unlocked') {
-      list = list.filter((capsule) => !isLocked(capsule));
-    }
-  
-    return list;
-  });
-  
-  // --- modal state (create/edit) ---
-  const isFormModalVisible = ref(false);
-  const editingCapsule = ref(null);
-  const saving = ref(false);
-  const submitError = ref('');
-  
-  // --- modal state (reader) ---
-  const showReader = ref(false);
-  const readerCapsule = ref(null);
-  const readerRecipientLabel = ref('');
-  
-  // --- helpers ---
-  function isMine(capsule) {
-    if (!capsule || !currentUid.value) return false;
-    return capsule.fromUid === currentUid.value;
+
+  // Filter by lock status
+  if (props.lockStatusFilter === 'locked') {
+    list = list.filter((capsule) => isLocked(capsule));
+  } else if (props.lockStatusFilter === 'unlocked') {
+    list = list.filter((capsule) => !isLocked(capsule));
   }
-  
-  function isSelfCapsule(capsule) {
-    if (!capsule) return false;
-    return capsule.fromUid && capsule.toUid && capsule.fromUid === capsule.toUid;
+
+  return list;
+});
+
+// --- modal state (create/edit) ---
+const isFormModalVisible = ref(false);
+const editingCapsule = ref(null);
+const saving = ref(false);
+const submitError = ref('');
+
+// --- modal state (reader) ---
+const showReader = ref(false);
+const readerCapsule = ref(null);
+const readerRecipientLabel = ref('');
+
+// --- helpers ---
+function isMine(capsule) {
+  if (!capsule || !currentUid.value) return false;
+  return capsule.fromUid === currentUid.value;
+}
+
+function isSelfCapsule(capsule) {
+  if (!capsule) return false;
+  return capsule.fromUid && capsule.toUid && capsule.fromUid === capsule.toUid;
+}
+
+function recipientLabel(capsule) {
+  if (!capsule) return '';
+
+  const me = currentUid.value;
+
+  // No auth yet or weird data
+  if (!me || !capsule.toUid) {
+    return 'someone';
   }
-  
-  function recipientLabel(capsule) {
-    if (!capsule) return '';
-  
-    const me = currentUid.value;
-  
-    // No auth yet or weird data
-    if (!me || !capsule.toUid) {
-      return 'someone';
-    }
-  
-    // Self-capsule, seen by its owner
-    if (capsule.fromUid === me && capsule.toUid === me) {
-      return 'yourself';
-    }
-  
-    // Capsule addressed to me
-    if (capsule.toUid === me) {
-      return 'you';
-    }
-  
-    // Capsule where they wrote to themselves (but I'm looking at it)
-    if (capsule.fromUid === capsule.toUid) {
-      return 'themselves';
-    }
-  
-    // 2-user world:
-    // if it's not to me and not a self-capsule,
-    // it's to "the other person".
-    if (PARTNER_UID && capsule.toUid === PARTNER_UID) {
-      return PARTNER_NAME || 'them';
-    }
-  
-    // Fallback
+
+  // Self-capsule, seen by its owner
+  if (capsule.fromUid === me && capsule.toUid === me) {
+    return 'yourself';
+  }
+
+  // Capsule addressed to me
+  if (capsule.toUid === me) {
+    return 'you';
+  }
+
+  // Capsule where they wrote to themselves (but I'm looking at it)
+  if (capsule.fromUid === capsule.toUid) {
+    return 'themselves';
+  }
+
+  // 2-user world
+  if (PARTNER_UID && capsule.toUid === PARTNER_UID) {
     return PARTNER_NAME || 'them';
   }
-  
-  function canEdit(capsule) {
-    if (!capsule) return false;
-    if (!isMine(capsule)) return false;
-    if (isOpened(capsule)) return false;
-    if (!capsule.unlockAt) return false;
-    const unlockTime = new Date(capsule.unlockAt).getTime();
-    return unlockTime > Date.now();
+
+  // Fallback
+  return PARTNER_NAME || 'them';
+}
+
+function canEdit(capsule) {
+  if (!capsule) return false;
+  if (!isMine(capsule)) return false;
+  if (isOpened(capsule)) return false;
+  if (!capsule.unlockAt) return false;
+  const unlockTime = new Date(capsule.unlockAt).getTime();
+  return unlockTime > Date.now();
+}
+
+function formatDate(raw) {
+  if (!raw) return 'Unknown';
+  const d = new Date(raw);
+  if (Number.isNaN(d.getTime())) return 'Unknown';
+  return d.toLocaleString(undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function formatUnlock(raw) {
+  if (!raw) return 'Unknown';
+  return formatDate(raw);
+}
+
+// --- editor modal open/close ---
+function openCreate() {
+  editingCapsule.value = null;
+  submitError.value = '';
+  isFormModalVisible.value = true;
+}
+
+function openEdit(capsule) {
+  if (!capsule) return;
+  editingCapsule.value = capsule;
+  submitError.value = '';
+  isFormModalVisible.value = true;
+}
+
+function closeFormModal() {
+  isFormModalVisible.value = false;
+  editingCapsule.value = null;
+  submitError.value = '';
+}
+
+// --- create/update via modal ---
+async function handleSaveCapsule(payload) {
+  if (!currentUid.value) {
+    alert('You must be logged in to create a time capsule.');
+    return;
   }
-  
-  function formatDate(raw) {
-    if (!raw) return 'Unknown';
-    const d = new Date(raw);
-    if (Number.isNaN(d.getTime())) return 'Unknown';
-    return d.toLocaleString(undefined, {
-      year: 'numeric',
-      month: 'short',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+
+  const { title, message, unlockAtLocal, recipient, photos } = payload;
+
+  if (!unlockAtLocal) {
+    alert('Please choose an unlock date and time.');
+    return;
   }
-  
-  function formatUnlock(raw) {
-    if (!raw) return 'Unknown';
-    return formatDate(raw);
+
+  const unlockAtLocalDate = new Date(unlockAtLocal);
+  if (Number.isNaN(unlockAtLocalDate.getTime())) {
+    alert('Invalid unlock date/time');
+    return;
   }
-  
-  // --- editor modal open/close ---
-  function openCreate() {
-    editingCapsule.value = null;
-    submitError.value = '';
-    isFormModalVisible.value = true;
+
+  const now = Date.now();
+  const unlockTs = unlockAtLocalDate.getTime();
+  if (unlockTs <= now) {
+    alert('Unlock time must be in the future.');
+    return;
   }
-  
-  function openEdit(capsule) {
-    if (!capsule) return;
-    editingCapsule.value = capsule;
-    submitError.value = '';
-    isFormModalVisible.value = true;
+
+  const trimmedMessage = (message || '').trim();
+  if (!trimmedMessage) {
+    alert('Message cannot be empty.');
+    return;
   }
-  
-  function closeFormModal() {
-    isFormModalVisible.value = false;
-    editingCapsule.value = null;
-    submitError.value = '';
-  }
-  
-  // --- create/update via modal ---
-  async function handleSaveCapsule(payload) {
-    if (!currentUid.value) {
-      alert('You must be logged in to create a time capsule.');
-      return;
+
+  const unlockAtIso = unlockAtLocalDate.toISOString();
+
+  let toUid;
+  if (!editingCapsule.value) {
+    if (recipient === 'me') {
+      toUid = currentUid.value;
+    } else {
+      toUid = PARTNER_UID || currentUid.value;
     }
-  
-    const { title, message, unlockAtLocal, recipient } = payload;
-  
-    if (!unlockAtLocal) {
-      alert('Please choose an unlock date and time.');
-      return;
-    }
-  
-    const unlockAtLocalDate = new Date(unlockAtLocal);
-    if (Number.isNaN(unlockAtLocalDate.getTime())) {
-      alert('Invalid unlock date/time');
-      return;
-    }
-  
-    const now = Date.now();
-    const unlockTs = unlockAtLocalDate.getTime();
-    if (unlockTs <= now) {
-      alert('Unlock time must be in the future.');
-      return;
-    }
-  
-    const trimmedMessage = (message || '').trim();
-    if (!trimmedMessage) {
-      alert('Message cannot be empty.');
-      return;
-    }
-  
-    const unlockAtIso = unlockAtLocalDate.toISOString();
-  
-    let toUid;
+  }
+
+  saving.value = true;
+  submitError.value = '';
+
+  try {
     if (!editingCapsule.value) {
-      if (recipient === 'me') {
-        toUid = currentUid.value;
-      } else {
-        toUid = PARTNER_UID || currentUid.value;
-      }
+      // CREATE – send photos array through
+      await createTimeCapsule({
+        toUid,
+        unlockAt: unlockAtIso,
+        title: title || '',
+        message: trimmedMessage,
+        photos: photos || [],
+      });
+    } else {
+      // EDIT – replace photos with whatever the form sends
+      await updateTimeCapsule(editingCapsule.value.id, {
+        title: title || '',
+        message: trimmedMessage,
+        unlockAt: unlockAtIso,
+        photos: photos || [],
+      });
     }
-  
-    saving.value = true;
-    submitError.value = '';
-  
+
+    await fetchTimeCapsules();
+    closeFormModal();
+  } catch (e) {
+    console.warn('[TimeCapsulesView] handleSaveCapsule failed:', e);
+    submitError.value = 'Failed to save time capsule.';
+  } finally {
+    saving.value = false;
+  }
+}
+
+// --- reader modal open/close ---
+function openReader(capsule) {
+  if (!capsule) return;
+  readerCapsule.value = capsule;
+  readerRecipientLabel.value = recipientLabel(capsule);
+  showReader.value = true;
+}
+
+function closeReader() {
+  showReader.value = false;
+  readerCapsule.value = null;
+  readerRecipientLabel.value = '';
+}
+
+// --- open a capsule (and show modal) ---
+async function handleOpen(capsule) {
+  if (!capsule) return;
+  if (isLocked(capsule)) return;
+
+  // Show modal immediately
+  openReader(capsule);
+
+  // First open: mark as opened in backend
+  if (!isOpened(capsule)) {
     try {
-      if (!editingCapsule.value) {
-        await createTimeCapsule({
-          toUid,
-          unlockAt: unlockAtIso,
-          title: title || '',
-          message: trimmedMessage,
-        });
-      } else {
-        await updateTimeCapsule(editingCapsule.value.id, {
-          title: title || '',
-          message: trimmedMessage,
-          unlockAt: unlockAtIso,
-        });
-      }
-  
+      await openTimeCapsule(capsule.id);
       await fetchTimeCapsules();
-      closeFormModal();
     } catch (e) {
-      console.warn('[TimeCapsulesView] handleSaveCapsule failed:', e);
-      submitError.value = 'Failed to save time capsule.';
-    } finally {
-      saving.value = false;
+      console.warn('[TimeCapsulesView] handleOpen failed:', e);
+      alert('Failed to mark time capsule as opened.');
     }
   }
-  
-  // --- reader modal open/close ---
-  function openReader(capsule) {
-    if (!capsule) return;
-    readerCapsule.value = capsule;
-    readerRecipientLabel.value = recipientLabel(capsule);
-    showReader.value = true;
-  }
-  
-  function closeReader() {
-    showReader.value = false;
-    readerCapsule.value = null;
-    readerRecipientLabel.value = '';
-  }
-  
-  // --- open a capsule (and show modal) ---
-  async function handleOpen(capsule) {
-    if (!capsule) return;
-    if (isLocked(capsule)) return;
-  
-    // Show modal immediately
-    openReader(capsule);
-  
-    // First open: mark as opened in backend
-    if (!isOpened(capsule)) {
-      try {
-        await openTimeCapsule(capsule.id);
-        await fetchTimeCapsules();
-      } catch (e) {
-        console.warn('[TimeCapsulesView] handleOpen failed:', e);
-        alert('Failed to mark time capsule as opened.');
-      }
-    }
-  }
-  </script>
-  
+}
+</script>
+
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap');
 
@@ -563,49 +554,49 @@
 /* CARD – compact pill, ~1/5 of view width, centered content */
 
 .tc-card {
-    position: relative;
-    backdrop-filter: blur(8px);
-    border-radius: 999px;
-    border: 2px solid rgba(255, 255, 255, 0.1);
-    color: #fff;
-    padding: 0.55rem 0.7rem;
+  position: relative;
+  backdrop-filter: blur(8px);
+  border-radius: 999px;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  color: #fff;
+  padding: 0.55rem 0.7rem;
 
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: space-between;
-    text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  text-align: center;
 
-    flex: 0 1 calc(20% - 0.75rem);
-    min-width: 150px;
-    max-width: 190px;
+  flex: 0 1 calc(20% - 0.75rem);
+  min-width: 150px;
+  max-width: 190px;
 
-    background:
+  background:
     radial-gradient(
       circle at 10% 0%,
-      var(--tc-card-glow-a, rgba(0, 255, 255, 0)), /* was ~0.18 */
+      var(--tc-card-glow-a, rgba(0, 255, 255, 0)),
       transparent 60%
     ),
     radial-gradient(
       circle at 90% 100%,
-      var(--tc-card-glow-b, rgba(255, 0, 255, 0)), /* was ~0.18 */
+      var(--tc-card-glow-b, rgba(255, 0, 255, 0)),
       transparent 60%
     ),
-    rgba(0, 0, 0, 0); /* was 0.26 – base panel is much lighter now */
+    rgba(0, 0, 0, 0);
 
   box-shadow:
     inset 0 0 6px var(--bubble-inner-shadow-color, rgba(255, 0, 255, 0.35)),
     0 0 11px var(--bubble-outer-shadow-color, rgba(0, 255, 255, 0.22));
-    transition:
-      box-shadow 0.3s cubic-bezier(0.25, 0.8, 0.25, 1),
-      background 0.25s ease,
-      border-color 0.25s ease,
-      transform 0.22s cubic-bezier(0.25, 0.8, 0.25, 1);
-    -webkit-font-smoothing: antialiased;
-    backface-visibility: hidden;
-  }
+  transition:
+    box-shadow 0.3s cubic-bezier(0.25, 0.8, 0.25, 1),
+    background 0.25s ease,
+    border-color 0.25s ease,
+    transform 0.22s cubic-bezier(0.25, 0.8, 0.25, 1);
+  -webkit-font-smoothing: antialiased;
+  backface-visibility: hidden;
+}
 
-  .tc-card:hover {
+.tc-card:hover {
   background:
     radial-gradient(
       circle at 10% 0%,
@@ -623,7 +614,6 @@
     inset 0 0 10px var(--bubble-inner-shadow-color, rgba(255, 0, 255, 0.5)),
     0 0 14px var(--bubble-outer-shadow-color, rgba(0, 255, 255, 0.32));
 }
-
 
 /* mine/theirs tweaks + color variables */
 
@@ -684,7 +674,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
-  -webkit-line-clamp: 2;        /* allow up to 2 lines */
+  -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   max-width: 100%;
 }
@@ -808,13 +798,13 @@
   .tc-card {
     flex: 0 1 calc(33.333% - 0.75rem); /* ~3 per row */
     border-radius: 75px;
-    transform: scale(1);                 /* draw at native size */
+    transform: scale(1);
     transform-origin: center center;
-    will-change: transform, box-shadow;  /* hint for smoother anim, but keeps crisp base */
+    will-change: transform, box-shadow;
   }
 
   .tc-card-focused {
-    transform: scale(1.20);              /* small bump, less destructive */
+    transform: scale(1.2);
     z-index: 2;
     box-shadow:
       inset 0 0 14px var(--bubble-inner-shadow-color, rgba(255, 0, 255, 0.6)),
@@ -822,19 +812,9 @@
   }
 }
 
-
-
-
 @media (max-width: 500px) {
   .tc-card {
     flex: 0 1 calc(50% - 0.75rem); /* ~2 per row */
   }
 }
 </style>
-
-
-
-
-
-
-  

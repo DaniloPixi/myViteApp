@@ -68,7 +68,8 @@ export default function createTimeCapsulesRouter(db, sendPushNotification) {
    *   toUid: string,            // recipient user id
    *   unlockAt: string,         // ISO or "YYYY-MM-DDTHH:mm"
    *   title?: string,
-   *   message?: string
+   *   message?: string,
+   *   photos?: Array<{ url, resource_type, isAdult }>
    * }
    */
   router.post('/', async (req, res) => {
@@ -79,7 +80,8 @@ export default function createTimeCapsulesRouter(db, sendPushNotification) {
         .json({ success: false, message: 'Unauthorized: no user in request.' });
     }
 
-    const { toUid, unlockAt: unlockAtRaw, title, message } = req.body || {};
+    // ⬅️ NOW includes photos
+    const { toUid, unlockAt: unlockAtRaw, title, message, photos } = req.body || {};
 
     if (!toUid || !unlockAtRaw) {
       return res.status(400).json({
@@ -110,6 +112,8 @@ export default function createTimeCapsulesRouter(db, sendPushNotification) {
     try {
       const displayName = name || email || 'Someone';
 
+      const cleanPhotos = Array.isArray(photos) ? photos : [];
+
       const docRef = await db.collection('timeCapsules').add({
         fromUid: uid,
         fromName: displayName,
@@ -118,6 +122,7 @@ export default function createTimeCapsulesRouter(db, sendPushNotification) {
         unlockDateKey,
         title: title || '',
         message: message || '',
+        photos: cleanPhotos,       // ⬅️ store photos here
         createdAt: new Date().toISOString(),
         openedAt: null,
         opened: false,
@@ -140,6 +145,8 @@ export default function createTimeCapsulesRouter(db, sendPushNotification) {
   /**
    * PUT /api/time-capsules/:id
    * Edit an existing capsule (only by creator, only before unlock time).
+   *
+   * Body can include: title, message, unlockAt, photos
    */
   router.put('/:id', async (req, res) => {
     const { uid } = req.user || {};
@@ -150,7 +157,8 @@ export default function createTimeCapsulesRouter(db, sendPushNotification) {
     }
 
     const { id } = req.params;
-    const { title, message, unlockAt: unlockAtRaw } = req.body || {};
+    // ⬅️ NOW also accepts photos
+    const { title, message, unlockAt: unlockAtRaw, photos } = req.body || {};
 
     try {
       const docRef = db.collection('timeCapsules').doc(id);
@@ -188,6 +196,11 @@ export default function createTimeCapsulesRouter(db, sendPushNotification) {
       const updateData = {};
       if (typeof title === 'string') updateData.title = title;
       if (typeof message === 'string') updateData.message = message;
+
+      // ⬅️ allow replacing photos
+      if (Array.isArray(photos)) {
+        updateData.photos = photos;
+      }
 
       if (unlockAtRaw) {
         const unlockAtIso = parseUnlockAt(unlockAtRaw);
@@ -275,10 +288,6 @@ export default function createTimeCapsulesRouter(db, sendPushNotification) {
           { merge: true },
         );
 
-        // Notify creator that their capsule was opened.
-        // In your setup, sendPushNotification(title, body, link, excludeUid)
-        // excludes the given uid when sending. If there are only 2 users,
-        // excluding the opener effectively sends to the other one (the creator).
         try {
           const title = 'Your time capsule was opened ✨';
           const body = data.title
