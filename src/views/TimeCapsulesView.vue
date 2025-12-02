@@ -73,6 +73,14 @@
           </button>
 
           <button
+            v-if="canDelete(capsule)"
+            class="tc-btn tc-btn-danger"
+            @click="handleDelete(capsule)"
+          >
+            Delete
+          </button>
+
+          <button
             class="tc-btn tc-btn-primary"
             :disabled="isLocked(capsule)"
             @click="handleOpen(capsule)"
@@ -85,7 +93,7 @@
       </div>
     </div>
 
-    <!-- CREATE / EDIT MODAL (animated like calendar) -->
+    <!-- CREATE / EDIT MODAL -->
     <Transition name="modal">
       <TimeCapsuleFormModal
         v-if="isFormModalVisible"
@@ -93,14 +101,14 @@
         :partner-name="PARTNER_NAME"
         :is-submitting="saving"
         :submit-error="submitError"
-        cloudinary-cloud-name="dknmcj1qj"
-        cloudinary-upload-preset="memos_and_moments"
+        :cloudinary-cloud-name="CLOUDINARY_CLOUD_NAME"
+        :cloudinary-upload-preset="CLOUDINARY_UPLOAD_PRESET"
         @close="closeFormModal"
         @save="handleSaveCapsule"
       />
     </Transition>
 
-    <!-- READ MODAL (animated like calendar) -->
+    <!-- READ MODAL -->
     <Transition name="modal">
       <TimeCapsuleReadModal
         v-if="showReader && readerCapsule"
@@ -122,6 +130,7 @@ import {
   createTimeCapsule,
   updateTimeCapsule,
   openTimeCapsule,
+  deleteTimeCapsule,
 } from '../composables/useTimeCapsules';
 import TimeCapsuleFormModal from '../components/TimeCapsuleFormModal.vue';
 import TimeCapsuleReadModal from '../components/TimeCapsuleReadModal.vue';
@@ -165,7 +174,6 @@ function updateFocusedCapsule() {
     }
   });
 
-  // Threshold so we don't focus stuff far off-screen
   if (minDistance < 140) {
     focusedCapsuleId.value = closestId;
   } else {
@@ -202,7 +210,6 @@ onMounted(() => {
     ('ontouchstart' in window || navigator.maxTouchPoints > 0);
 
   if (isTouchDevice.value) {
-    // initial calculation
     setTimeout(updateFocusedCapsule, 200);
     window.addEventListener('scroll', updateFocusedCapsule, { passive: true });
     window.addEventListener('resize', updateFocusedCapsule);
@@ -220,7 +227,6 @@ onUnmounted(() => {
 const displayCapsules = computed(() => {
   let list = sortedCapsules.value || [];
 
-  // Filter by date (unlockAt or createdAt)
   if (props.dateFilter) {
     const target = new Date(props.dateFilter);
     if (!Number.isNaN(target.getTime())) {
@@ -244,7 +250,6 @@ const displayCapsules = computed(() => {
     }
   }
 
-  // Filter by lock status
   if (props.lockStatusFilter === 'locked') {
     list = list.filter((capsule) => isLocked(capsule));
   } else if (props.lockStatusFilter === 'unlocked') {
@@ -281,32 +286,26 @@ function recipientLabel(capsule) {
 
   const me = currentUid.value;
 
-  // No auth yet or weird data
   if (!me || !capsule.toUid) {
     return 'someone';
   }
 
-  // Self-capsule, seen by its owner
   if (capsule.fromUid === me && capsule.toUid === me) {
     return 'yourself';
   }
 
-  // Capsule addressed to me
   if (capsule.toUid === me) {
     return 'you';
   }
 
-  // Capsule where they wrote to themselves (but I'm looking at it)
   if (capsule.fromUid === capsule.toUid) {
     return 'themselves';
   }
 
-  // 2-user world
   if (PARTNER_UID && capsule.toUid === PARTNER_UID) {
     return PARTNER_NAME || 'them';
   }
 
-  // Fallback
   return PARTNER_NAME || 'them';
 }
 
@@ -319,22 +318,9 @@ function canEdit(capsule) {
   return unlockTime > Date.now();
 }
 
-function formatDate(raw) {
-  if (!raw) return 'Unknown';
-  const d = new Date(raw);
-  if (Number.isNaN(d.getTime())) return 'Unknown';
-  return d.toLocaleString(undefined, {
-    year: 'numeric',
-    month: 'short',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
-
-function formatUnlock(raw) {
-  if (!raw) return 'Unknown';
-  return formatDate(raw);
+function canDelete(capsule) {
+  if (!capsule) return false;
+  return isMine(capsule);
 }
 
 // --- editor modal open/close ---
@@ -406,7 +392,6 @@ async function handleSaveCapsule(payload) {
 
   try {
     if (!editingCapsule.value) {
-      // CREATE – send photos array through
       await createTimeCapsule({
         toUid,
         unlockAt: unlockAtIso,
@@ -415,7 +400,6 @@ async function handleSaveCapsule(payload) {
         photos: photos || [],
       });
     } else {
-      // EDIT – replace photos with whatever the form sends
       await updateTimeCapsule(editingCapsule.value.id, {
         title: title || '',
         message: trimmedMessage,
@@ -453,10 +437,8 @@ async function handleOpen(capsule) {
   if (!capsule) return;
   if (isLocked(capsule)) return;
 
-  // Show modal immediately
   openReader(capsule);
 
-  // First open: mark as opened in backend
   if (!isOpened(capsule)) {
     try {
       await openTimeCapsule(capsule.id);
@@ -465,6 +447,34 @@ async function handleOpen(capsule) {
       console.warn('[TimeCapsulesView] handleOpen failed:', e);
       alert('Failed to mark time capsule as opened.');
     }
+  }
+}
+
+// --- delete a capsule ---
+async function handleDelete(capsule) {
+  if (!capsule) return;
+  if (!canDelete(capsule)) return;
+
+  const confirmed = window.confirm(
+    'Delete this time capsule permanently? This cannot be undone.',
+  );
+  if (!confirmed) return;
+
+  saving.value = true;
+  submitError.value = '';
+
+  try {
+    await deleteTimeCapsule(capsule.id);
+    await fetchTimeCapsules();
+
+    if (readerCapsule.value && readerCapsule.value.id === capsule.id) {
+      closeReader();
+    }
+  } catch (e) {
+    console.warn('[TimeCapsulesView] handleDelete failed:', e);
+    submitError.value = 'Failed to delete time capsule.';
+  } finally {
+    saving.value = false;
   }
 }
 </script>
@@ -543,7 +553,8 @@ async function handleOpen(capsule) {
   opacity: 0.85;
 }
 
-/* Grid of capsules – 5 per row on wide screens */
+/* Grid of capsules */
+
 .tc-list {
   display: flex;
   flex-wrap: wrap;
@@ -551,7 +562,7 @@ async function handleOpen(capsule) {
   justify-content: center;
 }
 
-/* CARD – compact pill, ~1/5 of view width, centered content */
+/* CARD */
 
 .tc-card {
   position: relative;
@@ -615,7 +626,7 @@ async function handleOpen(capsule) {
     0 0 14px var(--bubble-outer-shadow-color, rgba(0, 255, 255, 0.32));
 }
 
-/* mine/theirs tweaks + color variables */
+/* mine/theirs tweaks */
 
 .tc-card-mine {
   border-color: rgba(255, 0, 255, 0.4);
@@ -645,7 +656,7 @@ async function handleOpen(capsule) {
   opacity: 1;
 }
 
-/* Main content inside card – vertical, centered */
+/* Main content inside card */
 
 .tc-card-main {
   display: flex;
@@ -718,7 +729,7 @@ async function handleOpen(capsule) {
   opacity: 0.85;
 }
 
-/* Actions (Edit / View buttons) – centered under text */
+/* Actions */
 
 .tc-card-actions {
   display: flex;
@@ -753,6 +764,19 @@ async function handleOpen(capsule) {
   box-shadow: 0 0 8px rgba(0, 255, 255, 0.5);
 }
 
+/* Delete button styling */
+.tc-btn-danger {
+  border-color: rgba(255, 99, 132, 0.9);
+  background: rgba(40, 0, 10, 0.85);
+  color: #ffb0c5;
+  box-shadow: 0 0 6px rgba(255, 99, 132, 0.5);
+}
+
+.tc-btn-danger:hover {
+  border-color: rgba(255, 140, 160, 1);
+  box-shadow: 0 0 10px rgba(255, 99, 132, 0.8);
+}
+
 .tc-btn-primary {
   border-color: magenta;
   background: rgba(0, 0, 0, 0.7);
@@ -774,11 +798,11 @@ async function handleOpen(capsule) {
   box-shadow: none;
 }
 
-/* Responsive – fewer per row on smaller screens */
+/* Responsive */
 
 @media (max-width: 900px) {
   .tc-card {
-    flex: 0 1 calc(25% - 0.75rem); /* ~4 per row */
+    flex: 0 1 calc(25% - 0.75rem);
   }
 }
 
@@ -796,7 +820,7 @@ async function handleOpen(capsule) {
   }
 
   .tc-card {
-    flex: 0 1 calc(33.333% - 0.75rem); /* ~3 per row */
+    flex: 0 1 calc(33.333% - 0.75rem);
     border-radius: 75px;
     transform: scale(1);
     transform-origin: center center;
@@ -814,7 +838,7 @@ async function handleOpen(capsule) {
 
 @media (max-width: 500px) {
   .tc-card {
-    flex: 0 1 calc(50% - 0.75rem); /* ~2 per row */
+    flex: 0 1 calc(50% - 0.75rem);
   }
 }
 </style>

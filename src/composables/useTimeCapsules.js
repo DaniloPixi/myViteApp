@@ -39,7 +39,7 @@ async function fetchTimeCapsules() {
 
     const data = await res.json();
 
-    // --- be more forgiving about response shape ---
+    // be forgiving about response shape
     let list = [];
 
     if (Array.isArray(data)) {
@@ -53,11 +53,13 @@ async function fetchTimeCapsules() {
     }
 
     if (!Array.isArray(list)) {
-      console.warn('[useTimeCapsules] Unexpected response shape from /api/time-capsules:', data);
+      console.warn(
+        '[useTimeCapsules] Unexpected response shape from /api/time-capsules:',
+        data,
+      );
       list = [];
     }
 
-    // 🔹 IMPORTANT: no per-user filtering here – whatever backend returns is what everyone sees
     capsules.value = list;
     initialized = true;
   } catch (e) {
@@ -89,7 +91,6 @@ export function isOpened(capsule) {
 }
 
 // All capsules, sorted by unlock time ascending.
-// 🔹 No user-based filtering here.
 const sortedCapsules = computed(() => {
   ensureLoadedOnce();
   return [...capsules.value].sort((a, b) => {
@@ -99,7 +100,7 @@ const sortedCapsules = computed(() => {
   });
 });
 
-// Convenience subsets by time only (not by user)
+// Convenience subsets by time only
 const upcomingCapsules = computed(() => {
   const now = Date.now();
   return sortedCapsules.value.filter((c) => {
@@ -121,7 +122,7 @@ const unlockedCapsules = computed(() => {
 });
 
 // CREATE a new capsule
-export async function createTimeCapsule({ toUid, unlockAt, title, message, photos }) {
+export async function createTimeCapsule({ toUid, unlockAt, title, message, photos = [] }) {
   const headers = await getAuthHeaders();
 
   const payload = {
@@ -129,12 +130,8 @@ export async function createTimeCapsule({ toUid, unlockAt, title, message, photo
     unlockAt, // string, e.g. ISO or "YYYY-MM-DDTHH:mm" (backend normalizes)
     title: title || '',
     message: message || '',
+    photos: Array.isArray(photos) ? photos : [],
   };
-
-  // 🔹 include photos if provided
-  if (Array.isArray(photos)) {
-    payload.photos = photos;
-  }
 
   const res = await fetch('/api/time-capsules', {
     method: 'POST',
@@ -164,11 +161,7 @@ export async function updateTimeCapsule(id, { title, message, unlockAt, photos }
   if (typeof title === 'string') payload.title = title;
   if (typeof message === 'string') payload.message = message;
   if (unlockAt) payload.unlockAt = unlockAt;
-
-  // 🔹 include photos if provided (replace on backend)
-  if (Array.isArray(photos)) {
-    payload.photos = photos;
-  }
+  if (Array.isArray(photos)) payload.photos = photos;
 
   const res = await fetch(`/api/time-capsules/${id}`, {
     method: 'PUT',
@@ -211,6 +204,25 @@ export async function openTimeCapsule(id) {
   }
 
   return true;
+}
+
+// DELETE a capsule (only creator)
+export async function deleteTimeCapsule(id) {
+  const headers = await getAuthHeaders();
+
+  const res = await fetch(`/api/time-capsules/${id}`, {
+    method: 'DELETE',
+    headers,
+  });
+
+  if (!res.ok) {
+    const txt = await res.text();
+    console.warn('[useTimeCapsules] deleteTimeCapsule failed:', txt);
+    throw new Error(txt || `HTTP ${res.status}`);
+  }
+
+  // refresh list
+  await fetchTimeCapsules();
 }
 
 // Main composable hook

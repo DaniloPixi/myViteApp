@@ -1,4 +1,3 @@
-
 import express from 'express';
 import serverless from 'serverless-http';
 import admin from 'firebase-admin';
@@ -13,6 +12,7 @@ import createPlansRouter from './routes/plans.mjs';
 import createMemosRouter from './routes/memos.mjs';
 import createQuestsRouter from './routes/quests.mjs';
 import createTimeCapsulesRouter from './routes/timeCapsules.mjs';
+
 let db;
 
 // --- Dual-Environment Firebase Initialization ---
@@ -167,7 +167,7 @@ async function sendPushNotification(title, body, link, excludeUid, data = null) 
                 ),
               }
             : {}),
-        
+
           webpush: {
             fcm_options: { link },
             notification: {
@@ -238,7 +238,13 @@ apiRouter.use(checkDb);
 apiRouter.use('/plans', createPlansRouter(db, sendPushNotification));
 apiRouter.use('/memos', createMemosRouter(db, cloudinary, extractPublicId, sendPushNotification));
 apiRouter.use('/quests', createQuestsRouter(db, sendPushNotification));
-apiRouter.use('/time-capsules', createTimeCapsulesRouter(db, sendPushNotification));
+
+// 🔴 CHANGED: pass cloudinary + extractPublicId into time-capsules router
+apiRouter.use(
+  '/time-capsules',
+  createTimeCapsulesRouter(db, cloudinary, extractPublicId, sendPushNotification),
+);
+
 // Standalone registration endpoint (can be kept here or moved)
 app.post('/api/register', authenticateToken, checkDb, async (req, res) => {
   const { token } = req.body;
