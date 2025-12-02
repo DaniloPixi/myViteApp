@@ -125,7 +125,7 @@ const fromLabel = computed(() => (props.isMine ? 'You' : props.partnerName));
 /* This sits on top of .modal-content animation from the calendar CSS */
 .tc-modal {
   position: relative;
-  width: 96%;
+  width: min(70vw, 640px);
   max-width: 640px;
   border-radius: 20px;
   border: 1px solid rgba(255, 0, 255, 0.7);
@@ -141,26 +141,68 @@ const fromLabel = computed(() => (props.isMine ? 'You' : props.partnerName));
   overflow: hidden;
 
   /* subtle continuous glow between magenta and cyan */
-  animation: modal-glow 7s ease-in-out infinite alternate;
+  animation: modal-glow 6s ease-in-out infinite alternate;
 }
 
 @keyframes modal-glow {
   0% {
     box-shadow:
-      0 0 18px rgba(255, 0, 255, 0.7),
-      0 0 26px rgba(0, 255, 255, 0.35);
+      0 0 30px rgba(255, 0, 255, 0.85),
+      0 0 44px rgba(0, 255, 255, 0.35);
+  }
+  10% {
+    box-shadow:
+      0 0 36px rgba(255, 0, 255, 0.82),
+      0 0 52px rgba(0, 255, 255, 0.4);
+  }
+  20% {
+    box-shadow:
+      0 0 42px rgba(255, 0, 255, 0.78),
+      0 0 60px rgba(0, 255, 255, 0.45);
+  }
+  30% {
+    box-shadow:
+      0 0 48px rgba(255, 0, 255, 0.72),
+      0 0 70px rgba(0, 255, 255, 0.5);
+  }
+  40% {
+    box-shadow:
+      0 0 54px rgba(220, 0, 255, 0.7),
+      0 0 80px rgba(0, 240, 255, 0.55);
   }
   50% {
     box-shadow:
-      0 0 26px rgba(0, 255, 255, 0.7),
-      0 0 40px rgba(255, 0, 255, 0.4);
+      0 0 60px rgba(0, 255, 255, 0.85),
+      0 0 90px rgba(255, 0, 255, 0.55);
+  }
+  60% {
+    box-shadow:
+      0 0 56px rgba(0, 245, 255, 0.8),
+      0 0 82px rgba(255, 0, 255, 0.6);
+  }
+  70% {
+    box-shadow:
+      0 0 52px rgba(80, 0, 255, 0.78),
+      0 0 76px rgba(0, 255, 255, 0.6);
+  }
+  80% {
+    box-shadow:
+      0 0 48px rgba(180, 0, 255, 0.8),
+      0 0 68px rgba(0, 230, 255, 0.55);
+  }
+  90% {
+    box-shadow:
+      0 0 42px rgba(230, 0, 255, 0.82),
+      0 0 58px rgba(0, 210, 255, 0.5);
   }
   100% {
     box-shadow:
-      0 0 20px rgba(255, 0, 255, 0.6),
-      0 0 30px rgba(0, 255, 255, 0.5);
+      0 0 36px rgba(255, 0, 255, 0.85),
+      0 0 50px rgba(0, 255, 255, 0.45);
   }
 }
+
+
 
 /* X button */
 .tc-modal-close {
