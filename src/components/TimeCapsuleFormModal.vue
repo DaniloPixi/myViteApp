@@ -1,8 +1,8 @@
 <template>
-  <div class="tc-modal-overlay" @click.self="emitClose">
-    <div class="tc-modal tc-modal-animated">
-      <button class="tc-modal-close" @click="emitClose">×</button>
-
+  <!-- Global animated overlay + your visual style -->
+  <div class="modal-overlay tc-modal-overlay" @click.self="emitClose">
+    <!-- This is what the global CSS warps in/out -->
+    <div class="modal-content tc-modal">
       <div class="tc-modal-header">
         <div class="tc-modal-label">
           <span class="tc-modal-label-dot"></span>
@@ -269,27 +269,7 @@ function submitForm() {
   overflow: hidden;
 }
 
-.tc-modal-animated {
-  animation: tc-modal-pop 0.4s cubic-bezier(0.2, 0.9, 0.4, 1.2);
-}
-
-@keyframes tc-modal-pop {
-  0% {
-    transform: scale(0.85) translateY(12px);
-    opacity: 0;
-    box-shadow:
-      0 0 0 rgba(255, 0, 255, 0),
-      0 0 0 rgba(0, 255, 255, 0);
-  }
-  60% {
-    transform: scale(1.03) translateY(0);
-    opacity: 1;
-  }
-  100% {
-    transform: scale(1) translateY(0);
-    opacity: 1;
-  }
-}
+/* removed tc-modal-animated + keyframes, animation comes from global calendar styles */
 
 .tc-modal-close {
   position: absolute;

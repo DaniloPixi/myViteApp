@@ -87,27 +87,44 @@
 
 
       </div>
-  
-      <!-- CREATE / EDIT MODAL -->
-      <TimeCapsuleFormModal
-        v-if="isFormModalVisible"
-        :capsule="editingCapsule"
-        :partner-name="PARTNER_NAME"
-        :is-submitting="saving"
-        :submit-error="submitError"
-        @close="closeFormModal"
-        @save="handleSaveCapsule"
-      />
-  
-      <!-- READ MODAL -->
-      <TimeCapsuleReadModal
-        v-if="showReader && readerCapsule"
-        :capsule="readerCapsule"
-        :is-mine="isMine(readerCapsule)"
-        :recipient-label="readerRecipientLabel"
-        :partner-name="PARTNER_NAME"
-        @close="closeReader"
-      />
+<!-- CREATE / EDIT MODAL (animated like calendar) -->
+<Transition name="modal">
+  <TimeCapsuleFormModal
+    v-if="isFormModalVisible"
+    :capsule="editingCapsule"
+    :partner-name="PARTNER_NAME"
+    :is-submitting="saving"
+    :submit-error="submitError"
+    @close="closeFormModal"
+    @save="handleSaveCapsule"
+  />
+</Transition>
+
+<!-- READ MODAL (animated like calendar) -->
+<Transition name="modal">
+  <TimeCapsuleReadModal
+    v-if="showReader && readerCapsule"
+    :capsule="readerCapsule"
+    :is-mine="isMine(readerCapsule)"
+    :recipient-label="readerRecipientLabel"
+    :partner-name="PARTNER_NAME"
+    @close="closeReader"
+  />
+</Transition>
+
+
+<!-- READ MODAL (with calendar animation) -->
+<Transition name="modal">
+  <TimeCapsuleReadModal
+    v-if="showReader && readerCapsule"
+    :capsule="readerCapsule"
+    :is-mine="isMine(readerCapsule)"
+    :recipient-label="readerRecipientLabel"
+    :partner-name="PARTNER_NAME"
+    @close="closeReader"
+  />
+</Transition>
+
     </div>
   </template>
   
