@@ -45,19 +45,11 @@
                 class="tc-badge"
                 :class="isMine(capsule) ? 'tc-badge-mine' : 'tc-badge-theirs'"
               >
-                {{ isMine(capsule) ? 'From you' : 'From them' }}
+                From {{ nameForUid(capsule.fromUid) }}
               </span>
-              <span
-                v-if="isSelfCapsule(capsule)"
-                class="tc-badge tc-badge-self"
-              >
-                To yourself
-              </span>
-              <span
-                v-else
-                class="tc-badge tc-badge-target"
-              >
-                To {{ recipientLabel(capsule) }}
+
+              <span class="tc-badge tc-badge-target">
+                To {{ nameForUid(capsule.toUid) }}
               </span>
             </div>
           </div>
@@ -191,13 +183,24 @@ function updateFocusedCapsule() {
   }
 }
 
+// --- fixed users ---
 // TODO: replace with real partner UID + name
 const PARTNER_UID = 'AWAdDBGujGMAwzywnc8CVaBAst83';
 const PARTNER_NAME = 'Eva';
 
+// your own display name
+const MY_NAME = 'Dani';
+
 // --- auth context ---
 const currentUser = computed(() => auth.currentUser);
 const currentUid = computed(() => currentUser.value?.uid || null);
+
+// map uid -> display name (only two users exist)
+function nameForUid(uid) {
+  if (!uid) return 'Unknown';
+  if (uid === PARTNER_UID) return PARTNER_NAME;
+  return MY_NAME;
+}
 
 // --- composable ---
 const {
@@ -287,37 +290,10 @@ function isMine(capsule) {
   return capsule.fromUid === currentUid.value;
 }
 
-function isSelfCapsule(capsule) {
-  if (!capsule) return false;
-  return capsule.fromUid && capsule.toUid && capsule.fromUid === capsule.toUid;
-}
-
+// simple recipient label for the reader modal
 function recipientLabel(capsule) {
   if (!capsule) return '';
-
-  const me = currentUid.value;
-
-  if (!me || !capsule.toUid) {
-    return 'someone';
-  }
-
-  if (capsule.fromUid === me && capsule.toUid === me) {
-    return 'yourself';
-  }
-
-  if (capsule.toUid === me) {
-    return 'you';
-  }
-
-  if (capsule.fromUid === capsule.toUid) {
-    return 'themselves';
-  }
-
-  if (PARTNER_UID && capsule.toUid === PARTNER_UID) {
-    return PARTNER_NAME || 'them';
-  }
-
-  return PARTNER_NAME || 'them';
+  return nameForUid(capsule.toUid);
 }
 
 function canEdit(capsule) {
@@ -646,7 +622,12 @@ async function confirmDelete() {
   box-shadow:
     inset 0 0 10px var(--bubble-inner-shadow-color, rgba(255, 0, 255, 0.5)),
     0 0 14px var(--bubble-outer-shadow-color, rgba(0, 255, 255, 0.32));
+
+  /* NEW: match the mobile “focused” feel on hover */
+  transform: scale(1.5);
+  z-index: 2;
 }
+
 
 /* mine/theirs tweaks */
 
@@ -742,11 +723,6 @@ async function confirmDelete() {
   box-shadow: 0 0 4px rgba(0, 255, 255, 0.6);
 }
 
-.tc-badge-self {
-  border-color: rgba(255, 223, 127, 0.85);
-  color: #ffdf7f;
-}
-
 .tc-badge-target {
   opacity: 0.85;
 }
@@ -760,7 +736,11 @@ async function confirmDelete() {
   gap: 0.3rem;
   margin-top: 0.3rem;
   width: 100%;
+
+  /* NEW: allow wrapping so buttons go on two rows instead of overflowing */
+  flex-wrap: wrap;
 }
+
 
 /* Buttons */
 
@@ -806,6 +786,7 @@ async function confirmDelete() {
   box-shadow:
     inset 0 0 6px rgba(255, 0, 255, 0.6),
     0 0 6px rgba(255, 0, 255, 0.5);
+    flex-basis: 50%;
 }
 
 .tc-btn-primary:hover:not(:disabled) {
@@ -850,7 +831,7 @@ async function confirmDelete() {
   }
 
   .tc-card-focused {
-    transform: scale(1.2);
+    transform: scale(1.5);
     z-index: 2;
     box-shadow:
       inset 0 0 14px var(--bubble-inner-shadow-color, rgba(255, 0, 255, 0.6)),
