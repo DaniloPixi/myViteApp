@@ -19,7 +19,6 @@
       <!-- LEFT: meta (recipient + unlock time) -->
       <div class="tc-modal-column tc-modal-column-meta">
         <label class="tc-field">
-          <span class="tc-field-label">Recipient</span>
 
           <!-- Creation: let user choose -->
           <div
@@ -36,7 +35,7 @@
                 To {{ partnerName || 'partner' }}
               </span>
               <span class="pill-sub">
-                They’ll get a notification when it unlocks.
+                Spice it 
               </span>
             </label>
 
@@ -85,7 +84,7 @@
       <!-- RIGHT: title + message + media -->
       <div class="tc-modal-column tc-modal-column-message">
         <label class="tc-field">
-          <span class="tc-field-label">Title (optional)</span>
+          <span class="tc-field-label">Title</span>
           <input
             v-model="formTitle"
             type="text"
@@ -102,13 +101,13 @@
             class="tc-textarea tc-textarea-message"
             rows="2"
             @input="onMessageInput"
-            placeholder="Write like they can’t open it until exactly when they’ll need it most."
+            placeholder="Write like he can’t open it until exactly when he’ll need it most."
           ></textarea>
         </label>
 
         <!-- Media upload / previews -->
         <div class="tc-field tc-media-field">
-          <span class="tc-field-label">Media (optional)</span>
+          <span class="tc-field-label">Media (in need for spice)</span>
           <div class="tc-media-upload-row">
             <input
               id="tc-file-upload"

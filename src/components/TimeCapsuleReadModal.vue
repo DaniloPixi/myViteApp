@@ -35,6 +35,7 @@
         v-for="(media, index) in capsule.photos"
         :key="index"
         class="tc-read-media-item"
+        @click="openMediaViewer(index)"
       >
         <img
           v-if="media.resource_type === 'image' || !media.resource_type"
@@ -46,8 +47,8 @@
           v-else-if="media.resource_type === 'video'"
           :src="media.url"
           class="tc-read-media-video"
-          controls
           playsinline
+          muted
         ></video>
       </div>
     </div>
@@ -74,11 +75,20 @@
       </button>
     </template>
   </BaseCapsuleModal>
+
+  <!-- FULLSCREEN MEDIA VIEWER -->
+  <ImageModal
+    :is-visible="isMediaViewerVisible"
+    :media-items="capsule.photos || []"
+    :start-index="mediaViewerIndex"
+    @close="closeMediaViewer"
+  />
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { ref, computed } from 'vue';
 import BaseCapsuleModal from './BaseCapsuleModal.vue';
+import ImageModal from './ImageModal.vue';
 
 const props = defineProps({
   capsule: { type: Object, required: true },
@@ -113,6 +123,18 @@ function formatDate(raw) {
 const fromLabel = computed(() =>
   props.isMine ? MY_NAME : props.partnerName
 );
+
+const isMediaViewerVisible = ref(false);
+const mediaViewerIndex = ref(0);
+
+function openMediaViewer(index) {
+  mediaViewerIndex.value = index || 0;
+  isMediaViewerVisible.value = true;
+}
+
+function closeMediaViewer() {
+  isMediaViewerVisible.value = false;
+}
 </script>
 
 <style scoped>
@@ -188,13 +210,14 @@ const fromLabel = computed(() =>
   white-space: pre-line;
 }
 
-/* Media gallery – bigger items */
+/* Media gallery – centered items */
 
 .tc-read-media-gallery {
   margin-top: 0.9rem;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  display: flex;
+  flex-wrap: wrap;
   gap: 0.55rem;
+  justify-content: center;
 }
 
 .tc-read-media-item {
@@ -206,6 +229,16 @@ const fromLabel = computed(() =>
   box-shadow:
     0 0 12px rgba(255, 0, 255, 0.45),
     0 0 16px rgba(0, 255, 255, 0.35);
+  flex: 0 1 130px;
+  cursor: zoom-in;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.tc-read-media-item:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    0 0 16px rgba(255, 0, 255, 0.6),
+    0 0 20px rgba(0, 255, 255, 0.45);
 }
 
 .tc-read-media-img,
@@ -215,8 +248,6 @@ const fromLabel = computed(() =>
   height: 120px;
   object-fit: cover;
 }
-
-/* meta info */
 
 /* meta info */
 
@@ -253,6 +284,7 @@ const fromLabel = computed(() =>
 
   display: inline-flex;
   align-items: baseline;
+  justify-content: center;
   gap: 0.25rem;
   white-space: nowrap;
   padding-left: 0.9rem; /* space for the dot */
@@ -298,28 +330,6 @@ const fromLabel = computed(() =>
   .tc-meta-line {
     white-space: normal;
   }
-}
-
-
-.tc-meta-line {
-  margin: 0;
-  display: inline-flex;
-  justify-content: center;
-  gap: 0.35rem;
-  align-items: baseline;
-}
-
-.tc-meta-label {
-  text-transform: uppercase;
-  letter-spacing: 0.16em;
-  font-size: 0.7rem;
-  opacity: 0.9;
-  color: #7ef7ff;
-}
-
-.tc-meta-value {
-  font-size: 0.8rem;
-  color: #c7fdff;
 }
 
 /* Buttons */
