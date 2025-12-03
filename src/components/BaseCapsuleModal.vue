@@ -99,29 +99,25 @@ function onClose() {
   padding: 2rem 2.2rem 1.2rem;
   border-radius: 18px;
 
-  /* a bit subtler than before */
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.22);
 
+  /* keep your nice background, just recopying it here */
   background:
-    /* magenta glow, top-left – softened */
     radial-gradient(
       circle at 10% 0%,
       rgba(255, 0, 255, 0.22),
       transparent 60%
     ),
-    /* cyan glow, bottom-right – softened */
     radial-gradient(
       circle at 90% 100%,
       rgba(0, 255, 255, 0.22),
       transparent 55%
     ),
-    /* very gentle white highlight behind content */
     radial-gradient(
       circle at 50% 20%,
       rgba(255, 255, 255, 0.06),
       transparent 65%
     ),
-    /* deep base */
     radial-gradient(
       circle at 50% 50%,
       rgba(6, 0, 20, 0.96) 0%,
@@ -129,14 +125,43 @@ function onClose() {
       rgba(0, 0, 0, 1) 100%
     );
 
+  /* BASE glow – similar to calendar’s 0% frame */
   box-shadow:
-    0 0 20px rgba(255, 0, 255, 0.65),
-    0 0 28px rgba(0, 255, 255, 0.55);
+    inset 0 2px 4px rgba(0, 0, 0, 0.4),
+    inset 0 0 10px rgba(255, 0, 255, 0.5),
+    -60px 0 80px -40px rgba(255, 0, 255, 0.5),
+    60px 0 80px -40px rgba(0, 255, 255, 0.5);
 
   display: flex;
   flex-direction: column;
   overflow: hidden;
+
+  /* calendar-style breathing glow */
+  animation: tc-modal-glow 4.5s ease-in-out infinite;
 }
+
+
+@keyframes tc-modal-glow {
+  0%, 100% {
+    border-color: rgba(255, 0, 255, 0.32);
+    box-shadow:
+      inset 0 2px 4px rgba(0, 0, 0, 0.4),
+      inset 0 0 10px rgba(255, 0, 255, 0.5),
+      -60px 0 80px -40px rgba(255, 0, 255, 0.5),
+      60px 0 80px -40px rgba(0, 255, 255, 0.5);
+  }
+  50% {
+    border-color: rgba(0, 255, 255, 0.45);
+    box-shadow:
+      inset 0 2px 4px rgba(0, 0, 0, 0.4),
+      inset 0 0 10px rgba(0, 255, 255, 0.5),
+      -70px 0 100px -45px rgba(0, 255, 255, 0.7),
+      70px 0 100px -45px rgba(255, 0, 255, 0.7);
+  }
+}
+
+
+
 
 
 

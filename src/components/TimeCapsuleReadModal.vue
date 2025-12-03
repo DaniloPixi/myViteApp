@@ -130,7 +130,7 @@ const fromLabel = computed(() =>
   box-shadow:
     0 0 16px rgba(255, 0, 255, 0.6),
     0 0 20px rgba(0, 255, 255, 0.45);
-  animation: message-border-glow 4.5s ease-in-out infinite alternate;
+  animation: message-border-glow 2.5s ease-in-out infinite alternate;
 }
 
 @keyframes message-border-glow {
