@@ -98,30 +98,47 @@ function onClose() {
 
   padding: 2rem 2.2rem 1.2rem;
   border-radius: 18px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
 
-  /* Neon glow similar to your read wrapper: magenta + cyan */
+  /* a bit subtler than before */
+  border: 1px solid rgba(255, 255, 255, 0.2);
+
   background:
+    /* magenta glow, top-left – softened */
     radial-gradient(
-      circle at 0% 0%,
+      circle at 10% 0%,
       rgba(255, 0, 255, 0.22),
       transparent 60%
     ),
+    /* cyan glow, bottom-right – softened */
     radial-gradient(
-      circle at 100% 100%,
-      rgba(0, 255, 255, 0.24),
+      circle at 90% 100%,
+      rgba(0, 255, 255, 0.22),
       transparent 55%
     ),
-    rgba(0, 0, 0, 0.9);
+    /* very gentle white highlight behind content */
+    radial-gradient(
+      circle at 50% 20%,
+      rgba(255, 255, 255, 0.06),
+      transparent 65%
+    ),
+    /* deep base */
+    radial-gradient(
+      circle at 50% 50%,
+      rgba(6, 0, 20, 0.96) 0%,
+      rgba(1, 0, 10, 0.98) 55%,
+      rgba(0, 0, 0, 1) 100%
+    );
 
   box-shadow:
-    0 0 26px rgba(255, 0, 255, 0.7),
-    0 0 36px rgba(0, 255, 255, 0.55);
+    0 0 20px rgba(255, 0, 255, 0.65),
+    0 0 28px rgba(0, 255, 255, 0.55);
 
   display: flex;
   flex-direction: column;
   overflow: hidden;
 }
+
+
 
 /* Close button */
 .tc-modal-close {
@@ -158,19 +175,48 @@ function onClose() {
 .tc-modal-header::after {
   content: '';
   display: block;
-  height: 2px;
-  width: 70%;
+  height: 1px;
+  width: 92%;
   margin: 0.6rem auto 0;
   border-radius: 999px;
+
+  /* your smooth fade in/out */
   background: linear-gradient(
     90deg,
-    rgba(0, 255, 255, 0.95),
-    rgba(255, 0, 255, 0.95)
+    rgba(0, 255, 255, 0) 0%,
+    rgba(0, 255, 255, 0.35) 15%,
+    rgba(0, 255, 255, 0.7) 30%,
+    rgba(255, 0, 255, 0.7) 70%,
+    rgba(255, 0, 255, 0.35) 85%,
+    rgba(255, 0, 255, 0) 100%
   );
+
+  /* make the gradient wider so we can scroll it */
+  background-size: 200% 100%;
+
   box-shadow:
-    0 0 15px rgba(0, 255, 255, 0.9),
-    0 0 20px rgba(255, 0, 255, 0.9);
+    0 0 8px rgba(0, 255, 255, 0.5),
+    0 0 12px rgba(255, 0, 255, 0.5);
+
+  /* LED strip motion */
+  animation: tc-strip-flow 5s linear infinite;
 }
+
+@keyframes tc-strip-flow {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+
+
+
 
 /* Small uppercase label above title */
 .tc-modal-label {
@@ -207,7 +253,7 @@ function onClose() {
   flex: 1;
   margin-top: 0.1rem;
   padding: 0.1rem 0;
-  overflow-y: auto;
+ 
 }
 
 /* FOOTER */
@@ -238,7 +284,9 @@ function onClose() {
 /* Responsive */
 @media (max-width: 700px) {
   .tc-modal-shell {
-    max-width: 95vw;
+    /* give it some breathing room so the glow is visible */
+    width: 75vw;
+    max-width: 420px;
     padding: 1.4rem 1.2rem 0.9rem;
     border-radius: 16px;
   }
@@ -256,4 +304,5 @@ function onClose() {
     justify-content: flex-end;
   }
 }
+
 </style>

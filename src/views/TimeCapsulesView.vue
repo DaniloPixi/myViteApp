@@ -601,7 +601,6 @@ async function confirmDelete() {
     background 0.25s ease,
     border-color 0.25s ease,
     transform 0.22s cubic-bezier(0.25, 0.8, 0.25, 1);
-  -webkit-font-smoothing: antialiased;
   backface-visibility: hidden;
 }
 

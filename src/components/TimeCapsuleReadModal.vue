@@ -89,6 +89,9 @@ const props = defineProps({
 
 const emit = defineEmits(['close']);
 
+// hard-coded because this app is literally just you + your girlfriend
+const MY_NAME = 'Dani';
+
 function emitClose() {
   emit('close');
 }
@@ -106,7 +109,10 @@ function formatDate(raw) {
   });
 }
 
-const fromLabel = computed(() => (props.isMine ? 'You' : props.partnerName));
+// From-label = Dani if it's yours, otherwise partner's name ("Eva")
+const fromLabel = computed(() =>
+  props.isMine ? MY_NAME : props.partnerName
+);
 </script>
 
 <style scoped>
@@ -212,19 +218,88 @@ const fromLabel = computed(() => (props.isMine ? 'You' : props.partnerName));
 
 /* meta info */
 
+/* meta info */
+
 .tc-read-meta {
   margin-top: 0.9rem;
-  display: inline-flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.25rem;
-  padding: 0.5rem 0.9rem;
-  border-radius: 999px;
-  background: rgba(0, 0, 0, 0.9);
-  border: 1px solid rgba(0, 255, 255, 0.55);
-  color: #7ef7ff;
   align-self: center;
+
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 0.35rem 0.9rem;
+
+  padding: 0.45rem 1.1rem;
+  border-radius: 999px;
+
+  background:
+    radial-gradient(circle at 0% 0%, rgba(0, 255, 255, 0.12), transparent 60%),
+    radial-gradient(circle at 100% 100%, rgba(255, 0, 255, 0.12), transparent 60%),
+    rgba(0, 0, 0, 0.9);
+
+  border: 1px solid rgba(0, 255, 255, 0.55);
+  box-shadow:
+    0 0 10px rgba(0, 255, 255, 0.45),
+    0 0 14px rgba(255, 0, 255, 0.35);
+
+  color: #c7fdff;
+  font-size: 0.8rem;
 }
+
+.tc-meta-line {
+  margin: 0;
+  position: relative;
+
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.25rem;
+  white-space: nowrap;
+  padding-left: 0.9rem; /* space for the dot */
+}
+
+/* glowing dot for each meta line */
+.tc-meta-line::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  transform: translateY(-50%);
+
+  background: radial-gradient(circle, #00ffff 0%, #ff00ff 70%);
+  box-shadow:
+    0 0 6px rgba(0, 255, 255, 0.8),
+    0 0 8px rgba(255, 0, 255, 0.7);
+}
+
+.tc-meta-label {
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  font-size: 0.68rem;
+  opacity: 0.9;
+  color: #7ef7ff;
+}
+
+.tc-meta-value {
+  font-size: 0.8rem;
+  color: #e4feff;
+}
+
+/* make sure it still feels good on very small screens */
+@media (max-width: 480px) {
+  .tc-read-meta {
+    padding: 0.45rem 0.8rem;
+    gap: 0.25rem 0.6rem;
+  }
+
+  .tc-meta-line {
+    white-space: normal;
+  }
+}
+
 
 .tc-meta-line {
   margin: 0;
