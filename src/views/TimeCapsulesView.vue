@@ -60,10 +60,6 @@
                 To {{ recipientLabel(capsule) }}
               </span>
             </div>
-
-            <p v-if="unlockSummary(capsule)" class="tc-card-unlock">
-              {{ unlockSummary(capsule) }}
-            </p>
           </div>
         </div>
 
@@ -79,7 +75,7 @@
           <button
             v-if="canDelete(capsule)"
             class="tc-btn tc-btn-danger"
-            @click="handleDelete(capsule)"
+            @click="promptDelete(capsule)"
           >
             Delete
           </button>
@@ -123,6 +119,15 @@
         @close="closeReader"
       />
     </Transition>
+
+    <!-- DELETE CONFIRM MODAL -->
+    <Transition name="modal">
+      <ConfirmDeleteModal
+        v-if="isDeleteModalVisible"
+        @confirm="confirmDelete"
+        @close="closeDeleteModal"
+      />
+    </Transition>
   </div>
 </template>
 
@@ -138,6 +143,7 @@ import {
 } from '../composables/useTimeCapsules';
 import TimeCapsuleFormModal from '../components/TimeCapsuleFormModal.vue';
 import TimeCapsuleReadModal from '../components/TimeCapsuleReadModal.vue';
+import ConfirmDeleteModal from '../components/ConfirmDeleteModal.vue';
 
 const props = defineProps({
   dateFilter: {
@@ -188,9 +194,6 @@ function updateFocusedCapsule() {
 // TODO: replace with real partner UID + name
 const PARTNER_UID = 'AWAdDBGujGMAwzywnc8CVaBAst83';
 const PARTNER_NAME = 'Eva';
-
-const CLOUDINARY_CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
-const CLOUDINARY_UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
 
 // --- auth context ---
 const currentUser = computed(() => auth.currentUser);
@@ -274,6 +277,10 @@ const showReader = ref(false);
 const readerCapsule = ref(null);
 const readerRecipientLabel = ref('');
 
+// --- delete confirm modal state ---
+const isDeleteModalVisible = ref(false);
+const capsulePendingDelete = ref(null);
+
 // --- helpers ---
 function isMine(capsule) {
   if (!capsule || !currentUid.value) return false;
@@ -327,28 +334,6 @@ function canDelete(capsule) {
   return isMine(capsule);
 }
 
-function unlockSummary(capsule) {
-  if (!capsule) return '';
-  const raw = capsule.unlockAt || capsule.createdAt;
-  if (!raw) return '';
-  const d = new Date(raw);
-  if (Number.isNaN(d.getTime())) return '';
-
-  const now = Date.now();
-  const ts = d.getTime();
-
-  if (ts <= now) {
-    return 'Unlocked';
-  }
-
-  const diffMs = ts - now;
-  const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
-
-  if (diffDays <= 0) return 'Unlocks soon';
-  if (diffDays === 1) return 'Unlocks in 1 day';
-  return `Unlocks in ${diffDays} days`;
-}
-
 // --- editor modal open/close ---
 function openCreate() {
   editingCapsule.value = null;
@@ -378,14 +363,31 @@ async function handleSaveCapsule(payload) {
 
   const { title, message, unlockAtLocal, recipient, photos } = payload;
 
+  if (!unlockAtLocal) {
+    alert('Please choose an unlock date and time.');
+    return;
+  }
+
   const unlockAtLocalDate = new Date(unlockAtLocal);
   if (Number.isNaN(unlockAtLocalDate.getTime())) {
-    submitError.value = 'Invalid unlock date/time.';
+    alert('Invalid unlock date/time');
+    return;
+  }
+
+  const now = Date.now();
+  const unlockTs = unlockAtLocalDate.getTime();
+  if (unlockTs <= now) {
+    alert('Unlock time must be in the future.');
+    return;
+  }
+
+  const trimmedMessage = (message || '').trim();
+  if (!trimmedMessage) {
+    alert('Message cannot be empty.');
     return;
   }
 
   const unlockAtIso = unlockAtLocalDate.toISOString();
-  const trimmedMessage = (message || '').trim();
 
   let toUid;
   if (!editingCapsule.value) {
@@ -459,28 +461,39 @@ async function handleOpen(capsule) {
   }
 }
 
-// --- delete a capsule ---
-async function handleDelete(capsule) {
-  if (!capsule) return;
-  if (!canDelete(capsule)) return;
+// --- delete capsule: modal flow ---
+function promptDelete(capsule) {
+  if (!capsule || !canDelete(capsule)) return;
+  capsulePendingDelete.value = capsule;
+  isDeleteModalVisible.value = true;
+}
 
-  const confirmed = window.confirm(
-    'Delete this time capsule permanently? This cannot be undone.',
-  );
-  if (!confirmed) return;
+function closeDeleteModal() {
+  isDeleteModalVisible.value = false;
+  capsulePendingDelete.value = null;
+}
+
+async function confirmDelete() {
+  const capsule = capsulePendingDelete.value;
+  if (!capsule) {
+    closeDeleteModal();
+    return;
+  }
+
+  isDeleteModalVisible.value = false;
+  capsulePendingDelete.value = null;
 
   saving.value = true;
   submitError.value = '';
 
   try {
     await deleteTimeCapsule(capsule.id);
-    await fetchTimeCapsules();
 
     if (readerCapsule.value && readerCapsule.value.id === capsule.id) {
       closeReader();
     }
   } catch (e) {
-    console.warn('[TimeCapsulesView] handleDelete failed:', e);
+    console.warn('[TimeCapsulesView] confirmDelete failed:', e);
     submitError.value = 'Failed to delete time capsule.';
   } finally {
     saving.value = false;
@@ -736,12 +749,6 @@ async function handleDelete(capsule) {
 
 .tc-badge-target {
   opacity: 0.85;
-}
-
-.tc-card-unlock {
-  margin: 0.1rem 0 0;
-  font-size: 0.65rem;
-  opacity: 0.8;
 }
 
 /* Actions */
