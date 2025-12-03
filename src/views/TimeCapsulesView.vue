@@ -101,8 +101,8 @@
         :partner-name="PARTNER_NAME"
         :is-submitting="saving"
         :submit-error="submitError"
-        :cloudinary-cloud-name="CLOUDINARY_CLOUD_NAME"
-        :cloudinary-upload-preset="CLOUDINARY_UPLOAD_PRESET"
+       cloudinary-cloud-name="dknmcj1qj"
+        cloudinary-upload-preset="memos_and_moments"
         @close="closeFormModal"
         @save="handleSaveCapsule"
       />
