@@ -60,6 +60,10 @@
                 To {{ recipientLabel(capsule) }}
               </span>
             </div>
+
+            <p v-if="unlockSummary(capsule)" class="tc-card-unlock">
+              {{ unlockSummary(capsule) }}
+            </p>
           </div>
         </div>
 
@@ -101,7 +105,7 @@
         :partner-name="PARTNER_NAME"
         :is-submitting="saving"
         :submit-error="submitError"
-       cloudinary-cloud-name="dknmcj1qj"
+        cloudinary-cloud-name="dknmcj1qj"
         cloudinary-upload-preset="memos_and_moments"
         @close="closeFormModal"
         @save="handleSaveCapsule"
@@ -323,6 +327,28 @@ function canDelete(capsule) {
   return isMine(capsule);
 }
 
+function unlockSummary(capsule) {
+  if (!capsule) return '';
+  const raw = capsule.unlockAt || capsule.createdAt;
+  if (!raw) return '';
+  const d = new Date(raw);
+  if (Number.isNaN(d.getTime())) return '';
+
+  const now = Date.now();
+  const ts = d.getTime();
+
+  if (ts <= now) {
+    return 'Unlocked';
+  }
+
+  const diffMs = ts - now;
+  const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffDays <= 0) return 'Unlocks soon';
+  if (diffDays === 1) return 'Unlocks in 1 day';
+  return `Unlocks in ${diffDays} days`;
+}
+
 // --- editor modal open/close ---
 function openCreate() {
   editingCapsule.value = null;
@@ -352,31 +378,14 @@ async function handleSaveCapsule(payload) {
 
   const { title, message, unlockAtLocal, recipient, photos } = payload;
 
-  if (!unlockAtLocal) {
-    alert('Please choose an unlock date and time.');
-    return;
-  }
-
   const unlockAtLocalDate = new Date(unlockAtLocal);
   if (Number.isNaN(unlockAtLocalDate.getTime())) {
-    alert('Invalid unlock date/time');
-    return;
-  }
-
-  const now = Date.now();
-  const unlockTs = unlockAtLocalDate.getTime();
-  if (unlockTs <= now) {
-    alert('Unlock time must be in the future.');
-    return;
-  }
-
-  const trimmedMessage = (message || '').trim();
-  if (!trimmedMessage) {
-    alert('Message cannot be empty.');
+    submitError.value = 'Invalid unlock date/time.';
     return;
   }
 
   const unlockAtIso = unlockAtLocalDate.toISOString();
+  const trimmedMessage = (message || '').trim();
 
   let toUid;
   if (!editingCapsule.value) {
@@ -727,6 +736,12 @@ async function handleDelete(capsule) {
 
 .tc-badge-target {
   opacity: 0.85;
+}
+
+.tc-card-unlock {
+  margin: 0.1rem 0 0;
+  font-size: 0.65rem;
+  opacity: 0.8;
 }
 
 /* Actions */

@@ -1,223 +1,202 @@
 <template>
-  <div class="modal-overlay tc-modal-overlay" @click.self="emitClose">
-    <div class="modal-content tc-modal">
-      <button class="tc-modal-close" @click="emitClose">×</button>
+  <BaseCapsuleModal
+    title-id="tc-form-title"
+    :show-close-icon="true"
+    @close="emitClose"
+  >
+    <template #label>
+      Time capsule
+    </template>
 
-      <div class="tc-modal-header">
-        <div class="tc-modal-label">
-          <span class="tc-modal-label-dot"></span>
-          Time capsule
-        </div>
-        <h2 class="tc-modal-title">
-          {{ modalTitle }}
-        </h2>
-        <p class="tc-modal-subtitle">
-          {{ modalSubtitle }}
-        </p>
-      </div>
+    <template #title>
+      {{ modalTitle }}
+    </template>
 
-      <div class="tc-modal-grid">
-        <!-- LEFT: meta (recipient + unlock time) -->
-        <div class="tc-modal-column tc-modal-column-meta">
-          <label class="tc-field">
-            <span class="tc-field-label">Recipient</span>
+    <template #subtitle>
+      {{ modalSubtitle }}
+    </template>
 
-            <!-- Creation: let user choose -->
-            <div
-              class="tc-recipient-options"
-              v-if="!capsule"
-            >
-              <label class="tc-recipient-pill">
-                <input
-                  type="radio"
-                  value="partner"
-                  v-model="formRecipient"
-                />
-                <span class="pill-main">
-                  To {{ partnerName || 'partner' }}
-                </span>
-                <span class="pill-sub">
-                  They’ll get a notification when it unlocks.
-                </span>
-              </label>
+    <!-- BODY -->
+    <div class="tc-modal-grid">
+      <!-- LEFT: meta (recipient + unlock time) -->
+      <div class="tc-modal-column tc-modal-column-meta">
+        <label class="tc-field">
+          <span class="tc-field-label">Recipient</span>
 
-              <label class="tc-recipient-pill">
-                <input
-                  type="radio"
-                  value="me"
-                  v-model="formRecipient"
-                />
-                <span class="pill-main">To yourself</span>
-                <span class="pill-sub">
-                  A message from past you, for future you.
-                </span>
-              </label>
-            </div>
-
-            <!-- Editing: recipient fixed -->
-            <div v-else class="tc-recipient-fixed">
-              <p class="tc-recipient-fixed-label">
-                {{ recipientSummary }}
-              </p>
-              <p class="tc-field-hint">
-                Recipient can’t be changed after creation.
-              </p>
-            </div>
-          </label>
-
-          <label class="tc-field">
-            <span class="tc-field-label">Unlock date &amp; time</span>
-            <input
-              v-model="formUnlockAt"
-              type="datetime-local"
-              class="tc-input tc-input-unlock"
-            />
-            <p class="tc-field-hint" v-if="formUnlockAt">
-              This capsule will stay locked until
-              <span class="tc-hint-highlight">{{ formUnlockAt }}</span>
-              (your local time).
-            </p>
-            <p class="tc-field-hint" v-else>
-              Pick a date in the future. No spoilers before then.
-            </p>
-          </label>
-        </div>
-
-        <!-- RIGHT: title + message + media -->
-        <div class="tc-modal-column tc-modal-column-message">
-          <label class="tc-field">
-            <span class="tc-field-label">Title (optional)</span>
-            <input
-              v-model="formTitle"
-              type="text"
-              class="tc-input"
-              placeholder="e.g. For the day you forget how loved you are"
-            />
-          </label>
-
-          <label class="tc-field">
-            <span class="tc-field-label">Message</span>
-            <textarea
-              v-model="formMessage"
-              class="tc-textarea tc-textarea-message"
-              rows="6"
-              placeholder="Write like they can’t open it until exactly when they’ll need it most."
-            ></textarea>
-          </label>
-
-          <!-- Media upload / previews -->
-          <div class="tc-field tc-media-field">
-            <span class="tc-field-label">Media (optional)</span>
-            <div class="tc-media-upload-row">
+          <!-- Creation: let user choose -->
+          <div
+            class="tc-recipient-options"
+            v-if="!capsule"
+          >
+            <label class="tc-recipient-pill">
               <input
-                id="tc-file-upload"
-                class="tc-media-file-input"
-                type="file"
-                multiple
-                accept="image/*,video/*"
-                :disabled="isSubmitting"
-                @change="handleFileChange"
+                type="radio"
+                value="partner"
+                v-model="formRecipient"
               />
-              <label
-                for="tc-file-upload"
-                class="tc-media-upload-button"
-                :class="{ 'tc-media-upload-button-disabled': isSubmitting }"
-              >
-                + Add photos / videos
-              </label>
-              <span v-if="isUploading" class="tc-media-upload-status">
-                Uploading… {{ uploadProgress }}%
+              <span class="pill-main">
+                To {{ partnerName || 'partner' }}
               </span>
-              <span v-if="mediaPreviews.length" class="tc-media-count">
-                {{ mediaPreviews.length }}/3 attached
+              <span class="pill-sub">
+                They’ll get a notification when it unlocks.
               </span>
-            </div>
+            </label>
 
-            <div v-if="mediaPreviews.length" class="tc-media-previews">
-              <div
-                v-for="(preview, idx) in mediaPreviews"
-                :key="idx"
-                class="tc-media-preview-item"
-              >
-                <img
-                  v-if="preview.resource_type === 'image' || !preview.resource_type"
-                  :src="preview.url"
-                  class="tc-media-thumb"
-                />
-                <video
-                  v-else-if="preview.resource_type === 'video'"
-                  :src="preview.url"
-                  muted
-                  loop
-                  playsinline
-                  class="tc-media-video"
-                ></video>
-
-                <button
-                  class="tc-media-remove"
-                  @click.prevent="removeMedia(idx)"
-                >
-                  ×
-                </button>
-              </div>
-            </div>
+            <label class="tc-recipient-pill">
+              <input
+                type="radio"
+                value="me"
+                v-model="formRecipient"
+              />
+              <span class="pill-main">To yourself</span>
+              <span class="pill-sub">
+                A message from past you, for future you.
+              </span>
+            </label>
           </div>
 
-          <p v-if="localError" class="tc-error">
-            {{ localError }}
+          <!-- Editing: recipient fixed -->
+          <div v-else class="tc-recipient-fixed">
+            <p class="tc-recipient-fixed-label">
+              {{ recipientSummary }}
+            </p>
+            <p class="tc-field-hint">
+              Recipient can’t be changed after creation.
+            </p>
+          </div>
+        </label>
+
+        <label class="tc-field">
+          <span class="tc-field-label">Unlock date &amp; time</span>
+          <input
+            v-model="formUnlockAt"
+            type="datetime-local"
+            class="tc-input tc-input-unlock"
+          />
+          <p class="tc-field-hint" v-if="formUnlockAt">
+            This capsule will stay locked until
+            <span class="tc-hint-highlight">{{ formUnlockAt }}</span>
+            (your local time).
           </p>
-        </div>
+          <p class="tc-field-hint" v-else>
+            Pick a date in the future. No spoilers before then.
+          </p>
+        </label>
       </div>
 
-      <div class="tc-modal-footer">
-        <div class="tc-modal-footer-left">
-          <p class="tc-footer-note">
-            <span class="tc-footer-icon">
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path
-                  d="M12.1 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5
-                     2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81
-                     14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.65
-                     11.54l-1.25 1.31z"
-                  fill="none"
-                  stroke="magenta"
-                  stroke-width="0.9"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                />
-              </svg>
+      <!-- RIGHT: title + message + media -->
+      <div class="tc-modal-column tc-modal-column-message">
+        <label class="tc-field">
+          <span class="tc-field-label">Title (optional)</span>
+          <input
+            v-model="formTitle"
+            type="text"
+            class="tc-input"
+            placeholder="e.g. For the day you forget how loved you are"
+          />
+        </label>
+
+        <label class="tc-field">
+          <span class="tc-field-label">Message</span>
+          <textarea
+            v-model="formMessage"
+            class="tc-textarea tc-textarea-message"
+            rows="6"
+            placeholder="Write like they can’t open it until exactly when they’ll need it most."
+          ></textarea>
+        </label>
+
+        <!-- Media upload / previews -->
+        <div class="tc-field tc-media-field">
+          <span class="tc-field-label">Media (optional)</span>
+          <div class="tc-media-upload-row">
+            <input
+              id="tc-file-upload"
+              class="tc-media-file-input"
+              type="file"
+              multiple
+              accept="image/*,video/*"
+              :disabled="isSubmitting"
+              @change="handleFileChange"
+            />
+            <label
+              for="tc-file-upload"
+              class="tc-media-upload-button"
+              :class="{ 'tc-media-upload-button-disabled': isSubmitting }"
+            >
+              + Add photos / videos
+            </label>
+            <span v-if="isUploading" class="tc-media-upload-status">
+              Uploading… {{ uploadProgress }}%
             </span>
-            <span class="tc-footer-text">
-              Capsules can be edited until they unlock.
+            <span v-if="mediaPreviews.length" class="tc-media-count">
+              {{ mediaPreviews.length }}/3 attached
             </span>
-          </p>
-        </div>
-        <div class="tc-modal-footer-right">
-          <button class="tc-btn tc-btn-ghost" @click="emitClose">
-            Cancel
-          </button>
-          <button
-            class="tc-btn tc-btn-primary"
-            :disabled="isSubmitting || !formUnlockAt"
-            @click="submitForm"
-          >
-            <span v-if="isSubmitting">Saving...</span>
-            <span v-else>
-              {{ capsule ? 'Save changes' : 'Create capsule' }}
-            </span>
-          </button>
+          </div>
+
+          <div v-if="mediaPreviews.length" class="tc-media-previews">
+            <div
+              v-for="(preview, idx) in mediaPreviews"
+              :key="idx"
+              class="tc-media-preview-item"
+            >
+              <img
+                v-if="preview.resource_type === 'image' || !preview.resource_type"
+                :src="preview.url"
+                class="tc-media-thumb"
+                alt="Attached image"
+              />
+              <video
+                v-else-if="preview.resource_type === 'video'"
+                :src="preview.url"
+                muted
+                loop
+                playsinline
+                class="tc-media-video"
+              ></video>
+
+              <button
+                class="tc-media-remove"
+                @click.prevent="removeMedia(idx)"
+              >
+                ×
+              </button>
+            </div>
+          </div>
         </div>
       </div>
-
-      <p v-if="submitError" class="tc-error">
-        {{ submitError }}
-      </p>
     </div>
-  </div>
+
+    <!-- FOOTER -->
+    <template #footer-text>
+      Capsules can be edited until they unlock.
+    </template>
+
+    <template #footer-right>
+      <button class="tc-btn tc-btn-ghost" @click="emitClose">
+        Cancel
+      </button>
+      <button
+        class="tc-btn tc-btn-primary"
+        :disabled="isSubmitting || !formUnlockAt"
+        @click="submitForm"
+      >
+        <span v-if="isSubmitting">Saving...</span>
+        <span v-else>
+          {{ capsule ? 'Save changes' : 'Create capsule' }}
+        </span>
+      </button>
+    </template>
+
+    <p v-if="mergedError" class="tc-error">
+      {{ mergedError }}
+    </p>
+  </BaseCapsuleModal>
 </template>
 
 <script setup>
 import { ref, computed, watch } from 'vue';
+import BaseCapsuleModal from './BaseCapsuleModal.vue';
 
 const props = defineProps({
   capsule: { type: Object, default: null },
@@ -245,7 +224,7 @@ const localError = ref('');
 
 // derived submitting state
 const isSubmitting = computed(() => props.isSubmitting || isUploading.value);
-const submitError = computed(() => props.submitError || localError.value);
+const mergedError = computed(() => props.submitError || localError.value);
 
 // title/subtitle
 const modalTitle = computed(() =>
@@ -438,15 +417,31 @@ async function uploadFiles() {
 }
 
 /**
- * Submit: upload new media, merge with existing, emit all data upwards.
+ * Submit: validate, upload new media, merge with existing, emit all data upwards.
  */
 async function submitForm() {
+  localError.value = '';
+
   if (!formUnlockAt.value) {
     localError.value = 'Please choose an unlock date & time.';
     return;
   }
 
-  localError.value = '';
+  const unlockDate = new Date(formUnlockAt.value);
+  if (Number.isNaN(unlockDate.getTime())) {
+    localError.value = 'Invalid unlock date/time.';
+    return;
+  }
+
+  if (unlockDate.getTime() <= Date.now()) {
+    localError.value = 'Unlock time must be in the future.';
+    return;
+  }
+
+  if (!formMessage.value || !formMessage.value.trim()) {
+    localError.value = 'Message cannot be empty.';
+    return;
+  }
 
   const newMedia = await uploadFiles();
   if (newMedia === null) {
@@ -464,7 +459,7 @@ async function submitForm() {
 
   emit('save', {
     title: formTitle.value,
-    message: formMessage.value,
+    message: formMessage.value.trim(),
     unlockAtLocal: formUnlockAt.value,
     recipient: formRecipient.value,
     photos,
@@ -473,197 +468,12 @@ async function submitForm() {
 </script>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap');
-
-.tc-modal-overlay {
-  position: fixed;
-  inset: 0;
-  background:
-    radial-gradient(circle at 10% 0%, rgba(0, 255, 255, 0.18), transparent 55%),
-    radial-gradient(circle at 90% 100%, rgba(255, 0, 255, 0.22), transparent 55%),
-    rgba(0, 0, 0, 0.84);
-  backdrop-filter: blur(8px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 2500;
-}
-
-/* Same glowing shell as read modal, just a bit wider */
-.tc-modal {
-  position: relative;
-  width: min(70vw, 640px);
-  max-width: 640px;
-  border-radius: 20px;
-  border: 1px solid rgba(255, 0, 255, 0.7);
-  background:
-    radial-gradient(circle at 15% 0%, rgba(0, 255, 255, 0.18), transparent 60%),
-    radial-gradient(circle at 85% 100%, rgba(255, 0, 255, 0.2), transparent 65%),
-    rgba(0, 0, 0, 0.9);
-  box-shadow:
-    0 0 22px rgba(255, 0, 255, 0.55),
-    0 0 34px rgba(0, 255, 255, 0.45);
-  padding: 1.4rem 1.5rem 1.1rem;
-  color: #f5f5ff;
-  overflow: hidden;
-  animation: modal-glow 6s ease-in-out infinite alternate;
-}
-
-@keyframes modal-glow {
-  0% {
-    box-shadow:
-      0 0 30px rgba(255, 0, 255, 0.85),
-      0 0 44px rgba(0, 255, 255, 0.35);
-  }
-  10% {
-    box-shadow:
-      0 0 36px rgba(255, 0, 255, 0.82),
-      0 0 52px rgba(0, 255, 255, 0.4);
-  }
-  20% {
-    box-shadow:
-      0 0 42px rgba(255, 0, 255, 0.78),
-      0 0 60px rgba(0, 255, 255, 0.45);
-  }
-  30% {
-    box-shadow:
-      0 0 48px rgba(255, 0, 255, 0.72),
-      0 0 70px rgba(0, 255, 255, 0.5);
-  }
-  40% {
-    box-shadow:
-      0 0 54px rgba(220, 0, 255, 0.7),
-      0 0 80px rgba(0, 240, 255, 0.55);
-  }
-  50% {
-    box-shadow:
-      0 0 60px rgba(0, 255, 255, 0.85),
-      0 0 90px rgba(255, 0, 255, 0.55);
-  }
-  60% {
-    box-shadow:
-      0 0 56px rgba(0, 245, 255, 0.8),
-      0 0 82px rgba(255, 0, 255, 0.6);
-  }
-  70% {
-    box-shadow:
-      0 0 52px rgba(80, 0, 255, 0.78),
-      0 0 76px rgba(0, 255, 255, 0.6);
-  }
-  80% {
-    box-shadow:
-      0 0 48px rgba(180, 0, 255, 0.8),
-      0 0 68px rgba(0, 230, 255, 0.55);
-  }
-  90% {
-    box-shadow:
-      0 0 42px rgba(230, 0, 255, 0.82),
-      0 0 58px rgba(0, 210, 255, 0.5);
-  }
-  100% {
-    box-shadow:
-      0 0 36px rgba(255, 0, 255, 0.85),
-      0 0 50px rgba(0, 255, 255, 0.45);
-  }
-}
-
-/* X button */
-.tc-modal-close {
-  position: absolute;
-  top: -0.7rem;
-  right: -0.9rem;
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  border: 1px solid cyan;
-  background: rgba(0, 0, 0, 0.9);
-  color: cyan;
-  font-size: 1.3rem;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 0 10px rgba(0, 255, 255, 0.6);
-  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
-}
-
-.tc-modal-close:hover {
-  transform: scale(1.05);
-  border-color: magenta;
-  box-shadow: 0 0 16px rgba(255, 0, 255, 0.7);
-}
-
-/* Header */
-
-.tc-modal-header {
-  margin-bottom: 0.9rem;
-  text-align: center;
-  padding-bottom: 0.7rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  position: relative;
-}
-
-.tc-modal-header::after {
-  content: "";
-  position: absolute;
-  left: 1%;
-  right: 1%;
-  bottom: 0;
-  height: 1px;
-  background:
-    linear-gradient(
-      90deg,
-      transparent,
-      rgba(255, 0, 255, 0.9),
-      rgba(0, 255, 255, 0.9),
-      transparent
-    );
-  opacity: 1;
-}
-
-.tc-modal-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-size: 0.8rem;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  opacity: 0.9;
-  color: turquoise;
-}
-
-.tc-modal-label-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: radial-gradient(circle, magenta, transparent);
-  box-shadow: 0 0 8px rgba(255, 0, 255, 0.9);
-}
-
-.tc-modal-title {
-  margin: 0.3rem 0 0.25rem;
-  font-size: 2.2rem;
-  font-weight: 500;
-  font-family: 'Great Vibes', cursive;
-  text-shadow:
-    0 0 14px rgba(255, 0, 255, 0.95),
-    0 0 22px rgba(0, 255, 255, 0.9),
-    0 0 30px rgba(255, 255, 255, 0.45);
-}
-
-.tc-modal-subtitle {
-  margin: 0;
-  font-size: 0.85rem;
-  opacity: 0.85;
-}
-
 /* Grid layout inside modal */
 
 .tc-modal-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.4fr);
   gap: 1rem;
-  margin-top: 0.6rem;
 }
 
 .tc-modal-column {
@@ -869,53 +679,6 @@ async function submitForm() {
   cursor: pointer;
 }
 
-/* Modal footer */
-
-.tc-modal-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 0.75rem;
-  margin-top: 1rem;
-}
-
-.tc-modal-footer-left {
-  font-size: 0.78rem;
-}
-
-.tc-footer-note {
-  margin: 0;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-}
-
-.tc-footer-icon svg {
-  width: 18px;
-  height: 18px;
-  fill: none;
-  stroke: magenta;
-  stroke-width: 0.9;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  opacity: 0.95;
-  filter: drop-shadow(0 0 6px rgba(255, 0, 255, 0.7));
-}
-
-.tc-footer-text {
-  font-family: 'Great Vibes', cursive;
-  font-size: 1.2rem;
-  color: cyan;
-  text-shadow:
-    0 0 8px rgba(0, 255, 255, 0.7),
-    0 0 14px rgba(255, 0, 255, 0.6);
-}
-
-.tc-modal-footer-right {
-  display: flex;
-  gap: 0.5rem;
-}
-
 /* Buttons */
 
 .tc-btn {
@@ -973,10 +736,6 @@ async function submitForm() {
 /* Responsive */
 
 @media (max-width: 700px) {
-  .tc-modal {
-    padding: 1.1rem 1rem 0.9rem;
-  }
-
   .tc-modal-grid {
     grid-template-columns: minmax(0, 1fr);
     gap: 0.8rem;
@@ -992,15 +751,6 @@ async function submitForm() {
 
   .tc-modal-column-message {
     padding-left: 0;
-  }
-
-  .tc-modal-footer {
-    flex-direction: column-reverse;
-    align-items: flex-end;
-  }
-
-  .tc-modal-footer-left {
-    align-self: flex-start;
   }
 }
 </style>

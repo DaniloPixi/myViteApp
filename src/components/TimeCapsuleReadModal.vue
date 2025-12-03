@@ -1,104 +1,84 @@
 <template>
-  <!-- Uses global animated overlay from calendar + custom capsule styling -->
-  <div class="modal-overlay tc-modal-overlay" @click.self="emitClose">
-    <div class="modal-content tc-modal">
+  <BaseCapsuleModal
+    title-id="tc-read-title"
+    :show-close-icon="false"
+    @close="emitClose"
+  >
+    <template #label>
+      Time capsule
+    </template>
 
-      <div class="tc-modal-header">
-        <div class="tc-modal-label">
-          <span class="tc-modal-label-dot"></span>
-          Time capsule
-        </div>
-        <h2 class="tc-modal-title">
-          {{ capsule.title || 'Untitled capsule' }}
-        </h2>
-        <p class="tc-modal-subtitle">
-          {{ isMine ? 'From you' : 'From your love' }}
-          <span v-if="recipientLabel">
-            · To {{ recipientLabel }}
-          </span>
-        </p>
-      </div>
+    <template #title>
+      {{ capsule.title || 'Untitled capsule' }}
+    </template>
 
-      <div class="tc-read-message-wrap">
-        <p class="tc-read-message">
-          {{ capsule.message || 'No message text.' }}
-        </p>
-      </div>
+    <template #subtitle>
+      From {{ fromLabel }}
+      <span v-if="recipientLabel">
+        · To {{ recipientLabel }}
+      </span>
+    </template>
 
-      <!-- Media gallery -->
+    <!-- BODY -->
+    <div class="tc-read-message-wrap">
+      <p class="tc-read-message">
+        {{ capsule.message || 'No message text.' }}
+      </p>
+    </div>
+
+    <!-- Media gallery -->
+    <div
+      v-if="capsule.photos && capsule.photos.length"
+      class="tc-read-media-gallery"
+    >
       <div
-        v-if="capsule.photos && capsule.photos.length"
-        class="tc-read-media-gallery"
+        v-for="(media, index) in capsule.photos"
+        :key="index"
+        class="tc-read-media-item"
       >
-        <div
-          v-for="(media, index) in capsule.photos"
-          :key="index"
-          class="tc-read-media-item"
-        >
-          <img
-            v-if="media.resource_type === 'image' || !media.resource_type"
-            :src="media.url"
-            class="tc-read-media-img"
-          />
-          <video
-            v-else-if="media.resource_type === 'video'"
-            :src="media.url"
-            class="tc-read-media-video"
-            controls
-            playsinline
-          ></video>
-        </div>
-      </div>
-
-      <div class="tc-read-meta">
-        <p v-if="capsule.createdAt" class="tc-meta-line">
-          <span class="tc-meta-label">Written</span>
-          <span class="tc-meta-value">{{ formatDate(capsule.createdAt) }}</span>
-        </p>
-        <p v-if="capsule.openedAt" class="tc-meta-line">
-          <span class="tc-meta-label">Opened</span>
-          <span class="tc-meta-value">{{ formatDate(capsule.openedAt) }}</span>
-        </p>
-      </div>
-
-      <div class="tc-modal-footer">
-        <div class="tc-modal-footer-left">
-          <p class="tc-footer-note">
-            <span class="tc-footer-icon">
-              <svg
-                viewBox="0 0 24 24"
-                aria-hidden="true"
-              >
-                <path
-                  d="M12.1 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5
-                   2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81
-                   14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.65
-                   11.54l-1.25 1.31z"
-                  fill="none"
-                  stroke="magenta"
-                  stroke-width="0.9"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                />
-              </svg>
-            </span>
-            <span class="tc-footer-text">
-              Saved in your shared galaxy of memories.
-            </span>
-          </p>
-        </div>
-        <div class="tc-modal-footer-right">
-          <button class="tc-btn tc-btn-ghost" @click="emitClose">
-            Close
-          </button>
-        </div>
+        <img
+          v-if="media.resource_type === 'image' || !media.resource_type"
+          :src="media.url"
+          class="tc-read-media-img"
+          alt="Time capsule image"
+        />
+        <video
+          v-else-if="media.resource_type === 'video'"
+          :src="media.url"
+          class="tc-read-media-video"
+          controls
+          playsinline
+        ></video>
       </div>
     </div>
-  </div>
+
+    <div class="tc-read-meta">
+      <p v-if="capsule.createdAt" class="tc-meta-line">
+        <span class="tc-meta-label">Written</span>
+        <span class="tc-meta-value">{{ formatDate(capsule.createdAt) }}</span>
+      </p>
+      <p v-if="capsule.openedAt" class="tc-meta-line">
+        <span class="tc-meta-label">Opened</span>
+        <span class="tc-meta-value">{{ formatDate(capsule.openedAt) }}</span>
+      </p>
+    </div>
+
+    <!-- FOOTER -->
+    <template #footer-text>
+      Saved in your shared galaxy of memories.
+    </template>
+
+    <template #footer-right>
+      <button class="tc-btn tc-btn-ghost" @click="emitClose">
+        Close
+      </button>
+    </template>
+  </BaseCapsuleModal>
 </template>
 
 <script setup>
 import { computed } from 'vue';
+import BaseCapsuleModal from './BaseCapsuleModal.vue';
 
 const props = defineProps({
   capsule: { type: Object, required: true },
@@ -130,166 +110,6 @@ const fromLabel = computed(() => (props.isMine ? 'You' : props.partnerName));
 </script>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap');
-
-.tc-modal-overlay {
-  position: fixed;
-  inset: 0;
-  background:
-    radial-gradient(circle at 10% 0%, rgba(0, 255, 255, 0.18), transparent 55%),
-    radial-gradient(circle at 90% 100%, rgba(255, 0, 255, 0.22), transparent 55%),
-    rgba(0, 0, 0, 0.84);
-  backdrop-filter: blur(8px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 2600;
-}
-
-/* Same 70% width shell */
-.tc-modal {
-  position: relative;
-  width: min(70vw, 640px);
-  max-width: 640px;
-  border-radius: 20px;
-  border: 1px solid rgba(255, 0, 255, 0.7);
-  background:
-    radial-gradient(circle at 15% 0%, rgba(0, 255, 255, 0.18), transparent 60%),
-    radial-gradient(circle at 85% 100%, rgba(255, 0, 255, 0.2), transparent 65%),
-    rgba(0, 0, 0, 0.9);
-  box-shadow:
-    0 0 22px rgba(255, 0, 255, 0.55),
-    0 0 34px rgba(0, 255, 255, 0.45);
-  padding: 1.6rem 1.7rem 1.2rem;
-  color: #f5f5ff;
-  overflow: hidden;
-  animation: modal-glow 6s ease-in-out infinite alternate;
-}
-
-@keyframes modal-glow {
-  0% {
-    box-shadow:
-      0 0 30px rgba(255, 0, 255, 0.85),
-      0 0 44px rgba(0, 255, 255, 0.35);
-  }
-  10% {
-    box-shadow:
-      0 0 36px rgba(255, 0, 255, 0.82),
-      0 0 52px rgba(0, 255, 255, 0.4);
-  }
-  20% {
-    box-shadow:
-      0 0 42px rgba(255, 0, 255, 0.78),
-      0 0 60px rgba(0, 255, 255, 0.45);
-  }
-  30% {
-    box-shadow:
-      0 0 48px rgba(255, 0, 255, 0.72),
-      0 0 70px rgba(0, 255, 255, 0.5);
-  }
-  40% {
-    box-shadow:
-      0 0 54px rgba(220, 0, 255, 0.7),
-      0 0 80px rgba(0, 240, 255, 0.55);
-  }
-  50% {
-    box-shadow:
-      0 0 60px rgba(0, 255, 255, 0.85),
-      0 0 90px rgba(255, 0, 255, 0.55);
-  }
-  60% {
-    box-shadow:
-      0 0 56px rgba(0, 245, 255, 0.8),
-      0 0 82px rgba(255, 0, 255, 0.6);
-  }
-  70% {
-    box-shadow:
-      0 0 52px rgba(80, 0, 255, 0.78),
-      0 0 76px rgba(0, 255, 255, 0.6);
-  }
-  80% {
-    box-shadow:
-      0 0 48px rgba(180, 0, 255, 0.8),
-      0 0 68px rgba(0, 230, 255, 0.55);
-  }
-  90% {
-    box-shadow:
-      0 0 42px rgba(230, 0, 255, 0.82),
-      0 0 58px rgba(0, 210, 255, 0.5);
-  }
-  100% {
-    box-shadow:
-      0 0 36px rgba(255, 0, 255, 0.85),
-      0 0 50px rgba(0, 255, 255, 0.45);
-  }
-}
-
-/* Header */
-
-.tc-modal-header {
-  margin-bottom: 1.1rem;
-  text-align: center;
-  padding-bottom: 0.7rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  position: relative;
-}
-
-.tc-modal-header::after {
-  content: "";
-  position: absolute;
-  left: 1%;
-  right: 1%;
-  bottom: 0;
-  height: 1px;
-  background:
-    linear-gradient(
-      90deg,
-      transparent,
-      rgba(255, 0, 255, 0.9),
-      rgba(0, 255, 255, 0.9),
-      transparent
-    );
-  opacity: 1;
-}
-
-.tc-modal-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-size: 0.8rem;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  opacity: 0.9;
-  color: turquoise;
-}
-
-.tc-modal-label-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: radial-gradient(circle, magenta, transparent);
-  box-shadow: 0 0 8px rgba(255, 0, 255, 0.9);
-}
-
-.tc-modal-title {
-  margin: 0.3rem 0 0.25rem;
-  font-size: 2.4rem;
-  font-weight: 500;
-  font-family: 'Great Vibes', cursive;
-  text-shadow:
-    0 0 14px rgba(255, 0, 255, 0.95),
-    0 0 22px rgba(0, 255, 255, 0.9),
-    0 0 30px rgba(255, 255, 255, 0.45);
-}
-
-.tc-modal-subtitle {
-  margin: 0;
-  font-size: 0.85rem;
-  opacity: 0.85;
-}
-
-/* Message */
-
 .tc-read-message-wrap {
   position: relative;
   margin-top: 1.1rem;
@@ -359,6 +179,7 @@ const fromLabel = computed(() => (props.isMine ? 'You' : props.partnerName));
   letter-spacing: 0.02em;
   color: #ffeaff;
   text-shadow: 0 0 6px rgba(255, 0, 255, 0.3);
+  white-space: pre-line;
 }
 
 /* Media gallery – bigger items */
@@ -426,47 +247,6 @@ const fromLabel = computed(() => (props.isMine ? 'You' : props.partnerName));
   color: #c7fdff;
 }
 
-/* Footer */
-
-.tc-modal-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 0.75rem;
-  margin-top: 1rem;
-}
-
-.tc-modal-footer-left {
-  font-size: 0.78rem;
-}
-
-.tc-footer-note {
-  margin: 0;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-}
-
-.tc-footer-icon svg {
-  width: 18px;
-  height: 18px;
-  filter: drop-shadow(0 0 6px rgba(255, 0, 255, 0.7));
-}
-
-.tc-footer-text {
-  font-family: 'Great Vibes', cursive;
-  font-size: 1.2rem;
-  color: cyan;
-  text-shadow:
-    0 0 8px rgba(0, 255, 255, 0.7),
-    0 0 14px rgba(255, 0, 255, 0.6);
-}
-
-.tc-modal-footer-right {
-  display: flex;
-  gap: 0.5rem;
-}
-
 /* Buttons */
 
 .tc-btn {
@@ -506,17 +286,7 @@ const fromLabel = computed(() => (props.isMine ? 'You' : props.partnerName));
   border-radius: 999px;
 }
 
-/* Responsive */
-
 @media (max-width: 700px) {
-  .tc-modal {
-    padding: 1.3rem 1.1rem 0.9rem;
-  }
-
-  .tc-modal-title {
-    font-size: 2rem;
-  }
-
   .tc-read-message-wrap {
     max-height: 220px;
   }
@@ -524,15 +294,6 @@ const fromLabel = computed(() => (props.isMine ? 'You' : props.partnerName));
   .tc-read-media-img,
   .tc-read-media-video {
     height: 110px;
-  }
-
-  .tc-modal-footer {
-    flex-direction: column-reverse;
-    align-items: flex-end;
-  }
-
-  .tc-modal-footer-left {
-    align-self: flex-start;
   }
 }
 </style>
