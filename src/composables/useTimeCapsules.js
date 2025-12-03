@@ -13,11 +13,10 @@ const capsules = ref([]);
 const loading = ref(false);
 const error = ref(null);
 
-// internal flags so we only start the listener once
 let initialized = false;
 let listenerStarted = false;
 let unsubscribe = null;
-let subscriberCount = 0; // how many components are using this composable
+let subscriberCount = 0;
 
 async function getAuthHeaders() {
   const user = auth.currentUser;
@@ -32,7 +31,8 @@ async function getAuthHeaders() {
 }
 
 /**
- * Safely get unlockAt as ms since epoch, regardless of format:
+ * Normalize unlockAt into a number (ms since epoch)
+ * Supports:
  *  - Firestore Timestamp (has .toDate())
  *  - ISO string
  *  - Date
@@ -41,7 +41,6 @@ function getUnlockTime(capsule) {
   if (!capsule || !capsule.unlockAt) return null;
   const raw = capsule.unlockAt;
 
-  // Firestore Timestamp style
   if (raw && typeof raw.toDate === 'function') {
     const d = raw.toDate();
     const t = d.getTime();
@@ -53,32 +52,36 @@ function getUnlockTime(capsule) {
 }
 
 /**
- * Start realtime listener on Firestore, same idea as subscribeToMemos().
- * Uses the same collection name as your router: db.collection('timeCapsules')
+ * Start a realtime subscription on ALL timeCapsules, ordered by unlockAt.
  */
 function startRealtimeSubscription() {
   if (listenerStarted) return;
   listenerStarted = true;
+
+  const user = auth.currentUser;
+  if (!user) {
+    // No authenticated user → no data
+    loading.value = false;
+    error.value = null;
+    capsules.value = [];
+    return;
+  }
+
   loading.value = true;
   error.value = null;
 
   const db = getFirestore();
-  const colRef = collection(db, 'timeCapsules'); // <- matches router
+  const colRef = collection(db, 'timeCapsules');
 
-  // You sort by unlockAt on the backend; we also sort here for consistency.
   const q = query(colRef, orderBy('unlockAt'));
 
   unsubscribe = onSnapshot(
     q,
     (snapshot) => {
-      capsules.value = snapshot.docs.map((doc) => {
-        const data = doc.data() || {};
-        return {
-          id: doc.id,
-          ...data,
-        };
-      });
-
+      capsules.value = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...(doc.data() || {}),
+      }));
       loading.value = false;
       error.value = null;
       initialized = true;
@@ -92,10 +95,7 @@ function startRealtimeSubscription() {
 }
 
 /**
- * Kept for backwards compatibility. In your view you already call
- * `fetchTimeCapsules()` on mount and after save.
- *
- * Now it just ensures the realtime listener is running.
+ * Kept for backwards compatibility – now just ensures the subscription is running.
  */
 async function fetchTimeCapsules() {
   if (!listenerStarted) {
@@ -103,23 +103,20 @@ async function fetchTimeCapsules() {
   }
 }
 
-/**
- * Old helper – now just “make sure the listener is started once”.
- */
 function ensureLoadedOnce() {
   if (!initialized && !loading.value) {
     fetchTimeCapsules();
   }
 }
 
-// Helpers for UI
+// --- Helpers for UI ---
+
 export function isLocked(capsule) {
   const t = getUnlockTime(capsule);
   if (t == null) return false;
   return t > Date.now();
 }
 
-// if backend only sets openedAt, treat that as opened too
 export function isOpened(capsule) {
   return !!capsule?.opened || !!capsule?.openedAt;
 }
@@ -153,7 +150,8 @@ const unlockedCapsules = computed(() => {
   });
 });
 
-// CREATE a new capsule (writes via API, Firestore listener picks up changes)
+// --- Mutations via API (backend enforces permissions) ---
+
 export async function createTimeCapsule({
   toUid,
   unlockAt,
@@ -165,7 +163,7 @@ export async function createTimeCapsule({
 
   const payload = {
     toUid,
-    unlockAt, // backend normalizes to ISO and writes to Firestore
+    unlockAt,
     title: title || '',
     message: message || '',
     photos: Array.isArray(photos) ? photos : [],
@@ -184,11 +182,10 @@ export async function createTimeCapsule({
   }
 
   const data = await res.json();
-  // No manual refetch here – realtime listener will update `capsules`
-  return data; // { success, id } or similar
+  // Realtime listener will pick up the new doc automatically
+  return data;
 }
 
-// UPDATE an existing capsule (only creator, before unlock)
 export async function updateTimeCapsule(id, {
   title,
   message,
@@ -215,10 +212,9 @@ export async function updateTimeCapsule(id, {
     throw new Error(txt || `HTTP ${res.status}`);
   }
 
-  // Realtime listener will pick up the updated doc
+  // Listener sees the update
 }
 
-// OPEN a capsule (recipient / self-capsule)
 export async function openTimeCapsule(id) {
   const headers = await getAuthHeaders();
 
@@ -233,7 +229,7 @@ export async function openTimeCapsule(id) {
     throw new Error(txt || `HTTP ${res.status}`);
   }
 
-  // optimistic local update; Firestore listener will correct if needed
+  // Optimistic local update; Firestore listener will sync if backend sets openedAt differently
   const idx = capsules.value.findIndex((c) => c.id === id);
   if (idx !== -1) {
     capsules.value[idx] = {
@@ -246,7 +242,6 @@ export async function openTimeCapsule(id) {
   return true;
 }
 
-// DELETE a capsule (only creator)
 export async function deleteTimeCapsule(id) {
   const headers = await getAuthHeaders();
 
@@ -261,7 +256,7 @@ export async function deleteTimeCapsule(id) {
     throw new Error(txt || `HTTP ${res.status}`);
   }
 
-  // Realtime listener will remove it from `capsules` once Firestore doc is deleted
+  // Firestore listener will remove it once the backend deletes the doc
 }
 
 // Main composable hook
@@ -276,6 +271,7 @@ export function useTimeCapsules() {
       unsubscribe = null;
       listenerStarted = false;
       initialized = false;
+      capsules.value = [];
     }
   });
 
@@ -286,7 +282,7 @@ export function useTimeCapsules() {
     unlockedCapsules,
     loading,
     error,
-    fetchTimeCapsules, // still safe to call; just ensures subscription
+    fetchTimeCapsules, // harmless, just ensures subscription
     isLocked,
     isOpened,
   };
