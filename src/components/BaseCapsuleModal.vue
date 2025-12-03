@@ -331,8 +331,15 @@
   /* Responsive */
   
   @media (max-width: 700px) {
+    .tc-modal-overlay {
+      align-items: flex-start;
+      overflow-y: auto; /* whole overlay scrolls if content is tall */
+    }
+  
     .tc-modal {
       padding: 1.1rem 1rem 0.9rem;
+      width: min(92vw, 640px);
+      margin: 1rem auto;
     }
   
     .tc-modal-title {

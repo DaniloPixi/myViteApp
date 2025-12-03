@@ -1,13 +1,23 @@
 // src/composables/useTimeCapsules.js
-import { ref, computed } from 'vue';
+import { ref, computed, onUnmounted } from 'vue';
 import { auth } from '../firebase';
+import {
+  getFirestore,
+  collection,
+  query,
+  orderBy,
+  onSnapshot,
+} from 'firebase/firestore';
 
 const capsules = ref([]);
 const loading = ref(false);
 const error = ref(null);
 
-// internal flag so we only auto-load once
+// internal flags so we only start the listener once
 let initialized = false;
+let listenerStarted = false;
+let unsubscribe = null;
+let subscriberCount = 0; // how many components are using this composable
 
 async function getAuthHeaders() {
   const user = auth.currentUser;
@@ -21,55 +31,81 @@ async function getAuthHeaders() {
   };
 }
 
-async function fetchTimeCapsules() {
+/**
+ * Safely get unlockAt as ms since epoch, regardless of format:
+ *  - Firestore Timestamp (has .toDate())
+ *  - ISO string
+ *  - Date
+ */
+function getUnlockTime(capsule) {
+  if (!capsule || !capsule.unlockAt) return null;
+  const raw = capsule.unlockAt;
+
+  // Firestore Timestamp style
+  if (raw && typeof raw.toDate === 'function') {
+    const d = raw.toDate();
+    const t = d.getTime();
+    return Number.isNaN(t) ? null : t;
+  }
+
+  const t = new Date(raw).getTime();
+  return Number.isNaN(t) ? null : t;
+}
+
+/**
+ * Start realtime listener on Firestore, same idea as subscribeToMemos().
+ * Uses the same collection name as your router: db.collection('timeCapsules')
+ */
+function startRealtimeSubscription() {
+  if (listenerStarted) return;
+  listenerStarted = true;
   loading.value = true;
   error.value = null;
 
-  try {
-    const headers = await getAuthHeaders();
-    const res = await fetch('/api/time-capsules', {
-      method: 'GET',
-      headers,
-    });
+  const db = getFirestore();
+  const colRef = collection(db, 'timeCapsules'); // <- matches router
 
-    if (!res.ok) {
-      const txt = await res.text();
-      throw new Error(txt || `HTTP ${res.status}`);
-    }
+  // You sort by unlockAt on the backend; we also sort here for consistency.
+  const q = query(colRef, orderBy('unlockAt'));
 
-    const data = await res.json();
+  unsubscribe = onSnapshot(
+    q,
+    (snapshot) => {
+      capsules.value = snapshot.docs.map((doc) => {
+        const data = doc.data() || {};
+        return {
+          id: doc.id,
+          ...data,
+        };
+      });
 
-    // be forgiving about response shape
-    let list = [];
+      loading.value = false;
+      error.value = null;
+      initialized = true;
+    },
+    (err) => {
+      console.warn('[useTimeCapsules] realtime subscription error:', err);
+      error.value = err;
+      loading.value = false;
+    },
+  );
+}
 
-    if (Array.isArray(data)) {
-      list = data;
-    } else if (Array.isArray(data.items)) {
-      list = data.items;
-    } else if (Array.isArray(data.capsules)) {
-      list = data.capsules;
-    } else if (Array.isArray(data.data)) {
-      list = data.data;
-    }
-
-    if (!Array.isArray(list)) {
-      console.warn(
-        '[useTimeCapsules] Unexpected response shape from /api/time-capsules:',
-        data,
-      );
-      list = [];
-    }
-
-    capsules.value = list;
-    initialized = true;
-  } catch (e) {
-    console.warn('[useTimeCapsules] fetchTimeCapsules failed:', e);
-    error.value = e;
-  } finally {
-    loading.value = false;
+/**
+ * Kept for backwards compatibility. In your view you already call
+ * `fetchTimeCapsules()` on mount and after save.
+ *
+ * Now it just ensures the realtime listener is running.
+ */
+async function fetchTimeCapsules() {
+  if (!listenerStarted) {
+    startRealtimeSubscription();
   }
 }
 
+/**
+ * Old helper – now just “make sure the listener is started once”.
+ */
 function ensureLoadedOnce() {
   if (!initialized && !loading.value) {
     fetchTimeCapsules();
@@ -78,11 +114,9 @@ function ensureLoadedOnce() {
 
 // Helpers for UI
 export function isLocked(capsule) {
-  if (!capsule || !capsule.unlockAt) return false;
-  const now = Date.now();
-  const t = new Date(capsule.unlockAt).getTime();
-  if (Number.isNaN(t)) return false;
-  return t > now;
+  const t = getUnlockTime(capsule);
+  if (t == null) return false;
+  return t > Date.now();
 }
 
 // if backend only sets openedAt, treat that as opened too
@@ -94,8 +128,8 @@ export function isOpened(capsule) {
 const sortedCapsules = computed(() => {
   ensureLoadedOnce();
   return [...capsules.value].sort((a, b) => {
-    const ta = a.unlockAt ? new Date(a.unlockAt).getTime() : 0;
-    const tb = b.unlockAt ? new Date(b.unlockAt).getTime() : 0;
+    const ta = getUnlockTime(a) ?? 0;
+    const tb = getUnlockTime(b) ?? 0;
     return ta - tb;
   });
 });
@@ -104,9 +138,8 @@ const sortedCapsules = computed(() => {
 const upcomingCapsules = computed(() => {
   const now = Date.now();
   return sortedCapsules.value.filter((c) => {
-    if (!c.unlockAt) return false;
-    const t = new Date(c.unlockAt).getTime();
-    if (Number.isNaN(t)) return false;
+    const t = getUnlockTime(c);
+    if (t == null) return false;
     return t >= now;
   });
 });
@@ -114,20 +147,25 @@ const upcomingCapsules = computed(() => {
 const unlockedCapsules = computed(() => {
   const now = Date.now();
   return sortedCapsules.value.filter((c) => {
-    if (!c.unlockAt) return false;
-    const t = new Date(c.unlockAt).getTime();
-    if (Number.isNaN(t)) return false;
+    const t = getUnlockTime(c);
+    if (t == null) return false;
     return t <= now;
   });
 });
 
-// CREATE a new capsule
-export async function createTimeCapsule({ toUid, unlockAt, title, message, photos = [] }) {
+// CREATE a new capsule (writes via API, Firestore listener picks up changes)
+export async function createTimeCapsule({
+  toUid,
+  unlockAt,
+  title,
+  message,
+  photos = [],
+}) {
   const headers = await getAuthHeaders();
 
   const payload = {
     toUid,
-    unlockAt, // string, e.g. ISO or "YYYY-MM-DDTHH:mm" (backend normalizes)
+    unlockAt, // backend normalizes to ISO and writes to Firestore
     title: title || '',
     message: message || '',
     photos: Array.isArray(photos) ? photos : [],
@@ -146,15 +184,17 @@ export async function createTimeCapsule({ toUid, unlockAt, title, message, photo
   }
 
   const data = await res.json();
-
-  // refresh list so UI sees it
-  await fetchTimeCapsules();
-
+  // No manual refetch here – realtime listener will update `capsules`
   return data; // { success, id } or similar
 }
 
 // UPDATE an existing capsule (only creator, before unlock)
-export async function updateTimeCapsule(id, { title, message, unlockAt, photos }) {
+export async function updateTimeCapsule(id, {
+  title,
+  message,
+  unlockAt,
+  photos,
+}) {
   const headers = await getAuthHeaders();
 
   const payload = {};
@@ -175,7 +215,7 @@ export async function updateTimeCapsule(id, { title, message, unlockAt, photos }
     throw new Error(txt || `HTTP ${res.status}`);
   }
 
-  await fetchTimeCapsules();
+  // Realtime listener will pick up the updated doc
 }
 
 // OPEN a capsule (recipient / self-capsule)
@@ -193,7 +233,7 @@ export async function openTimeCapsule(id) {
     throw new Error(txt || `HTTP ${res.status}`);
   }
 
-  // optimistic local update
+  // optimistic local update; Firestore listener will correct if needed
   const idx = capsules.value.findIndex((c) => c.id === id);
   if (idx !== -1) {
     capsules.value[idx] = {
@@ -221,13 +261,23 @@ export async function deleteTimeCapsule(id) {
     throw new Error(txt || `HTTP ${res.status}`);
   }
 
-  // refresh list
-  await fetchTimeCapsules();
+  // Realtime listener will remove it from `capsules` once Firestore doc is deleted
 }
 
 // Main composable hook
 export function useTimeCapsules() {
   ensureLoadedOnce();
+  subscriberCount++;
+
+  onUnmounted(() => {
+    subscriberCount--;
+    if (subscriberCount <= 0 && unsubscribe) {
+      unsubscribe();
+      unsubscribe = null;
+      listenerStarted = false;
+      initialized = false;
+    }
+  });
 
   return {
     capsules,
@@ -236,7 +286,7 @@ export function useTimeCapsules() {
     unlockedCapsules,
     loading,
     error,
-    fetchTimeCapsules,
+    fetchTimeCapsules, // still safe to call; just ensures subscription
     isLocked,
     isOpened,
   };

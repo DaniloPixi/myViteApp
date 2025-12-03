@@ -12,9 +12,7 @@
       {{ modalTitle }}
     </template>
 
-    <template #subtitle>
-      {{ modalSubtitle }}
-    </template>
+    <!-- no subtitle slot to save vertical space -->
 
     <!-- BODY -->
     <div class="tc-modal-grid">
@@ -99,9 +97,11 @@
         <label class="tc-field">
           <span class="tc-field-label">Message</span>
           <textarea
+            ref="messageTextarea"
             v-model="formMessage"
             class="tc-textarea tc-textarea-message"
-            rows="6"
+            rows="2"
+            @input="onMessageInput"
             placeholder="Write like they can’t open it until exactly when they’ll need it most."
           ></textarea>
         </label>
@@ -195,7 +195,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, nextTick } from 'vue';
 import BaseCapsuleModal from './BaseCapsuleModal.vue';
 
 const props = defineProps({
@@ -215,6 +215,9 @@ const formMessage = ref('');
 const formUnlockAt = ref('');
 const formRecipient = ref('partner'); // 'partner' | 'me'
 
+// textarea auto-resize
+const messageTextarea = ref(null);
+
 // media state
 // { url, file?, resource_type, source: 'new' | 'existing' }
 const mediaPreviews = ref([]);
@@ -226,15 +229,9 @@ const localError = ref('');
 const isSubmitting = computed(() => props.isSubmitting || isUploading.value);
 const mergedError = computed(() => props.submitError || localError.value);
 
-// title/subtitle
+// title (subtitle removed to save space)
 const modalTitle = computed(() =>
   props.capsule ? 'Edit your capsule' : 'Drop a new capsule into time'
-);
-
-const modalSubtitle = computed(() =>
-  props.capsule
-    ? 'Update the words or timing. The recipient stays the same.'
-    : 'Choose who it’s for, when it unlocks, and what future hearts will read.'
 );
 
 const recipientSummary = computed(() => {
@@ -246,6 +243,18 @@ const recipientSummary = computed(() => {
   if (c.toUid === c.fromUid) return 'To your future self.';
   return 'To your partner.';
 });
+
+// auto-resize helper
+function resizeMessageTextarea() {
+  const el = messageTextarea.value;
+  if (!el) return;
+  el.style.height = 'auto';
+  el.style.height = `${el.scrollHeight}px`;
+}
+
+function onMessageInput() {
+  resizeMessageTextarea();
+}
 
 // init/reset when capsule changes
 watch(
@@ -300,6 +309,10 @@ watch(
       formRecipient.value = 'partner';
       mediaPreviews.value = [];
     }
+
+    nextTick(() => {
+      resizeMessageTextarea();
+    });
   },
   { immediate: true },
 );
@@ -468,23 +481,28 @@ async function submitForm() {
 </script>
 
 <style scoped>
+/* kill subtitle in this modal to save vertical space */
+:deep(.tc-modal-subtitle) {
+  display: none;
+}
+
 /* Grid layout inside modal */
 
 .tc-modal-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.4fr);
-  gap: 1rem;
+  gap: 0.8rem;
 }
 
 .tc-modal-column {
   display: flex;
   flex-direction: column;
-  gap: 0.65rem;
+  gap: 0.55rem;
 }
 
 .tc-modal-column-meta {
   border-right: 1px solid rgba(255, 255, 255, 0.06);
-  padding-right: 0.8rem;
+  padding-right: 0.7rem;
 }
 
 .tc-modal-column-message {
@@ -496,7 +514,7 @@ async function submitForm() {
 .tc-field {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.2rem;
 }
 
 .tc-field-label {
@@ -510,7 +528,7 @@ async function submitForm() {
   border: 1px solid rgba(255, 255, 255, 0.22);
   background: rgba(0, 0, 0, 0.85);
   color: #f5f5ff;
-  padding: 0.4rem 0.6rem;
+  padding: 0.35rem 0.55rem;
   font-size: 0.85rem;
   outline: none;
 }
@@ -525,16 +543,17 @@ async function submitForm() {
   font-family: inherit;
 }
 
+/* smaller initial message box; JS will stretch it as needed */
 .tc-textarea-message {
-  min-height: 140px;
-  resize: vertical;
+  min-height: 60px;
+  resize: none; /* user doesn't drag; JS handles growth */
 }
 
-/* Recipient pills */
+/* Recipient pills now in one row */
 
 .tc-recipient-options {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
   gap: 0.45rem;
 }
 
@@ -542,21 +561,22 @@ async function submitForm() {
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 0.15rem;
-  padding: 0.35rem 0.55rem 0.35rem 1.8rem;
+  gap: 0.12rem;
+  padding: 0.3rem 0.5rem 0.3rem 1.6rem;
   border-radius: 10px;
   background:
     radial-gradient(circle at 0% 0%, rgba(255, 0, 255, 0.18), transparent 60%),
     rgba(0, 0, 0, 0.8);
   border: 1px solid rgba(255, 255, 255, 0.18);
   cursor: pointer;
-  font-size: 0.8rem;
+  font-size: 0.78rem;
+  flex: 1 1 0;
 }
 
 .tc-recipient-pill input[type='radio'] {
   position: absolute;
-  left: 0.5rem;
-  top: 0.6rem;
+  left: 0.45rem;
+  top: 0.55rem;
   width: 12px;
   height: 12px;
   accent-color: magenta;
@@ -568,7 +588,7 @@ async function submitForm() {
 
 .tc-recipient-pill .pill-sub {
   opacity: 0.75;
-  font-size: 0.75rem;
+  font-size: 0.72rem;
 }
 
 .tc-recipient-fixed-label {
@@ -579,7 +599,7 @@ async function submitForm() {
 /* Hint text */
 
 .tc-field-hint {
-  margin: 0.1rem 0 0;
+  margin: 0.05rem 0 0;
   font-size: 0.75rem;
   opacity: 0.75;
 }
@@ -592,7 +612,7 @@ async function submitForm() {
 /* MEDIA FIELD */
 
 .tc-media-field {
-  margin-top: 0.3rem;
+  margin-top: 0.2rem;
 }
 
 .tc-media-upload-row {
@@ -608,12 +628,12 @@ async function submitForm() {
 
 .tc-media-upload-button {
   display: inline-block;
-  padding: 0.3rem 0.8rem;
+  padding: 0.28rem 0.75rem;
   border-radius: 999px;
   border: 1px solid rgba(0, 255, 255, 0.7);
   background: rgba(0, 0, 0, 0.85);
   color: #7ef7ff;
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   cursor: pointer;
   box-shadow: 0 0 7px rgba(0, 255, 255, 0.6);
   transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
@@ -643,10 +663,10 @@ async function submitForm() {
 }
 
 .tc-media-previews {
-  margin-top: 0.5rem;
+  margin-top: 0.4rem;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
-  gap: 0.4rem;
+  gap: 0.35rem;
 }
 
 .tc-media-preview-item {
@@ -667,7 +687,7 @@ async function submitForm() {
 
 .tc-media-remove {
   position: absolute;
-  top: -0.4rem;
+  top: -0.35rem;
   right: -0.2rem;
   width: 20px;
   height: 20px;
@@ -683,7 +703,7 @@ async function submitForm() {
 
 .tc-btn {
   border-radius: 999px;
-  padding: 0.3rem 0.85rem;
+  padding: 0.28rem 0.8rem;
   font-size: 0.8rem;
   cursor: pointer;
   border: 1px solid transparent;
@@ -727,7 +747,7 @@ async function submitForm() {
 /* Error */
 
 .tc-error {
-  margin-top: 0.6rem;
+  margin-top: 0.5rem;
   text-align: center;
   font-size: 0.8rem;
   color: #ff6b6b;
@@ -738,19 +758,23 @@ async function submitForm() {
 @media (max-width: 700px) {
   .tc-modal-grid {
     grid-template-columns: minmax(0, 1fr);
-    gap: 0.8rem;
+    gap: 0.7rem;
   }
 
   .tc-modal-column-meta {
     border-right: none;
     padding-right: 0;
     border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-    padding-bottom: 0.6rem;
-    margin-bottom: 0.4rem;
+    padding-bottom: 0.5rem;
+    margin-bottom: 0.35rem;
   }
 
   .tc-modal-column-message {
     padding-left: 0;
+  }
+
+  .tc-recipient-options {
+    flex-direction: row;
   }
 }
 </style>
