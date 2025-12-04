@@ -273,19 +273,20 @@ app.post('/api/send-love', authenticateToken, checkDb, async (req, res) => {
   const senderName = name || 'Someone'; // Fallback to 'Someone' if name is not available
 
   try {
-    // The path to open when the notification is clicked
-    const url = '/'; // You can change this later to a "love" page if you make one
+    const url = '/'; // Path to open when the notification is clicked
 
+    // IMPORTANT: we pass `null` as excludeUid so *no one* is filtered out.
     await sendPushNotification(
       `A message from ${senderName}`,
       'I love you',
       url,
-      uid, // Exclude the sender from receiving the notification
+      null, // <- do NOT exclude the sender here
       {
         type: 'love',
-        url, // explicit URL for the SW
-        // You can add more data fields here later if needed
-        // e.g. loveId, mood, etc.
+        url,
+        // you can add per-type visuals later:
+        // icon: '/icons/love-192.png',
+        // badge: '/icons/love-badge-72.png',
       }
     );
 
@@ -299,6 +300,7 @@ app.post('/api/send-love', authenticateToken, checkDb, async (req, res) => {
       .json({ success: false, message: 'Internal server error while sending notification.' });
   }
 });
+
 
 
 
