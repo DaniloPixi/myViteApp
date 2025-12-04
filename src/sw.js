@@ -40,54 +40,115 @@ registerRoute(
 
 // --- Firebase Background Message Handler ---
 messaging.onBackgroundMessage((payload) => {
-  const { notification, data } = payload || {};
-  const title = notification?.title || 'Notification';
-  const body = notification?.body || '';
+  // FCM sends both { notification, data }
+  const data = payload?.data || {};
+  const notif = payload?.notification || {};
 
-  // Show normal notification
-  self.registration.showNotification(title, { body });
+  const title =
+    data.title ||
+    notif.title ||
+    'Gruandus 💕';
 
-  // If it’s a questCompleted event, poke all windows
-  if (data && data.type === 'questCompleted') {
-    const msg = {
+  const body =
+    data.body ||
+    notif.body ||
+    '';
+
+  // URL to open when notification is clicked
+  const url =
+    data.url ||
+    data.link ||
+    '/';
+
+  const type = data.type || 'generic';
+
+  const options = {
+    body,
+
+    // Default icon / badge – adjust these paths to your real icons
+    icon: data.icon || '/icon.svg',
+    badge: data.badge || '/icon.svg',
+
+    // This object is available in notificationclick
+    data: {
+      url,
+      type,
+      ...data, // includes questId, userName, etc. if present
+    },
+
+    // A simple vibration pattern (Android / some browsers)
+    vibrate: [100, 50, 100],
+
+    // Grouping key for some platforms
+    tag: type,
+
+    // Optional actions (not all browsers show these)
+    actions: [
+      {
+        action: 'open',
+        title: 'Open',
+      },
+    ],
+  };
+
+  self.registration.showNotification(title, options);
+
+  // Special handling for questCompleted: ping all open clients
+  if (type === 'questCompleted') {
+    const messageForClients = {
       type: 'questCompleted',
       date: data.date,
       text: data.text,
       userName: data.userName,
+      questId: data.questId,
     };
 
     self.clients
       .matchAll({ type: 'window', includeUncontrolled: true })
       .then((clients) => {
-        clients.forEach((client) => {
-          client.postMessage(msg);
-        });
+        clients.forEach((client) => client.postMessage(messageForClients));
       });
   }
 });
 
-
+// --- Notification Click Handler ---
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
 
-  const urlToOpen = new URL(event.notification.data.url, self.location.origin).href;
+  const notificationData = event.notification.data || {};
+  const urlToOpen = notificationData.url || '/';
+  const action = event.action; // 'open' / custom actions / '' for default
 
   event.waitUntil(
-    clients.matchAll({
-      type: 'window',
-      includeUncontrolled: true
-    }).then((clientList) => {
-      if (clientList.length > 0) {
-        let client = clientList[0];
-        for (let i = 0; i < clientList.length; i++) {
-          if (clientList[i].focused) {
-            client = clientList[i];
+    self.clients
+      .matchAll({ type: 'window', includeUncontrolled: true })
+      .then((clientList) => {
+        // Try to find an open tab from the same origin
+        let matchingClient = null;
+
+        for (const client of clientList) {
+          try {
+            const clientUrl = new URL(client.url);
+
+            if (clientUrl.origin === self.location.origin) {
+              matchingClient = client;
+              break;
+            }
+          } catch (e) {
+            // Ignore badly formatted URLs
           }
         }
-        return client.focus().then(client => client.navigate(urlToOpen));
-      } else {
-        return clients.openWindow(urlToOpen);
-      }
-    })
+
+        if (matchingClient) {
+          return matchingClient.focus().then(() => {
+            if ('navigate' in matchingClient) {
+              return matchingClient.navigate(urlToOpen);
+            }
+          });
+        }
+
+        // No matching tab → open a new one
+        return self.clients.openWindow(urlToOpen);
+      })
   );
 });

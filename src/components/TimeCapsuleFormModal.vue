@@ -1,708 +1,345 @@
 <template>
-  <BaseCapsuleModal
-    title-id="tc-form-title"
-    :show-close-icon="true"
-    @close="emitClose"
-  >
-    <template #label>
-      Time capsule
-    </template>
+  <div class="tc-read-root">
+    <BaseCapsuleModal
+      title-id="tc-read-title"
+      :show-close-icon="false"
+      @close="emitClose"
+    >
+      <template #label>
+        Time capsule
+      </template>
 
-    <template #title>
-      {{ modalTitle }}
-    </template>
+      <template #title>
+        {{ capsule.title || 'Untitled capsule' }}
+      </template>
 
-    <!-- no subtitle slot to save vertical space -->
+      <template #subtitle>
+        From {{ fromLabel }}
+        <span v-if="recipientLabel">
+          · To {{ recipientLabel }}
+        </span>
+      </template>
 
-    <!-- BODY -->
-    <div class="tc-modal-grid">
-      <!-- LEFT: meta (recipient + unlock time) -->
-      <div class="tc-modal-column tc-modal-column-meta">
-        <label class="tc-field">
-
-          <!-- Creation: let user choose -->
-          <div
-            class="tc-recipient-options"
-            v-if="!capsule"
-          >
-            <label class="tc-recipient-pill">
-              <input
-                type="radio"
-                value="partner"
-                v-model="formRecipient"
-              />
-              <span class="pill-main">
-                To {{ partnerName || 'partner' }}
-              </span>
-              <span class="pill-sub">
-                Spice it 
-              </span>
-            </label>
-
-            <label class="tc-recipient-pill">
-              <input
-                type="radio"
-                value="me"
-                v-model="formRecipient"
-              />
-              <span class="pill-main">To yourself</span>
-              <span class="pill-sub">
-                A message from past you, for future you.
-              </span>
-            </label>
-          </div>
-
-          <!-- Editing: recipient fixed -->
-          <div v-else class="tc-recipient-fixed">
-            <p class="tc-recipient-fixed-label">
-              {{ recipientSummary }}
-            </p>
-            <p class="tc-field-hint">
-              Recipient can’t be changed after creation.
-            </p>
-          </div>
-        </label>
-
-        <label class="tc-field">
-          <span class="tc-field-label">Unlock date &amp; time</span>
-          <input
-            v-model="formUnlockAt"
-            type="datetime-local"
-            class="tc-input tc-input-unlock"
-          />
-          <p class="tc-field-hint" v-if="formUnlockAt">
-            This capsule will stay locked until
-            <span class="tc-hint-highlight">{{ formUnlockAt }}</span>
-            (your local time).
-          </p>
-          <p class="tc-field-hint" v-else>
-            Pick a date in the future. No spoilers before then.
-          </p>
-        </label>
+      <!-- BODY -->
+      <div class="tc-read-message-wrap">
+        <p class="tc-read-message">
+          {{ capsule.message || 'No message text.' }}
+        </p>
       </div>
 
-      <!-- RIGHT: title + message + media -->
-      <div class="tc-modal-column tc-modal-column-message">
-        <label class="tc-field">
-          <span class="tc-field-label">Title</span>
-          <input
-            v-model="formTitle"
-            type="text"
-            class="tc-input"
-            placeholder="e.g. For the day you forget how loved you are"
+      <!-- Media gallery -->
+      <div
+        v-if="capsule.photos && capsule.photos.length"
+        class="tc-read-media-gallery"
+      >
+        <div
+          v-for="(media, index) in capsule.photos"
+          :key="index"
+          class="tc-read-media-item"
+          @click="openMediaViewer(index)"
+        >
+          <img
+            v-if="media.resource_type === 'image' || !media.resource_type"
+            :src="media.url"
+            class="tc-read-media-img"
+            alt="Time capsule image"
           />
-        </label>
-
-        <label class="tc-field">
-          <span class="tc-field-label">Message</span>
-          <textarea
-            ref="messageTextarea"
-            v-model="formMessage"
-            class="tc-textarea tc-textarea-message"
-            rows="2"
-            @input="onMessageInput"
-            placeholder="Write like he can’t open it until exactly when he’ll need it most."
-          ></textarea>
-        </label>
-
-        <!-- Media upload / previews -->
-        <div class="tc-field tc-media-field">
-          <span class="tc-field-label">Media (in need for spice)</span>
-          <div class="tc-media-upload-row">
-            <input
-              id="tc-file-upload"
-              class="tc-media-file-input"
-              type="file"
-              multiple
-              accept="image/*,video/*"
-              :disabled="isSubmitting"
-              @change="handleFileChange"
-            />
-            <label
-              for="tc-file-upload"
-              class="tc-media-upload-button"
-              :class="{ 'tc-media-upload-button-disabled': isSubmitting }"
-            >
-              + Add photos / videos
-            </label>
-            <span v-if="isUploading" class="tc-media-upload-status">
-              Uploading… {{ uploadProgress }}%
-            </span>
-            <span v-if="mediaPreviews.length" class="tc-media-count">
-              {{ mediaPreviews.length }}/3 attached
-            </span>
-          </div>
-
-          <div v-if="mediaPreviews.length" class="tc-media-previews">
-            <div
-              v-for="(preview, idx) in mediaPreviews"
-              :key="idx"
-              class="tc-media-preview-item"
-            >
-              <img
-                v-if="preview.resource_type === 'image' || !preview.resource_type"
-                :src="preview.url"
-                class="tc-media-thumb"
-                alt="Attached image"
-              />
-              <video
-                v-else-if="preview.resource_type === 'video'"
-                :src="preview.url"
-                muted
-                loop
-                playsinline
-                class="tc-media-video"
-              ></video>
-
-              <button
-                class="tc-media-remove"
-                @click.prevent="removeMedia(idx)"
-              >
-                ×
-              </button>
-            </div>
-          </div>
+          <video
+            v-else-if="media.resource_type === 'video'"
+            :src="media.url"
+            class="tc-read-media-video"
+            playsinline
+            muted
+          ></video>
         </div>
       </div>
-    </div>
 
-    <!-- FOOTER -->
-    <template #footer-text>
-      Capsules can be edited until they unlock.
-    </template>
+      <div class="tc-read-meta">
+        <p v-if="capsule.createdAt" class="tc-meta-line">
+          <span class="tc-meta-label">Written</span>
+          <span class="tc-meta-value">{{ formatDate(capsule.createdAt) }}</span>
+        </p>
+        <p v-if="capsule.openedAt" class="tc-meta-line">
+          <span class="tc-meta-label">Opened</span>
+          <span class="tc-meta-value">{{ formatDate(capsule.openedAt) }}</span>
+        </p>
+      </div>
 
-    <template #footer-right>
-      <button class="tc-btn tc-btn-ghost" @click="emitClose">
-        Cancel
-      </button>
-      <button
-        class="tc-btn tc-btn-primary"
-        :disabled="isSubmitting || !formUnlockAt"
-        @click="submitForm"
-      >
-        <span v-if="isSubmitting">Saving...</span>
-        <span v-else>
-          {{ capsule ? 'Save changes' : 'Create capsule' }}
-        </span>
-      </button>
-    </template>
+      <!-- FOOTER -->
+      <template #footer-text>
+        Saved in your shared galaxy of memories.
+      </template>
 
-    <p v-if="mergedError" class="tc-error">
-      {{ mergedError }}
-    </p>
-  </BaseCapsuleModal>
+      <template #footer-right>
+        <button class="tc-btn tc-btn-ghost" @click="emitClose">
+          Close
+        </button>
+      </template>
+    </BaseCapsuleModal>
+
+    <!-- FULLSCREEN MEDIA VIEWER -->
+    <ImageModal
+      :is-visible="isMediaViewerVisible"
+      :media-items="capsule.photos || []"
+      :start-index="mediaViewerIndex"
+      @close="closeMediaViewer"
+    />
+  </div>
 </template>
 
 <script setup>
-import { ref, computed, watch, nextTick } from 'vue';
+import { ref, computed } from 'vue';
 import BaseCapsuleModal from './BaseCapsuleModal.vue';
+import ImageModal from './ImageModal.vue';
 
 const props = defineProps({
-  capsule: { type: Object, default: null },
+  capsule: { type: Object, required: true },
+  isMine: { type: Boolean, default: false },
+  recipientLabel: { type: String, default: '' },
   partnerName: { type: String, default: 'partner' },
-  isSubmitting: { type: Boolean, default: false },
-  submitError: { type: String, default: '' },
-
-  cloudinaryCloudName: { type: String, required: true },
-  cloudinaryUploadPreset: { type: String, required: true },
 });
 
-const emit = defineEmits(['save', 'close']);
+const emit = defineEmits(['close']);
 
-const formTitle = ref('');
-const formMessage = ref('');
-const formUnlockAt = ref('');
-const formRecipient = ref('partner'); // 'partner' | 'me'
-
-// textarea auto-resize
-const messageTextarea = ref(null);
-
-// media state
-// { url, file?, resource_type, source: 'new' | 'existing' }
-const mediaPreviews = ref([]);
-const isUploading = ref(false);
-const uploadProgress = ref(0);
-const localError = ref('');
-
-// derived submitting state
-const isSubmitting = computed(() => props.isSubmitting || isUploading.value);
-const mergedError = computed(() => props.submitError || localError.value);
-
-// title (subtitle removed to save space)
-const modalTitle = computed(() =>
-  props.capsule ? 'Edit your capsule' : 'Drop a new capsule into time'
-);
-
-const recipientSummary = computed(() => {
-  const c = props.capsule;
-  if (!c) return '';
-  if (!c.toUid || !c.fromUid) {
-    return 'Recipient was set when this capsule was created.';
-  }
-  if (c.toUid === c.fromUid) return 'To your future self.';
-  return 'To your partner.';
-});
-
-// auto-resize helper
-function resizeMessageTextarea() {
-  const el = messageTextarea.value;
-  if (!el) return;
-  el.style.height = 'auto';
-  el.style.height = `${el.scrollHeight}px`;
-}
-
-function onMessageInput() {
-  resizeMessageTextarea();
-}
-
-// init/reset when capsule changes
-watch(
-  () => props.capsule,
-  (capsule) => {
-    localError.value = '';
-    uploadProgress.value = 0;
-
-    if (capsule) {
-      formTitle.value = capsule.title || '';
-      formMessage.value = capsule.message || '';
-
-      if (capsule.unlockAt) {
-        const d = new Date(capsule.unlockAt);
-        if (!Number.isNaN(d.getTime())) {
-          const local = new Date(
-            d.getTime() - d.getTimezoneOffset() * 60000,
-          )
-            .toISOString()
-            .slice(0, 16);
-          formUnlockAt.value = local;
-        } else {
-          formUnlockAt.value = '';
-        }
-      } else {
-        formUnlockAt.value = '';
-      }
-
-      // existing photos
-      if (Array.isArray(capsule.photos)) {
-        mediaPreviews.value = capsule.photos.map((media) => ({
-          url: media.url,
-          resource_type: media.resource_type || 'image',
-          source: 'existing',
-        }));
-      } else {
-        mediaPreviews.value = [];
-      }
-    } else {
-      formTitle.value = '';
-      formMessage.value = '';
-
-      const now = new Date();
-      const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-      const local = new Date(
-        tomorrow.getTime() - tomorrow.getTimezoneOffset() * 60000,
-      )
-        .toISOString()
-        .slice(0, 16);
-
-      formUnlockAt.value = local;
-      formRecipient.value = 'partner';
-      mediaPreviews.value = [];
-    }
-
-    nextTick(() => {
-      resizeMessageTextarea();
-    });
-  },
-  { immediate: true },
-);
+// hard-coded because this app is literally just you + your girlfriend
+const MY_NAME = 'Dani';
 
 function emitClose() {
   emit('close');
 }
 
-/**
- * File handling / previews
- * Limit total to 3 items.
- */
-function handleFileChange(event) {
-  const files = Array.from(event.target.files || []);
-  const limit = 3;
-  const remaining = limit - mediaPreviews.value.length;
-
-  if (files.length > remaining) {
-    if (remaining <= 0) {
-      localError.value = 'You can only attach up to 3 media files per capsule.';
-    } else {
-      localError.value = `You can only add ${remaining} more file${remaining === 1 ? '' : 's'}.`;
-    }
-    event.target.value = '';
-    return;
-  }
-
-  localError.value = '';
-
-  for (const file of files) {
-    const resource_type = file.type.startsWith('video') ? 'video' : 'image';
-    mediaPreviews.value.push({
-      url: URL.createObjectURL(file),
-      file,
-      resource_type,
-      source: 'new',
-    });
-  }
-
-  event.target.value = '';
-}
-
-function removeMedia(index) {
-  const item = mediaPreviews.value[index];
-  if (!item) return;
-
-  if (item.url && item.url.startsWith('blob:')) {
-    URL.revokeObjectURL(item.url);
-  }
-
-  mediaPreviews.value.splice(index, 1);
-}
-
-/**
- * Upload only the "new" files to Cloudinary.
- * Returns:
- *  - Array of { url, resource_type } on success
- *  - null on failure
- */
-async function uploadFiles() {
-  const filesToUpload = mediaPreviews.value.filter(
-    (p) => p.source === 'new' && p.file,
-  );
-
-  if (!filesToUpload.length) {
-    return [];
-  }
-
-  isUploading.value = true;
-  uploadProgress.value = 0;
-  localError.value = '';
-
-  const uploadedMedia = [];
-
-  for (let i = 0; i < filesToUpload.length; i++) {
-    const preview = filesToUpload[i];
-    const resourceType = preview.resource_type || 'image';
-
-    const formData = new FormData();
-    formData.append('file', preview.file);
-    formData.append('upload_preset', props.cloudinaryUploadPreset);
-
-    try {
-      const endpoint = `https://api.cloudinary.com/v1_1/${props.cloudinaryCloudName}/${resourceType}/upload`;
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        body: formData,
-      });
-      const data = await response.json();
-
-      if (!response.ok || !data.secure_url) {
-        const msg =
-          data.error?.message || data.message || 'File upload failed.';
-        throw new Error(msg);
-      }
-
-      uploadedMedia.push({
-        url: data.secure_url,
-        resource_type: data.resource_type || resourceType,
-      });
-
-      uploadProgress.value = Math.round(
-        ((i + 1) / filesToUpload.length) * 100,
-      );
-    } catch (err) {
-      console.error('[TimeCapsuleFormModal] Upload failed:', err);
-      localError.value = 'Upload failed for one or more files.';
-      isUploading.value = false;
-      return null;
-    }
-  }
-
-  isUploading.value = false;
-  return uploadedMedia;
-}
-
-/**
- * Submit: validate, upload new media, merge with existing, emit all data upwards.
- */
-async function submitForm() {
-  localError.value = '';
-
-  if (!formUnlockAt.value) {
-    localError.value = 'Please choose an unlock date & time.';
-    return;
-  }
-
-  const unlockDate = new Date(formUnlockAt.value);
-  if (Number.isNaN(unlockDate.getTime())) {
-    localError.value = 'Invalid unlock date/time.';
-    return;
-  }
-
-  if (unlockDate.getTime() <= Date.now()) {
-    localError.value = 'Unlock time must be in the future.';
-    return;
-  }
-
-  if (!formMessage.value || !formMessage.value.trim()) {
-    localError.value = 'Message cannot be empty.';
-    return;
-  }
-
-  const newMedia = await uploadFiles();
-  if (newMedia === null) {
-    return;
-  }
-
-  const existingMedia = mediaPreviews.value
-    .filter((p) => p.source === 'existing')
-    .map(({ url, resource_type }) => ({
-      url,
-      resource_type: resource_type || 'image',
-    }));
-
-  const photos = [...existingMedia, ...newMedia];
-
-  emit('save', {
-    title: formTitle.value,
-    message: formMessage.value.trim(),
-    unlockAtLocal: formUnlockAt.value,
-    recipient: formRecipient.value,
-    photos,
+function formatDate(raw) {
+  if (!raw) return 'Unknown';
+  const d = new Date(raw);
+  if (Number.isNaN(d.getTime())) return 'Unknown';
+  return d.toLocaleString(undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
   });
+}
+
+// From-label = Dani if it's yours, otherwise partner's name ("Eva")
+const fromLabel = computed(() =>
+  props.isMine ? MY_NAME : props.partnerName
+);
+
+// media viewer state
+const isMediaViewerVisible = ref(false);
+const mediaViewerIndex = ref(0);
+
+function openMediaViewer(index) {
+  mediaViewerIndex.value = index || 0;
+  isMediaViewerVisible.value = true;
+}
+
+function closeMediaViewer() {
+  isMediaViewerVisible.value = false;
 }
 </script>
 
 <style scoped>
-/* kill subtitle in this modal to save vertical space */
-:deep(.tc-modal-subtitle) {
-  display: none;
-}
-
-/* Grid layout inside modal */
-
-.tc-modal-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.4fr);
-  gap: 0.8rem;
-}
-
-.tc-modal-column {
-  display: flex;
-  flex-direction: column;
-  gap: 0.55rem;
-}
-
-.tc-modal-column-meta {
-  border-right: 1px solid rgba(255, 255, 255, 0.06);
-  padding-right: 0.7rem;
-}
-
-.tc-modal-column-message {
-  padding-left: 0.1rem;
-}
-
-/* Fields */
-
-.tc-field {
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-}
-
-.tc-field-label {
-  font-size: 0.8rem;
-  opacity: 0.85;
-}
-
-.tc-input,
-.tc-textarea {
-  border-radius: 9px;
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  background: rgba(0, 0, 0, 0.85);
-  color: #f5f5ff;
-  padding: 0.35rem 0.55rem;
-  font-size: 0.85rem;
-  outline: none;
-}
-
-.tc-input:focus,
-.tc-textarea:focus {
-  border-color: cyan;
-  box-shadow: 0 0 7px rgba(0, 255, 255, 0.7);
-}
-
-.tc-input-unlock {
-  font-family: inherit;
-}
-
-/* smaller initial message box; JS will stretch it as needed */
-.tc-textarea-message {
-  min-height: 60px;
-  resize: none; /* user doesn't drag; JS handles growth */
-}
-
-/* Recipient pills now in one row */
-
-.tc-recipient-options {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.45rem;
-}
-
-.tc-recipient-pill {
+.tc-read-message-wrap {
   position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 0.12rem;
-  padding: 0.3rem 0.5rem 0.3rem 1.6rem;
-  border-radius: 10px;
+  margin-top: 1.1rem;
+  padding: 0.4rem 1.1rem;
+  border-radius: 16px;
   background:
-    radial-gradient(circle at 0% 0%, rgba(255, 0, 255, 0.18), transparent 60%),
-    rgba(0, 0, 0, 0.8);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  cursor: pointer;
-  font-size: 0.78rem;
-  flex: 1 1 0;
+    radial-gradient(circle at 0% 0%, rgba(255, 255, 255, 0.08), transparent 65%),
+    rgba(0, 0, 0, 0.9);
+  border: 1px solid rgba(255, 0, 255, 0.75);
+  max-height: 260px;
+  overflow-y: auto;
+  box-shadow:
+    0 0 16px rgba(255, 0, 255, 0.6),
+    0 0 20px rgba(0, 255, 255, 0.45);
+  animation: message-border-glow 2.5s ease-in-out infinite alternate;
 }
 
-.tc-recipient-pill input[type='radio'] {
-  position: absolute;
-  left: 0.45rem;
-  top: 0.55rem;
-  width: 12px;
-  height: 12px;
-  accent-color: magenta;
+@keyframes message-border-glow {
+  0% {
+    border-color: rgba(255, 0, 255, 0.8);
+    box-shadow:
+      0 0 16px rgba(255, 0, 255, 0.8),
+      0 0 20px rgba(0, 255, 255, 0.35);
+  }
+  50% {
+    border-color: rgba(0, 255, 255, 0.9);
+    box-shadow:
+      0 0 18px rgba(0, 255, 255, 0.8),
+      0 0 26px rgba(255, 0, 255, 0.45);
+  }
+  100% {
+    border-color: rgba(255, 0, 255, 0.85);
+    box-shadow:
+      0 0 16px rgba(255, 0, 255, 0.75),
+      0 0 22px rgba(0, 255, 255, 0.45);
+  }
 }
 
-.tc-recipient-pill .pill-main {
-  font-weight: 500;
+/* subtle fading edges for scroll */
+.tc-read-message-wrap::before,
+.tc-read-message-wrap::after {
+  content: "";
+  position: sticky;
+  left: 0;
+  right: 0;
+  height: 14px;
+  pointer-events: none;
+  z-index: 1;
 }
 
-.tc-recipient-pill .pill-sub {
-  opacity: 0.75;
-  font-size: 0.72rem;
+.tc-read-message-wrap::before {
+  top: 0;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.95), transparent);
 }
 
-.tc-recipient-fixed-label {
-  font-size: 0.85rem;
-  font-weight: 500;
+.tc-read-message-wrap::after {
+  bottom: 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.95), transparent);
 }
 
-/* Hint text */
-
-.tc-field-hint {
-  margin: 0.05rem 0 0;
-  font-size: 0.75rem;
-  opacity: 0.75;
+.tc-read-message {
+  margin: 0;
+  font-size: 1.3rem;
+  line-height: 1.6;
+  font-family: 'Great Vibes', cursive;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: #ffeaff;
+  text-shadow: 0 0 6px rgba(255, 0, 255, 0.3);
+  white-space: pre-line;
 }
 
-.tc-hint-highlight {
-  color: #ffdf7f;
-  font-weight: 500;
-}
+/* Media gallery – centered items */
 
-/* MEDIA FIELD */
-
-.tc-media-field {
-  margin-top: 0.2rem;
-}
-
-.tc-media-upload-row {
+.tc-read-media-gallery {
+  margin-top: 0.9rem;
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  gap: 0.5rem;
+  gap: 0.55rem;
+  justify-content: center;
 }
 
-.tc-media-file-input {
-  display: none;
-}
-
-.tc-media-upload-button {
-  display: inline-block;
-  padding: 0.28rem 0.75rem;
-  border-radius: 999px;
-  border: 1px solid rgba(0, 255, 255, 0.7);
-  background: rgba(0, 0, 0, 0.85);
-  color: #7ef7ff;
-  font-size: 0.78rem;
-  cursor: pointer;
-  box-shadow: 0 0 7px rgba(0, 255, 255, 0.6);
-  transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
-}
-
-.tc-media-upload-button:hover {
-  border-color: magenta;
-  box-shadow: 0 0 10px rgba(255, 0, 255, 0.7);
-  transform: translateY(-0.5px);
-}
-
-.tc-media-upload-button-disabled {
-  opacity: 0.55;
-  cursor: default;
-  box-shadow: none;
-}
-
-.tc-media-upload-status {
-  font-size: 0.75rem;
-  opacity: 0.85;
-  color: #7ef7ff;
-}
-
-.tc-media-count {
-  font-size: 0.75rem;
-  opacity: 0.85;
-}
-
-.tc-media-previews {
-  margin-top: 0.4rem;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
-  gap: 0.35rem;
-}
-
-.tc-media-preview-item {
+.tc-read-media-item {
   position: relative;
-  border-radius: 8px;
+  border-radius: 12px;
   overflow: hidden;
   background: rgba(0, 0, 0, 0.9);
-  box-shadow: 0 0 8px rgba(255, 0, 255, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow:
+    0 0 12px rgba(255, 0, 255, 0.45),
+    0 0 16px rgba(0, 255, 255, 0.35);
+  flex: 0 1 130px;
+  cursor: zoom-in;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
-.tc-media-thumb,
-.tc-media-video {
+.tc-read-media-item:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    0 0 16px rgba(255, 0, 255, 0.6),
+    0 0 20px rgba(0, 255, 255, 0.45);
+}
+
+.tc-read-media-img,
+.tc-read-media-video {
   display: block;
   width: 100%;
-  height: 70px;
+  height: 120px;
   object-fit: cover;
 }
 
-.tc-media-remove {
+/* meta info */
+
+.tc-read-meta {
+  margin-top: 0.9rem;
+  align-self: center;
+
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 0.35rem 0.9rem;
+
+  padding: 0.45rem 1.1rem;
+  border-radius: 999px;
+
+  background:
+    radial-gradient(circle at 0% 0%, rgba(0, 255, 255, 0.12), transparent 60%),
+    radial-gradient(circle at 100% 100%, rgba(255, 0, 255, 0.12), transparent 60%),
+    rgba(0, 0, 0, 0.9);
+
+  border: 1px solid rgba(0, 255, 255, 0.55);
+  box-shadow:
+    0 0 10px rgba(0, 255, 255, 0.45),
+    0 0 14px rgba(255, 0, 255, 0.35);
+
+  color: #c7fdff;
+  font-size: 0.8rem;
+}
+
+.tc-meta-line {
+  margin: 0;
+  position: relative;
+
+  display: inline-flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.25rem;
+  white-space: nowrap;
+  padding-left: 0.9rem; /* space for the dot */
+}
+
+/* glowing dot for each meta line */
+.tc-meta-line::before {
+  content: '';
   position: absolute;
-  top: -0.35rem;
-  right: -0.2rem;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  border: none;
-  background: rgba(0, 0, 0, 0.85);
-  color: #ff6b6b;
-  font-size: 0.9rem;
-  cursor: pointer;
+  left: 0;
+  top: 50%;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  transform: translateY(-50%);
+
+  background: radial-gradient(circle, #00ffff 0%, #ff00ff 70%);
+  box-shadow:
+    0 0 6px rgba(0, 255, 255, 0.8),
+    0 0 8px rgba(255, 0, 255, 0.7);
+}
+
+.tc-meta-label {
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  font-size: 0.68rem;
+  opacity: 0.9;
+  color: #7ef7ff;
+}
+
+.tc-meta-value {
+  font-size: 0.8rem;
+  color: #e4feff;
+}
+
+/* make sure it still feels good on very small screens */
+@media (max-width: 480px) {
+  .tc-read-meta {
+    padding: 0.45rem 0.8rem;
+    gap: 0.25rem 0.6rem;
+  }
+
+  .tc-meta-line {
+    white-space: normal;
+  }
 }
 
 /* Buttons */
 
 .tc-btn {
   border-radius: 999px;
-  padding: 0.28rem 0.8rem;
+  padding: 0.3rem 0.95rem;
   font-size: 0.8rem;
   cursor: pointer;
   border: 1px solid transparent;
@@ -713,67 +350,38 @@ async function submitForm() {
 
 .tc-btn-ghost {
   border-color: rgba(255, 255, 255, 0.35);
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.65);
 }
 
 .tc-btn-ghost:hover {
-  border-color: rgba(0, 255, 255, 0.8);
-  box-shadow: 0 0 8px rgba(0, 255, 255, 0.5);
-}
-
-.tc-btn-primary {
-  border-color: magenta;
-  background: rgba(0, 0, 0, 0.7);
-  color: magenta;
-  box-shadow:
-    inset 0 0 6px rgba(255, 0, 255, 0.6),
-    0 0 6px rgba(255, 0, 255, 0.5);
-}
-
-.tc-btn-primary:hover:not(:disabled) {
-  box-shadow:
-    inset 0 0 8px rgba(255, 0, 255, 0.9),
-    0 0 10px rgba(0, 255, 255, 0.6);
+  border-color: rgba(0, 255, 255, 0.9);
+  box-shadow: 0 0 10px rgba(0, 255, 255, 0.6);
   transform: translateY(-0.5px);
 }
 
-.tc-btn:disabled {
-  opacity: 0.55;
-  cursor: default;
-  box-shadow: none;
+/* Scrollbar styling inside message */
+
+.tc-read-message-wrap::-webkit-scrollbar {
+  width: 6px;
 }
 
-/* Error */
-
-.tc-error {
-  margin-top: 0.5rem;
-  text-align: center;
-  font-size: 0.8rem;
-  color: #ff6b6b;
+.tc-read-message-wrap::-webkit-scrollbar-track {
+  background: transparent;
 }
 
-/* Responsive */
+.tc-read-message-wrap::-webkit-scrollbar-thumb {
+  background: linear-gradient(to bottom, magenta, cyan);
+  border-radius: 999px;
+}
 
 @media (max-width: 700px) {
-  .tc-modal-grid {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 0.7rem;
+  .tc-read-message-wrap {
+    max-height: 220px;
   }
 
-  .tc-modal-column-meta {
-    border-right: none;
-    padding-right: 0;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-    padding-bottom: 0.5rem;
-    margin-bottom: 0.35rem;
-  }
-
-  .tc-modal-column-message {
-    padding-left: 0;
-  }
-
-  .tc-recipient-options {
-    flex-direction: row;
+  .tc-read-media-img,
+  .tc-read-media-video {
+    height: 110px;
   }
 }
 </style>
