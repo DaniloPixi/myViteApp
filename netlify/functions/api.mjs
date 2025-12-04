@@ -159,6 +159,9 @@ async function sendPushNotification(title, body, link = '/', excludeUid, data = 
 
     // Normalize and enrich data payload
     const baseData = {
+      // we keep title/body in data now → data-only message
+      title,
+      body,
       type: data.type || 'generic',
       url: data.url || link || '/',
       ...data,
@@ -170,26 +173,19 @@ async function sendPushNotification(title, body, link = '/', excludeUid, data = 
     );
 
     const message = {
-      notification: { title, body },
-
-      // Extra payload for clients / service worker
+      // DATA-ONLY: no top-level `notification` key anymore
       data: stringifiedData,
 
       webpush: {
-        // Used by some browsers for default click behavior
+        // Used by some browsers when they auto-handle; doesn't hurt to keep
         fcm_options: { link: stringifiedData.url },
-        notification: {
-          // These are defaults; SW can override via payload data
-          icon: stringifiedData.icon || '/icon.svg',
-          badge: stringifiedData.badge || '/icon.svg',
-        },
+        // You can add webpush-specific headers here if you ever need them
       },
 
+      // These are mostly relevant if you *ever* reuse this for native apps.
+      // For web push tokens, they'll effectively be ignored.
       android: {
         priority: 'high',
-        notification: {
-          channel_id: 'high_priority_notifications',
-        },
       },
 
       apns: {
