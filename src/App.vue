@@ -274,16 +274,47 @@ const clearDataListeners = () => {
 };
 
 // --- Core Notification Logic ---
+// --- Core Notification Logic ---
 async function registerDeviceForNotifications() {
-  if (notificationPermission.value !== 'granted' || !user.value) return;
+  if (!supportsNotifications.value) {
+    console.warn('Notifications are not supported in this browser.');
+    return;
+  }
+
+  if (!user.value) {
+    console.warn('No authenticated user; skipping token registration.');
+    return;
+  }
+
+  // Always trust the browser permission as source of truth
+  const currentPermission = Notification.permission;
+  notificationPermission.value = currentPermission;
+
+  if (currentPermission !== 'granted') {
+    console.log('Notification permission is not granted; nothing to register.');
+    return;
+  }
+
   try {
     const swRegistration = await navigator.serviceWorker.ready;
+
+    // Make sure Firebase Messaging uses the same SW (src/sw.js) as the PWA
+    try {
+      if (messaging && messaging.useServiceWorker) {
+        messaging.useServiceWorker(swRegistration);
+      }
+    } catch (err) {
+      console.warn('Failed to bind messaging to custom service worker:', err);
+    }
+
     const currentToken = await messaging.getToken({
       vapidKey: 'BPACu3jz1Y3_bB4VPwO96LkPua-bJKVXBOioaf75Gc7xQQ-aqZ04a0qBSbxuX6ZW6KcPB1Lcv68zGP5qrM2q9dU',
-      serviceWorkerRegistration: swRegistration
     });
+
     if (currentToken) {
       await sendTokenToServer(currentToken);
+    } else {
+      console.warn('No FCM token returned; permission may have been revoked.');
     }
   } catch (error) {
     console.error('An error occurred while retrieving token:', error);
@@ -292,15 +323,22 @@ async function registerDeviceForNotifications() {
 
 async function enableNotifications() {
   if (!supportsNotifications.value) {
-    console.error('This browser does not support desktop notification');
+    console.error('This browser does not support notifications for this app.');
     return;
   }
-  const permission = await Notification.requestPermission();
-  notificationPermission.value = permission;
-  if (permission === 'granted') {
+
+  const result = await Notification.requestPermission();
+  notificationPermission.value = result;
+
+  if (result === 'granted') {
     await registerDeviceForNotifications();
+  } else if (result === 'denied') {
+    console.warn('Notification permission denied by user.');
+  } else {
+    console.log('Notification permission dismissed.');
   }
 }
+
 
 // --- Authentication State Management ---
 const unsubscribeAuth = auth.onAuthStateChanged((currentUser) => {
@@ -367,25 +405,81 @@ async function sendTokenToServer(token) {
   }
 }
 
+function showInAppNotificationFromPayload(payloadLike) {
+  const data = payloadLike?.data || {};
+  const notif = payloadLike?.notification || {};
+
+  const type = data.type || 'generic';
+
+  let title = data.title || notif.title;
+  let body = data.body || notif.body;
+
+  // Fallback titles if none provided
+  if (!title) {
+    if (type === 'questCompleted') {
+      title = 'Quest completed 🎉';
+    } else if (type === 'love') {
+      title = 'Love message 💌';
+    } else {
+      title = 'Notification';
+    }
+  }
+
+  // Fallback bodies if none provided
+  if (!body) {
+    if (type === 'questCompleted') {
+      const userName = data.userName || 'Someone';
+      const text = data.text || 'a quest';
+      body = `${userName} completed: ${text}`;
+    } else if (type === 'love') {
+      body = "You've received an 'I love you' notification.";
+    } else {
+      body = '';
+    }
+  }
+
+  inAppNotification.title = title;
+  inAppNotification.body = body;
+  inAppNotification.visible = true;
+}
+
+
 // --- Foreground Message Handling ---
 messaging.onMessage((payload) => {
-  console.log('Foreground message received.', payload);
-  const { notification } = payload;
-
-  if (notification && notification.title && notification.body) {
-    inAppNotification.title = notification.title;
-    inAppNotification.body = notification.body;
-    inAppNotification.visible = true;
-  } else {
-    console.warn('Received foreground message with incomplete data.', payload);
-  }
+  console.log('Foreground push message received:', payload);
+  // FCM gives us { notification, data } just like the SW sees
+  showInAppNotificationFromPayload(payload);
 });
+
 
 // --- Lifecycle Hooks ---
 onMounted(() => {
-  supportsNotifications.value = 'Notification' in window;
+  supportsNotifications.value =
+    typeof window !== 'undefined' &&
+    'Notification' in window &&
+    'serviceWorker' in navigator;
+
   if (supportsNotifications.value) {
     notificationPermission.value = Notification.permission;
+
+    // If permission already granted (returning user) and user is logged in,
+    // ensure the token is registered.
+    if (notificationPermission.value === 'granted' && user.value) {
+      registerDeviceForNotifications();
+    }
+
+    // Listen to messages posted from the service worker
+    navigator.serviceWorker.addEventListener('message', (event) => {
+      const msg = event.data;
+      if (!msg || !msg.type) return;
+
+      // Our SW currently posts questCompleted like:
+      // { type, date, text, userName, questId }
+      if (msg.type === 'questCompleted') {
+        // Reuse the same helper so behavior matches FCM foreground
+        showInAppNotificationFromPayload({ data: msg });
+      }
+    });
   }
 
   const colors = ['magenta', 'turquoise'];
@@ -396,6 +490,8 @@ onMounted(() => {
     return colors[(startingColorIndex + index) % 2];
   });
 });
+
+
 
 onUnmounted(() => {
   if (unsubscribeAuth) {
