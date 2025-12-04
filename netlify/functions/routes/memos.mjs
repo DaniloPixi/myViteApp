@@ -18,7 +18,6 @@ export default function (db, cloudinary, extractPublicId, sendPushNotification) 
     return [];
   };
 
-  // Small helper to make a nice short description for notifications
   const getDescriptionSnippet = (description) => {
     if (!description) return '';
     const trimmed = description.trim();
@@ -64,12 +63,16 @@ export default function (db, cloudinary, extractPublicId, sendPushNotification) 
 
       const snippet = getDescriptionSnippet(description);
 
-      // Notify the other user(s); in production this excludes the sender's uid
+      const notifTitle = `📝 New moment from ${createdBy}`;
+      const notifBody = snippet
+        ? `“${snippet}”`
+        : 'A new moment was saved for you.';
+
       await sendPushNotification(
-        'New Memo Added!',
-        snippet ? `"${snippet}"` : 'A new memo was added.',
+        notifTitle,
+        notifBody,
         '/?view=memos',
-        uid, // exclude sender; use null if you want the creator to get it too
+        uid, // exclude sender
         {
           type: 'memoCreated',
           url: '/?view=memos',
@@ -118,9 +121,14 @@ export default function (db, cloudinary, extractPublicId, sendPushNotification) 
 
       const snippet = getDescriptionSnippet(description);
 
+      const notifTitle = '✏️ Moment updated';
+      const notifBody = snippet
+        ? `“${snippet}”`
+        : 'One of your moments was updated.';
+
       await sendPushNotification(
-        'Memo Updated!',
-        snippet ? `"${snippet}"` : 'A memo was updated.',
+        notifTitle,
+        notifBody,
         '/?view=memos',
         uid, // exclude sender
         {
@@ -168,9 +176,14 @@ export default function (db, cloudinary, extractPublicId, sendPushNotification) 
 
       const snippet = getDescriptionSnippet(description);
 
+      const notifTitle = '🗑️ Moment deleted';
+      const notifBody = snippet
+        ? `“${snippet}” was removed`
+        : 'One of your moments was removed.';
+
       await sendPushNotification(
-        'Memo Deleted!',
-        snippet ? `"${snippet}" was removed` : 'A memo was removed.',
+        notifTitle,
+        notifBody,
         '/?view=memos',
         uid, // exclude sender
         {

@@ -412,7 +412,6 @@ async function sendTokenToServer(token) {
     console.error('Error sending token to server:', error);
   }
 }
-
 function showInAppNotificationFromPayload(payloadLike) {
   const data = payloadLike?.data || {};
   const notif = payloadLike?.notification || {};
@@ -427,14 +426,20 @@ function showInAppNotificationFromPayload(payloadLike) {
     if (type === 'questCompleted') {
       title = 'Quest completed 🎉';
     } else if (type === 'love') {
-      title = 'Love message 💌';
+      title = '💌 New love note';
     } else if (type === 'memoCreated') {
       const createdBy = data.createdBy || 'Someone';
-      title = `New memo from ${createdBy}`;
+      title = `📝 New moment from ${createdBy}`;
     } else if (type === 'memoUpdated') {
-      title = 'Memo updated ✏️';
+      title = '✏️ Moment updated';
     } else if (type === 'memoDeleted') {
-      title = 'Memo deleted 🗑️';
+      title = '🗑️ Moment deleted';
+    } else if (type === 'planCreated') {
+      title = '📅 New plan just dropped';
+    } else if (type === 'planUpdated') {
+      title = '✏️ Plan tweaked';
+    } else if (type === 'planDeleted') {
+      title = '❌ Plan cancelled';
     } else {
       title = 'Notification';
     }
@@ -447,10 +452,19 @@ function showInAppNotificationFromPayload(payloadLike) {
       const text = data.text || 'a quest';
       body = `${userName} completed: ${text}`;
     } else if (type === 'love') {
-      body = "You've received an 'I love you' notification.";
+      body = 'They just sent you an “I love you”.';
     } else if (type === 'memoCreated' || type === 'memoUpdated' || type === 'memoDeleted') {
       const desc = data.description || '';
-      body = desc || 'Open memos to see the details.';
+      body = desc || 'Open Moments to see what changed.';
+    } else if (type === 'planCreated' || type === 'planUpdated' || type === 'planDeleted') {
+      const text = data.text || '';
+      const date = data.date || '';
+      const time = data.time || '';
+      const when = date && time ? `${date} at ${time}` : date || time || '';
+      body =
+        text && when
+          ? `“${text}” · ${when}`
+          : text || (when ? `Plan for ${when}` : 'Open Plans to see what changed.');
     } else {
       body = '';
     }
@@ -460,6 +474,8 @@ function showInAppNotificationFromPayload(payloadLike) {
   inAppNotification.body = body;
   inAppNotification.visible = true;
 }
+
+
 
 
 

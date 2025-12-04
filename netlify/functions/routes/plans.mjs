@@ -56,19 +56,21 @@ export default function (db, sendPushNotification) {
       const snippet = getTextSnippet(text);
       const when = formatWhen(date, time);
 
-      // OS notification title/body
-      const notifTitle = 'New Plan Added!';
-      const notifBody = snippet
-        ? `"${snippet}"${when ? ` on ${when}` : ''}`
-        : when
-        ? `New plan on ${when}`
-        : 'A new plan was added.';
+      const notifTitle = '📅 New plan just dropped';
+      const notifBody =
+        snippet && when
+          ? `“${snippet}” · ${when}`
+          : snippet
+          ? `“${snippet}”`
+          : when
+          ? `Something planned for ${when}`
+          : 'A new plan was added.';
 
       await sendPushNotification(
         notifTitle,
         notifBody,
         '/?view=plans',
-        uid, // exclude sender (use null if you want creator to get it too)
+        uid, // exclude sender
         {
           type: 'planCreated',
           url: '/?view=plans',
@@ -109,12 +111,15 @@ export default function (db, sendPushNotification) {
       const snippet = getTextSnippet(text);
       const when = formatWhen(date, time);
 
-      const notifTitle = 'Plan Deleted!';
-      const notifBody = snippet
-        ? `"${snippet}"${when ? ` on ${when}` : ''} was removed`
-        : when
-        ? `Plan on ${when} was removed`
-        : 'A plan was removed.';
+      const notifTitle = '❌ Plan cancelled';
+      const notifBody =
+        snippet && when
+          ? `“${snippet}” · ${when} is off`
+          : snippet
+          ? `“${snippet}” was cancelled`
+          : when
+          ? `Plan on ${when} was cancelled`
+          : 'A plan was cancelled.';
 
       await sendPushNotification(
         notifTitle,
@@ -160,12 +165,15 @@ export default function (db, sendPushNotification) {
       const snippet = getTextSnippet(text);
       const when = formatWhen(date, time);
 
-      const notifTitle = 'Plan Updated!';
-      const notifBody = snippet
-        ? `"${snippet}"${when ? ` on ${when}` : ''}`
-        : when
-        ? `Plan on ${when} was updated`
-        : 'A plan was updated.';
+      const notifTitle = '✏️ Plan tweaked';
+      const notifBody =
+        snippet && when
+          ? `“${snippet}” · ${when}`
+          : snippet
+          ? `“${snippet}” was updated`
+          : when
+          ? `Plan on ${when} was updated`
+          : 'A plan was updated.';
 
       await sendPushNotification(
         notifTitle,
