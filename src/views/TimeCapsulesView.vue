@@ -185,7 +185,7 @@ function updateFocusedCapsule() {
 
 // --- fixed users ---
 // TODO: replace with real partner UID + name
-const PARTNER_UID = 'uuqNmyiBe5Vm2Ap6PwZFzLVO72Q2';
+const PARTNER_UID = '6SXYP6cypwRZSJSL8GjrP0LtzMi1';
 const PARTNER_NAME = 'Eva';
 
 // your own display name

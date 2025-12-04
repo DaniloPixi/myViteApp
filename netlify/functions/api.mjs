@@ -159,33 +159,36 @@ async function sendPushNotification(title, body, link = '/', excludeUid, data = 
 
     // Normalize and enrich data payload
     const baseData = {
-      // we keep title/body in data now → data-only message
-      title,
-      body,
       type: data.type || 'generic',
       url: data.url || link || '/',
       ...data,
     };
 
-    // FCM data payload must be strings
+    // FCM "data" payload must be strings
     const stringifiedData = Object.fromEntries(
       Object.entries(baseData).map(([k, v]) => [String(k), String(v)])
     );
 
     const message = {
-      // DATA-ONLY: no top-level `notification` key anymore
+      // IMPORTANT: notification object is back
+      notification: { title, body },
+
+      // Extra payload for clients / service worker
       data: stringifiedData,
 
       webpush: {
-        // Used by some browsers when they auto-handle; doesn't hurt to keep
         fcm_options: { link: stringifiedData.url },
-        // You can add webpush-specific headers here if you ever need them
+        notification: {
+          icon: stringifiedData.icon || '/icon.svg',
+          badge: stringifiedData.badge || '/icon.svg',
+        },
       },
 
-      // These are mostly relevant if you *ever* reuse this for native apps.
-      // For web push tokens, they'll effectively be ignored.
       android: {
         priority: 'high',
+        notification: {
+          channel_id: 'high_priority_notifications',
+        },
       },
 
       apns: {
@@ -225,11 +228,13 @@ async function sendPushNotification(title, body, link = '/', excludeUid, data = 
         console.log(`Successfully deleted ${tokensToDelete.length} invalid tokens.`);
       }
     }
+
     console.log(`--- Push notification process finished ---`);
   } catch (error) {
     console.error('Error during sendPushNotification function:', error);
   }
 }
+
 
 
 // --- API Endpoints ---
