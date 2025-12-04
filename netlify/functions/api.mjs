@@ -120,110 +120,121 @@ const extractPublicId = (url) => {
     return null;
 };
 
-async function sendPushNotification(title, body, link, excludeUid, data = null) {
-    if (!db) {
-        console.log("sendPushNotification: DB not available. Aborting.");
-        return;
+async function sendPushNotification(title, body, link = '/', excludeUid, data = {}) {
+  if (!db) {
+    console.log("sendPushNotification: DB not available. Aborting.");
+    return;
+  }
+
+  console.log(`--- Starting push notification process ---`);
+  console.log(`Triggered by UID: ${excludeUid}`);
+  console.log(`Notification Title: ${title}`);
+
+  try {
+    const tokensSnapshot = await db.collection('fcmTokens').get();
+    if (tokensSnapshot.empty) {
+      console.log("No FCM tokens found in the database.");
+      return;
     }
-    console.log(`--- Starting push notification process ---`);
-    console.log(`Triggered by UID: ${excludeUid}`);
-    console.log(`Notification Title: ${title}`);
 
-    try {
-        const tokensSnapshot = await db.collection('fcmTokens').get();
-        if (tokensSnapshot.empty) {
-            console.log("No FCM tokens found in the database.");
-            return;
-        }
+    const allTokens = tokensSnapshot.docs.map(doc => ({ token: doc.id, uid: doc.data().uid }));
+    console.log(`Found ${allTokens.length} total tokens in DB.`);
 
-        const allTokens = tokensSnapshot.docs.map(doc => ({ token: doc.id, uid: doc.data().uid }));
-        console.log(`Found ${allTokens.length} total tokens in DB.`);
+    const isLocalEnv = !process.env.FIREBASE_PROJECT_ID;
+    console.log(`Running in local environment: ${isLocalEnv}`);
 
-        const isLocalEnv = !process.env.FIREBASE_PROJECT_ID;
-        console.log(`Running in local environment: ${isLocalEnv}`);
+    const recipientTokens = isLocalEnv
+      ? allTokens.map(t => t.token)
+      : allTokens
+          .filter(t => t.uid !== excludeUid)
+          .map(t => t.token);
 
-        const recipientTokens = isLocalEnv
-            ? allTokens.map(t => t.token)
-            : allTokens
-                .filter(t => t.uid !== excludeUid)
-                .map(t => t.token);
-        
-        console.log(`Found ${recipientTokens.length} tokens to send to.`);
+    console.log(`Found ${recipientTokens.length} tokens to send to.`);
 
-        if (recipientTokens.length === 0) {
-            console.log("No recipient tokens after filtering. Aborting send.");
-            console.log(`--- Push notification process finished ---`);
-            return;
-        }
-
-        const message = {
-          notification: { title, body },
-        
-          // extra payload for clients / service worker
-          ...(data
-            ? {
-                data: Object.fromEntries(
-                  Object.entries(data).map(([k, v]) => [String(k), String(v)]),
-                ),
-              }
-            : {}),
-
-          webpush: {
-            fcm_options: { link },
-            notification: {
-              icon: '/icon.svg',
-              badge: '/icon.svg',
-            },
-          },
-          android: {
-            priority: 'high',
-            notification: {
-              channel_id: 'high_priority_notifications',
-            },
-          },
-          apns: {
-            headers: {
-              'apns-push-type': 'alert',
-              'apns-priority': '10',
-            },
-            payload: {
-              aps: {
-                sound: 'default',
-              },
-            },
-          },
-          tokens: recipientTokens,
-        };
-        
-        
-        const response = await getMessaging().sendEachForMulticast(message);
-        console.log(`Successfully sent ${response.successCount} messages.`);
-
-        if (response.failureCount > 0) {
-            console.warn(`Failed to send ${response.failureCount} messages.`);
-            const tokensToDelete = [];
-            response.responses.forEach((resp, idx) => {
-                if (!resp.success) {
-                    console.error(`  - Token[${idx}]: ${recipientTokens[idx]}`, resp.error);
-                    const errorCode = resp.error?.errorInfo?.code;
-                    if (errorCode === 'messaging/registration-token-not-registered') {
-                        const invalidToken = recipientTokens[idx];
-                        console.log(`Scheduling token for deletion: ${invalidToken}`);
-                        tokensToDelete.push(db.collection('fcmTokens').doc(invalidToken).delete());
-                    }
-                }
-            });
-            if (tokensToDelete.length > 0) {
-                await Promise.all(tokensToDelete);
-                console.log(`Successfully deleted ${tokensToDelete.length} invalid tokens.`);
-            }
-        }
-        console.log(`--- Push notification process finished ---`);
-
-    } catch (error) {
-        console.error('Error during sendPushNotification function:', error);
+    if (recipientTokens.length === 0) {
+      console.log("No recipient tokens after filtering. Aborting send.");
+      console.log(`--- Push notification process finished ---`);
+      return;
     }
+
+    // Normalize and enrich data payload
+    const baseData = {
+      type: data.type || 'generic',
+      url: data.url || link || '/',
+      ...data,
+    };
+
+    // FCM data payload must be strings
+    const stringifiedData = Object.fromEntries(
+      Object.entries(baseData).map(([k, v]) => [String(k), String(v)])
+    );
+
+    const message = {
+      notification: { title, body },
+
+      // Extra payload for clients / service worker
+      data: stringifiedData,
+
+      webpush: {
+        // Used by some browsers for default click behavior
+        fcm_options: { link: stringifiedData.url },
+        notification: {
+          // These are defaults; SW can override via payload data
+          icon: stringifiedData.icon || '/icon.svg',
+          badge: stringifiedData.badge || '/icon.svg',
+        },
+      },
+
+      android: {
+        priority: 'high',
+        notification: {
+          channel_id: 'high_priority_notifications',
+        },
+      },
+
+      apns: {
+        headers: {
+          'apns-push-type': 'alert',
+          'apns-priority': '10',
+        },
+        payload: {
+          aps: {
+            sound: 'default',
+          },
+        },
+      },
+
+      tokens: recipientTokens,
+    };
+
+    const response = await getMessaging().sendEachForMulticast(message);
+    console.log(`Successfully sent ${response.successCount} messages.`);
+
+    if (response.failureCount > 0) {
+      console.warn(`Failed to send ${response.failureCount} messages.`);
+      const tokensToDelete = [];
+      response.responses.forEach((resp, idx) => {
+        if (!resp.success) {
+          console.error(`  - Token[${idx}]: ${recipientTokens[idx]}`, resp.error);
+          const errorCode = resp.error?.errorInfo?.code;
+          if (errorCode === 'messaging/registration-token-not-registered') {
+            const invalidToken = recipientTokens[idx];
+            console.log(`Scheduling token for deletion: ${invalidToken}`);
+            tokensToDelete.push(db.collection('fcmTokens').doc(invalidToken).delete());
+          }
+        }
+      });
+      if (tokensToDelete.length > 0) {
+        await Promise.all(tokensToDelete);
+        console.log(`Successfully deleted ${tokensToDelete.length} invalid tokens.`);
+      }
+    }
+    console.log(`--- Push notification process finished ---`);
+  } catch (error) {
+    console.error('Error during sendPushNotification function:', error);
+  }
 }
+
 
 // --- API Endpoints ---
 const apiRouter = express.Router();
@@ -262,27 +273,37 @@ app.post('/api/register', authenticateToken, checkDb, async (req, res) => {
 });
 
 app.post('/api/send-love', authenticateToken, checkDb, async (req, res) => {
-    const { uid, name } = req.user; // Get sender's UID and name
-    const senderName = name || 'Someone'; // Fallback to 'Someone' if name is not available
+  const { uid, name } = req.user; // Get sender's UID and name
+  const senderName = name || 'Someone'; // Fallback to 'Someone' if name is not available
 
-    try {
-        // The link to open when the notification is clicked
-        const link = '/'; 
+  try {
+    // The path to open when the notification is clicked
+    const url = '/'; // You can change this later to a "love" page if you make one
 
-        // Send the push notification
-        await sendPushNotification(
-            `A message from ${senderName}`, 
-            'I love you',
-            link,
-            uid // Exclude the sender from receiving the notification
-        );
+    await sendPushNotification(
+      `A message from ${senderName}`,
+      'I love you',
+      url,
+      uid, // Exclude the sender from receiving the notification
+      {
+        type: 'love',
+        url, // explicit URL for the SW
+        // You can add more data fields here later if needed
+        // e.g. loveId, mood, etc.
+      }
+    );
 
-        res.status(200).json({ success: true, message: '"I love you" notification sent successfully.' });
-    } catch (error) {
-        console.error('Error in /api/send-love:', error);
-        res.status(500).json({ success: false, message: 'Internal server error while sending notification.' });
-    }
+    res
+      .status(200)
+      .json({ success: true, message: '"I love you" notification sent successfully.' });
+  } catch (error) {
+    console.error('Error in /api/send-love:', error);
+    res
+      .status(500)
+      .json({ success: false, message: 'Internal server error while sending notification.' });
+  }
 });
+
 
 
 app.use((req, res, next) => {
