@@ -159,9 +159,6 @@ async function sendPushNotification(title, body, link = '/', excludeUid, data = 
 
     // Normalize and enrich data payload
     const baseData = {
-      // keep title/body in data → data-only message
-      title,
-      body,
       type: data.type || 'generic',
       url: data.url || link || '/',
       ...data,
@@ -173,17 +170,25 @@ async function sendPushNotification(title, body, link = '/', excludeUid, data = 
     );
 
     const message = {
-      // DATA-ONLY: no top-level `notification` field
+      // 🔴 BACK TO NOTIFICATION + DATA (this is what Firebase's internal handler likes)
+      notification: { title, body },
+
+      // Extra payload for clients / service worker
       data: stringifiedData,
 
       webpush: {
-        // Some browsers use this for default click behaviour; harmless to keep
         fcm_options: { link: stringifiedData.url },
-        // You *can* add webpush-specific headers here later if needed
+        notification: {
+          icon: stringifiedData.icon || '/icon.svg',
+          badge: stringifiedData.badge || '/icon.svg',
+        },
       },
 
       android: {
         priority: 'high',
+        notification: {
+          channel_id: 'high_priority_notifications',
+        },
       },
 
       apns: {
@@ -229,6 +234,7 @@ async function sendPushNotification(title, body, link = '/', excludeUid, data = 
     console.error('Error during sendPushNotification function:', error);
   }
 }
+
 
 
 
