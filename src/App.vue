@@ -428,6 +428,13 @@ function showInAppNotificationFromPayload(payloadLike) {
       title = 'Quest completed 🎉';
     } else if (type === 'love') {
       title = 'Love message 💌';
+    } else if (type === 'memoCreated') {
+      const createdBy = data.createdBy || 'Someone';
+      title = `New memo from ${createdBy}`;
+    } else if (type === 'memoUpdated') {
+      title = 'Memo updated ✏️';
+    } else if (type === 'memoDeleted') {
+      title = 'Memo deleted 🗑️';
     } else {
       title = 'Notification';
     }
@@ -441,6 +448,9 @@ function showInAppNotificationFromPayload(payloadLike) {
       body = `${userName} completed: ${text}`;
     } else if (type === 'love') {
       body = "You've received an 'I love you' notification.";
+    } else if (type === 'memoCreated' || type === 'memoUpdated' || type === 'memoDeleted') {
+      const desc = data.description || '';
+      body = desc || 'Open memos to see the details.';
     } else {
       body = '';
     }
@@ -450,6 +460,7 @@ function showInAppNotificationFromPayload(payloadLike) {
   inAppNotification.body = body;
   inAppNotification.visible = true;
 }
+
 
 
 // --- Foreground Message Handling ---
@@ -476,13 +487,11 @@ onMounted(() => {
       registerDeviceForNotifications();
     }
 
-    // Listen to messages posted from the service worker
+    // Listen to messages posted from the service worker (e.g. questCompleted)
     navigator.serviceWorker.addEventListener('message', (event) => {
       const msg = event.data;
       if (!msg || !msg.type) return;
 
-      // Our SW currently posts questCompleted like:
-      // { type, date, text, userName, questId }
       if (msg.type === 'questCompleted') {
         // Reuse the same helper so behavior matches FCM foreground
         showInAppNotificationFromPayload({ data: msg });
@@ -490,16 +499,26 @@ onMounted(() => {
     });
   }
 
+  // 🔥 NEW: Respect ?view=... from the URL so notifications can deep-link
+  try {
+    const url = new URL(window.location.href);
+    const viewParam = url.searchParams.get('view');
+
+    const allowedViews = ['home', 'memos', 'plans', 'capsules'];
+    if (viewParam && allowedViews.includes(viewParam)) {
+      currentView.value = viewParam;
+    }
+  } catch (e) {
+    console.warn('Failed to parse URL for view param:', e);
+  }
+
   const colors = ['magenta', 'turquoise'];
   const startingColorIndex = Math.round(Math.random());
 
-  // 🔥 include 'capsules' as a 4th item
   navColors.value = ['home', 'memos', 'plans', 'capsules'].map((_, index) => {
     return colors[(startingColorIndex + index) % 2];
   });
 });
-
-
 
 onUnmounted(() => {
   if (unsubscribeAuth) {

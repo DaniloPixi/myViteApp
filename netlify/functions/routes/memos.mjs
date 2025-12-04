@@ -1,48 +1,91 @@
-
 import express from 'express';
 
 // This function will set up the routes and return a router.
 // We'll pass in 'db', 'cloudinary', 'extractPublicId' and 'sendPushNotification' from api.mjs
-export default function(db, cloudinary, extractPublicId, sendPushNotification) {
+export default function (db, cloudinary, extractPublicId, sendPushNotification) {
   const router = express.Router();
 
   // Helper to robustly get photos from a memo, supporting both old and new data structures.
   const getMemoPhotos = (memo) => {
     if (memo.photos && Array.isArray(memo.photos)) {
-      return memo.photos; // New format: [{url, isAdult}]
+      return memo.photos; // New format: [{ url, isAdult }]
     }
     if (memo.photoUrls && Array.isArray(memo.photoUrls)) {
       // Old format: [url1, url2]
       const isAdult = memo.hashtags && memo.hashtags.includes('#18+');
-      return memo.photoUrls.map(url => ({ url, isAdult }));
+      return memo.photoUrls.map((url) => ({ url, isAdult }));
     }
     return [];
   };
 
+  // Small helper to make a nice short description for notifications
+  const getDescriptionSnippet = (description) => {
+    if (!description) return '';
+    const trimmed = description.trim();
+    if (trimmed.length <= 80) return trimmed;
+    return trimmed.slice(0, 80) + '…';
+  };
+
   router.get('/', async (req, res) => {
     try {
-        const memosSnapshot = await db.collection('memos').orderBy('createdAt', 'desc').get();
-        const memos = memosSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        res.status(200).json(memos);
+      const memosSnapshot = await db
+        .collection('memos')
+        .orderBy('createdAt', 'desc')
+        .get();
+      const memos = memosSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+      res.status(200).json(memos);
     } catch (error) {
-        console.error('Error in GET /api/memos:', error);
-        res.status(500).json({ success: false, message: 'Internal server error.', details: error.message });
+      console.error('Error in GET /api/memos:', error);
+      res
+        .status(500)
+        .json({ success: false, message: 'Internal server error.', details: error.message });
     }
   });
 
   router.post('/', async (req, res) => {
     const { description, date, location, hashtags, photos } = req.body;
     const { uid, name, email } = req.user;
+
     try {
-      const newMemoRef = await db.collection('memos').add({
-        description, date, location, hashtags, photos: photos || [],
-        creatorUid: uid, createdBy: name || email, createdAt: new Date().toISOString(),
-      });
-      await sendPushNotification('New Memo Added!', `\"${description}\"`, '/#/memos', uid);
+      const createdBy = name || email || 'Someone';
+
+      const memoData = {
+        description,
+        date,
+        location,
+        hashtags,
+        photos: photos || [],
+        creatorUid: uid,
+        createdBy,
+        createdAt: new Date().toISOString(),
+      };
+
+      const newMemoRef = await db.collection('memos').add(memoData);
+
+      const snippet = getDescriptionSnippet(description);
+
+      // Notify the other user(s); in production this excludes the sender's uid
+      await sendPushNotification(
+        'New Memo Added!',
+        snippet ? `"${snippet}"` : 'A new memo was added.',
+        '/?view=memos',
+        uid, // exclude sender; use null if you want the creator to get it too
+        {
+          type: 'memoCreated',
+          url: '/?view=memos',
+          memoId: newMemoRef.id,
+          createdBy,
+          description: snippet,
+          location: location || '',
+        }
+      );
+
       res.status(201).json({ success: true, memoId: newMemoRef.id });
     } catch (error) {
       console.error('Error in POST /api/memos:', error);
-      res.status(500).json({ success: false, message: 'Internal server error.', details: error.message });
+      res
+        .status(500)
+        .json({ success: false, message: 'Internal server error.', details: error.message });
     }
   });
 
@@ -50,61 +93,102 @@ export default function(db, cloudinary, extractPublicId, sendPushNotification) {
     const { memoId } = req.params;
     const { uid } = req.user;
     const { description, date, location, hashtags, photos } = req.body;
+
     try {
-        const memoRef = db.collection('memos').doc(memoId);
-        const doc = await memoRef.get();
-        if (!doc.exists) {
-            return res.status(404).json({ success: false, message: 'Memo not found.' });
+      const memoRef = db.collection('memos').doc(memoId);
+      const doc = await memoRef.get();
+      if (!doc.exists) {
+        return res.status(404).json({ success: false, message: 'Memo not found.' });
+      }
+
+      const originalPhotoUrls = getMemoPhotos(doc.data()).map((p) => p.url);
+      const newPhotoUrls = photos ? photos.map((p) => p.url) : [];
+      const photosToDelete = originalPhotoUrls.filter((url) => !newPhotoUrls.includes(url));
+
+      if (photosToDelete.length > 0 && cloudinary.config().api_key) {
+        const publicIdsToDelete = photosToDelete.map(extractPublicId).filter((id) => id);
+        if (publicIdsToDelete.length > 0) {
+          console.log(`Deleting ${publicIdsToDelete.length} photos from Cloudinary...`);
+          await cloudinary.api.delete_resources(publicIdsToDelete);
         }
+      }
 
-        const originalPhotoUrls = getMemoPhotos(doc.data()).map(p => p.url);
-        const newPhotoUrls = photos ? photos.map(p => p.url) : [];
-        const photosToDelete = originalPhotoUrls.filter(url => !newPhotoUrls.includes(url));
+      const updateData = { description, date, location, hashtags, photos };
+      await memoRef.set(updateData, { merge: true });
 
-        if (photosToDelete.length > 0 && cloudinary.config().api_key) {
-            const publicIdsToDelete = photosToDelete.map(extractPublicId).filter(id => id);
-            if (publicIdsToDelete.length > 0) {
-                console.log(`Deleting ${publicIdsToDelete.length} photos from Cloudinary...`);
-                await cloudinary.api.delete_resources(publicIdsToDelete);
-            }
+      const snippet = getDescriptionSnippet(description);
+
+      await sendPushNotification(
+        'Memo Updated!',
+        snippet ? `"${snippet}"` : 'A memo was updated.',
+        '/?view=memos',
+        uid, // exclude sender
+        {
+          type: 'memoUpdated',
+          url: '/?view=memos',
+          memoId,
+          description: snippet,
+          location: location || '',
         }
+      );
 
-        const updateData = { description, date, location, hashtags, photos };
-        await memoRef.set(updateData, { merge: true });
-        await sendPushNotification('Memo Updated!', `\"${description}\"`, '/#/memos', uid);
-        res.status(200).json({ success: true, message: 'Memo updated successfully.' });
+      res.status(200).json({ success: true, message: 'Memo updated successfully.' });
     } catch (error) {
-        console.error('Error in /api/memos PUT:', error);
-        res.status(500).json({ success: false, message: 'Internal server error.', details: error.message });
+      console.error('Error in /api/memos PUT:', error);
+      res
+        .status(500)
+        .json({ success: false, message: 'Internal server error.', details: error.message });
     }
   });
 
   router.delete('/:memoId', async (req, res) => {
     const { memoId } = req.params;
     const { uid } = req.user;
+
     try {
-        const memoRef = db.collection('memos').doc(memoId);
-        const doc = await memoRef.get();
-        if (!doc.exists) {
-            return res.status(404).json({ success: false, message: 'Memo not found.' });
-        }
-        const { description } = doc.data();
+      const memoRef = db.collection('memos').doc(memoId);
+      const doc = await memoRef.get();
+      if (!doc.exists) {
+        return res.status(404).json({ success: false, message: 'Memo not found.' });
+      }
 
-        const photoUrlsToDelete = getMemoPhotos(doc.data()).map(p => p.url);
-        if (photoUrlsToDelete.length > 0 && cloudinary.config().api_key) {
-            const publicIdsToDelete = photoUrlsToDelete.map(extractPublicId).filter(id => id);
-            if (publicIdsToDelete.length > 0) {
-                console.log(`Deleting ${publicIdsToDelete.length} photos from Cloudinary...`);
-                await cloudinary.api.delete_resources(publicIdsToDelete);
-            }
-        }
+      const memoData = doc.data();
+      const description = memoData.description || '';
 
-        await memoRef.delete();
-        await sendPushNotification('Memo Deleted!', `\"${description}\" was removed`, '/#/memos', uid);
-        res.status(200).json({ success: true, message: 'Memo and associated photos deleted.' });
+      const photoUrlsToDelete = getMemoPhotos(memoData).map((p) => p.url);
+      if (photoUrlsToDelete.length > 0 && cloudinary.config().api_key) {
+        const publicIdsToDelete = photoUrlsToDelete.map(extractPublicId).filter((id) => id);
+        if (publicIdsToDelete.length > 0) {
+          console.log(`Deleting ${publicIdsToDelete.length} photos from Cloudinary...`);
+          await cloudinary.api.delete_resources(publicIdsToDelete);
+        }
+      }
+
+      await memoRef.delete();
+
+      const snippet = getDescriptionSnippet(description);
+
+      await sendPushNotification(
+        'Memo Deleted!',
+        snippet ? `"${snippet}" was removed` : 'A memo was removed.',
+        '/?view=memos',
+        uid, // exclude sender
+        {
+          type: 'memoDeleted',
+          url: '/?view=memos',
+          memoId,
+          description: snippet,
+        }
+      );
+
+      res
+        .status(200)
+        .json({ success: true, message: 'Memo and associated photos deleted.' });
     } catch (error) {
-        console.error('Error in /api/memos DELETE:', error);
-        res.status(500).json({ success: false, message: 'Internal server error.', details: error.message });
+      console.error('Error in /api/memos DELETE:', error);
+      res
+        .status(500)
+        .json({ success: false, message: 'Internal server error.', details: error.message });
     }
   });
 
