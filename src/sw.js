@@ -40,7 +40,8 @@ registerRoute(
 
 // --- Firebase Background Message Handler ---
 messaging.onBackgroundMessage((payload) => {
-  // FCM sends both { notification, data }
+  console.log('[SW] onBackgroundMessage received:', payload);
+
   const data = payload?.data || {};
   const notif = payload?.notification || {};
 
@@ -54,7 +55,6 @@ messaging.onBackgroundMessage((payload) => {
     notif.body ||
     '';
 
-  // URL to open when notification is clicked
   const url =
     data.url ||
     data.link ||
@@ -64,36 +64,22 @@ messaging.onBackgroundMessage((payload) => {
 
   const options = {
     body,
-
-    // Default icon / badge – adjust these paths to your real icons
     icon: data.icon || '/icon.svg',
     badge: data.badge || '/icon.svg',
-
-    // This object is available in notificationclick
     data: {
       url,
       type,
-      ...data, // includes questId, userName, etc. if present
+      ...data,
     },
-
-    // A simple vibration pattern (Android / some browsers)
     vibrate: [100, 50, 100],
-
-    // Grouping key for some platforms
     tag: type,
-
-    // Optional actions (not all browsers show these)
     actions: [
-      {
-        action: 'open',
-        title: 'Open',
-      },
+      { action: 'open', title: 'Open' },
     ],
   };
 
   self.registration.showNotification(title, options);
 
-  // Special handling for questCompleted: ping all open clients
   if (type === 'questCompleted') {
     const messageForClients = {
       type: 'questCompleted',
@@ -106,10 +92,13 @@ messaging.onBackgroundMessage((payload) => {
     self.clients
       .matchAll({ type: 'window', includeUncontrolled: true })
       .then((clients) => {
-        clients.forEach((client) => client.postMessage(messageForClients));
+        clients.forEach((client) => {
+          client.postMessage(messageForClients);
+        });
       });
   }
 });
+
 
 // --- Notification Click Handler ---
 self.addEventListener('notificationclick', (event) => {

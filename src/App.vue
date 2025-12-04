@@ -275,6 +275,7 @@ const clearDataListeners = () => {
 
 // --- Core Notification Logic ---
 // --- Core Notification Logic ---
+// --- Core Notification Logic ---
 async function registerDeviceForNotifications() {
   if (!supportsNotifications.value) {
     console.warn('Notifications are not supported in this browser.');
@@ -286,7 +287,6 @@ async function registerDeviceForNotifications() {
     return;
   }
 
-  // Always trust the browser permission as source of truth
   const currentPermission = Notification.permission;
   notificationPermission.value = currentPermission;
 
@@ -298,7 +298,12 @@ async function registerDeviceForNotifications() {
   try {
     const swRegistration = await navigator.serviceWorker.ready;
 
-    // Make sure Firebase Messaging uses the same SW (src/sw.js) as the PWA
+    console.log(
+      '[FCM] Using service worker for messaging:',
+      swRegistration?.active?.scriptURL || '(no active SW)'
+    );
+
+    // Make sure Firebase Messaging uses the same SW (src/sw.js)
     try {
       if (messaging && messaging.useServiceWorker) {
         messaging.useServiceWorker(swRegistration);
@@ -309,6 +314,8 @@ async function registerDeviceForNotifications() {
 
     const currentToken = await messaging.getToken({
       vapidKey: 'BPACu3jz1Y3_bB4VPwO96LkPua-bJKVXBOioaf75Gc7xQQ-aqZ04a0qBSbxuX6ZW6KcPB1Lcv68zGP5qrM2q9dU',
+      // critical: bind the token to *this* SW registration
+      serviceWorkerRegistration: swRegistration,
     });
 
     if (currentToken) {
@@ -320,6 +327,7 @@ async function registerDeviceForNotifications() {
     console.error('An error occurred while retrieving token:', error);
   }
 }
+
 
 async function enableNotifications() {
   if (!supportsNotifications.value) {
