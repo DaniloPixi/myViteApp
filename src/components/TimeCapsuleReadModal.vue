@@ -86,56 +86,55 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
-import BaseCapsuleModal from './BaseCapsuleModal.vue';
-import ImageModal from './ImageModal.vue';
-
-const props = defineProps({
-  capsule: { type: Object, required: true },
-  isMine: { type: Boolean, default: false },
-  recipientLabel: { type: String, default: '' },
-  partnerName: { type: String, default: 'partner' },
-});
-
-const emit = defineEmits(['close']);
-
-// hard-coded because this app is literally just you + your girlfriend
-const MY_NAME = 'Dani';
-
-function emitClose() {
-  emit('close');
-}
-
-function formatDate(raw) {
-  if (!raw) return 'Unknown';
-  const d = new Date(raw);
-  if (Number.isNaN(d.getTime())) return 'Unknown';
-  return d.toLocaleString(undefined, {
-    year: 'numeric',
-    month: 'short',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
+  import { ref, computed } from 'vue';
+  import BaseCapsuleModal from './BaseCapsuleModal.vue';
+  import ImageModal from './ImageModal.vue';
+  
+  const props = defineProps({
+    capsule: { type: Object, required: true },
+    isMine: { type: Boolean, default: false },
+    recipientLabel: { type: String, default: '' },
+    partnerName: { type: String, default: 'partner' },
+    fromName: { type: String, default: 'Dani' },
   });
-}
-
-// From-label = Dani if it's yours, otherwise partner's name ("Eva")
-const fromLabel = computed(() =>
-  props.isMine ? MY_NAME : props.partnerName
-);
-
-const isMediaViewerVisible = ref(false);
-const mediaViewerIndex = ref(0);
-
-function openMediaViewer(index) {
-  mediaViewerIndex.value = index || 0;
-  isMediaViewerVisible.value = true;
-}
-
-function closeMediaViewer() {
-  isMediaViewerVisible.value = false;
-}
-</script>
+  
+  const emit = defineEmits(['close']);
+  
+  function emitClose() {
+    emit('close');
+  }
+  
+  function formatDate(raw) {
+    if (!raw) return 'Unknown';
+    const d = new Date(raw);
+    if (Number.isNaN(d.getTime())) return 'Unknown';
+    return d.toLocaleString(undefined, {
+      year: 'numeric',
+      month: 'short',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  }
+  
+  // If it's "my" capsule → fromName, otherwise → partnerName
+  const fromLabel = computed(() =>
+    props.isMine ? props.fromName : props.partnerName
+  );
+  
+  const isMediaViewerVisible = ref(false);
+  const mediaViewerIndex = ref(0);
+  
+  function openMediaViewer(index) {
+    mediaViewerIndex.value = index || 0;
+    isMediaViewerVisible.value = true;
+  }
+  
+  function closeMediaViewer() {
+    isMediaViewerVisible.value = false;
+  }
+  </script>
+  
 
 <style scoped>
 .tc-read-message-wrap {

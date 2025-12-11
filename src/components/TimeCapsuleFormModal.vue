@@ -13,8 +13,9 @@
     </template>
 
     <template #subtitle>
-      From {{ FROM_NAME }} to {{ recipientLabel }}
-    </template>
+  From {{ fromName }} to {{ recipientLabel }}
+</template>
+
 
     <!-- BODY -->
     <div class="tc-form-body">
@@ -168,161 +169,165 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue';
-import BaseCapsuleModal from './BaseCapsuleModal.vue';
-
-const FROM_NAME = 'Dani';
-
-const props = defineProps({
-  capsule: {
-    type: Object,
-    default: null, // can be null in "create" mode
-  },
-  partnerName: {
-    type: String,
-    default: 'partner',
-  },
-  isSubmitting: {
-    type: Boolean,
-    default: false,
-  },
-  submitError: {
-    type: String,
-    default: '',
-  },
-  cloudinaryCloudName: {
-    type: String,
-    default: '',
-  },
-  cloudinaryUploadPreset: {
-    type: String,
-    default: '',
-  },
-});
-
-const emit = defineEmits(['close', 'save']);
-
-const isEditMode = computed(() => !!props.capsule && !!props.capsule.id);
-
-// Local form state
-const title = ref(props.capsule?.title ?? '');
-const message = ref(props.capsule?.message ?? '');
-const unlockAtLocal = ref(
-  props.capsule?.unlockAt ? toLocalInputValue(props.capsule.unlockAt) : ''
-);
-
-// only used in "create" path in parent
-const recipient = ref('partner');
-
-// photos is ALWAYS an array
-const photos = ref(
-  Array.isArray(props.capsule?.photos) ? [...props.capsule.photos] : []
-);
-
-const recipientLabel = computed(() => {
-  if (recipient.value === 'me') return FROM_NAME;
-  return props.partnerName || 'your partner';
-});
-
-// upload state
-const fileInput = ref(null);
-const isUploading = ref(false);
-const uploadError = ref('');
-
-function toLocalInputValue(isoString) {
-  if (!isoString) return '';
-  const d = new Date(isoString);
-  if (Number.isNaN(d.getTime())) return '';
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  const hours = String(d.getHours()).padStart(2, '0');
-  const minutes = String(d.getMinutes()).padStart(2, '0');
-  return `${year}-${month}-${day}T${hours}:${minutes}`;
-}
-
-function emitClose() {
-  emit('close');
-}
-
-function handleSubmit() {
-  emit('save', {
-    title: title.value,
-    message: message.value,
-    unlockAtLocal: unlockAtLocal.value,
-    recipient: recipient.value,
-    photos: photos.value,
+  import { computed, ref } from 'vue';
+  import BaseCapsuleModal from './BaseCapsuleModal.vue';
+  
+  const props = defineProps({
+    capsule: {
+      type: Object,
+      default: null, // can be null in "create" mode
+    },
+    fromName: {
+      type: String,
+      default: 'Dani',
+    },
+    partnerName: {
+      type: String,
+      default: 'partner',
+    },
+    isSubmitting: {
+      type: Boolean,
+      default: false,
+    },
+    submitError: {
+      type: String,
+      default: '',
+    },
+    cloudinaryCloudName: {
+      type: String,
+      default: '',
+    },
+    cloudinaryUploadPreset: {
+      type: String,
+      default: '',
+    },
   });
-}
-
-function triggerFilePicker() {
-  uploadError.value = '';
-  if (fileInput.value) {
-    fileInput.value.click();
+  
+  const emit = defineEmits(['close', 'save']);
+  
+  const isEditMode = computed(() => !!props.capsule && !!props.capsule.id);
+  
+  // Local form state
+  const title = ref(props.capsule?.title ?? '');
+  const message = ref(props.capsule?.message ?? '');
+  const unlockAtLocal = ref(
+    props.capsule?.unlockAt ? toLocalInputValue(props.capsule.unlockAt) : ''
+  );
+  
+  // only used in "create" path in parent
+  const recipient = ref('partner');
+  
+  // photos is ALWAYS an array
+  const photos = ref(
+    Array.isArray(props.capsule?.photos) ? [...props.capsule.photos] : []
+  );
+  
+  // this is what appears in the subtitle after "to"
+  const recipientLabel = computed(() => {
+    if (recipient.value === 'me') return props.fromName || 'Me';
+    return props.partnerName || 'your partner';
+  });
+  
+  // upload state
+  const fileInput = ref(null);
+  const isUploading = ref(false);
+  const uploadError = ref('');
+  
+  function toLocalInputValue(isoString) {
+    if (!isoString) return '';
+    const d = new Date(isoString);
+    if (Number.isNaN(d.getTime())) return '';
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const hours = String(d.getHours()).padStart(2, '0');
+    const minutes = String(d.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
   }
-}
-
-async function onFilesSelected(event) {
-  const files = Array.from(event.target.files || []);
-  if (!files.length) return;
-
-  if (!props.cloudinaryCloudName || !props.cloudinaryUploadPreset) {
-    uploadError.value = 'Media upload is not configured.';
-    event.target.value = '';
-    return;
+  
+  function emitClose() {
+    emit('close');
   }
-
-  isUploading.value = true;
-  uploadError.value = '';
-
-  try {
-    for (const file of files) {
-      const isVideo = file.type && file.type.startsWith('video');
-      const resourceType = isVideo ? 'video' : 'image';
-
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('upload_preset', props.cloudinaryUploadPreset);
-
-      const endpoint = `https://api.cloudinary.com/v1_1/${props.cloudinaryCloudName}/${resourceType}/upload`;
-
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!res.ok) {
-        let msg = 'Upload failed';
-        try {
-          const errJson = await res.json();
-          msg = errJson?.error?.message || msg;
-        } catch {
-          // ignore parse
-        }
-        throw new Error(msg);
-      }
-
-      const data = await res.json();
-
-      photos.value.push({
-        url: data.secure_url || data.url,
-        resource_type: data.resource_type || resourceType,
-      });
+  
+  function handleSubmit() {
+    emit('save', {
+      title: title.value,
+      message: message.value,
+      unlockAtLocal: unlockAtLocal.value,
+      recipient: recipient.value,
+      photos: photos.value,
+    });
+  }
+  
+  function triggerFilePicker() {
+    uploadError.value = '';
+    if (fileInput.value) {
+      fileInput.value.click();
     }
-  } catch (e) {
-    console.error('[TimeCapsuleFormModal] upload failed:', e);
-    uploadError.value =
-      e?.message || 'Failed to upload media. Please try again.';
-  } finally {
-    isUploading.value = false;
-    if (event.target) event.target.value = '';
   }
-}
-
-function removePhoto(index) {
-  photos.value.splice(index, 1);
-}
-</script>
+  
+  async function onFilesSelected(event) {
+    const files = Array.from(event.target.files || []);
+    if (!files.length) return;
+  
+    if (!props.cloudinaryCloudName || !props.cloudinaryUploadPreset) {
+      uploadError.value = 'Media upload is not configured.';
+      event.target.value = '';
+      return;
+    }
+  
+    isUploading.value = true;
+    uploadError.value = '';
+  
+    try {
+      for (const file of files) {
+        const isVideo = file.type && file.type.startsWith('video');
+        const resourceType = isVideo ? 'video' : 'image';
+  
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('upload_preset', props.cloudinaryUploadPreset);
+  
+        const endpoint = `https://api.cloudinary.com/v1_1/${props.cloudinaryCloudName}/${resourceType}/upload`;
+  
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          body: formData,
+        });
+  
+        if (!res.ok) {
+          let msg = 'Upload failed';
+          try {
+            const errJson = await res.json();
+            msg = errJson?.error?.message || msg;
+          } catch {
+            // ignore parse
+          }
+          throw new Error(msg);
+        }
+  
+        const data = await res.json();
+  
+        photos.value.push({
+          url: data.secure_url || data.url,
+          resource_type: data.resource_type || resourceType,
+        });
+      }
+    } catch (e) {
+      console.error('[TimeCapsuleFormModal] upload failed:', e);
+      uploadError.value =
+        e?.message || 'Failed to upload media. Please try again.';
+    } finally {
+      isUploading.value = false;
+      if (event.target) event.target.value = '';
+    }
+  }
+  
+  function removePhoto(index) {
+    photos.value.splice(index, 1);
+  }
+  </script>
+  
 
 <style scoped>
 /* Main vertical layout */

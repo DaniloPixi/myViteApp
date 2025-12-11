@@ -86,19 +86,35 @@
     </div>
 
     <!-- CREATE / EDIT MODAL -->
-    <Transition name="modal">
-      <TimeCapsuleFormModal
-        v-if="isFormModalVisible"
-        :capsule="editingCapsule"
-        :partner-name="PARTNER_NAME"
-        :is-submitting="saving"
-        :submit-error="submitError"
-        cloudinary-cloud-name="dknmcj1qj"
-        cloudinary-upload-preset="memos_and_moments"
-        @close="closeFormModal"
-        @save="handleSaveCapsule"
-      />
-    </Transition>
+  <!-- CREATE / EDIT MODAL -->
+<Transition name="modal">
+  <TimeCapsuleFormModal
+    v-if="isFormModalVisible"
+    :capsule="editingCapsule"
+    :partner-name="partnerName"
+    :from-name="myName"
+    :is-submitting="saving"
+    :submit-error="submitError"
+    cloudinary-cloud-name="dknmcj1qj"
+    cloudinary-upload-preset="memos_and_moments"
+    @close="closeFormModal"
+    @save="handleSaveCapsule"
+  />
+</Transition>
+
+<!-- READ MODAL -->
+<Transition name="modal">
+  <TimeCapsuleReadModal
+    v-if="showReader && readerCapsule"
+    :capsule="readerCapsule"
+    :is-mine="isMine(readerCapsule)"
+    :recipient-label="readerRecipientLabel"
+    :partner-name="partnerName"
+    :from-name="myName"
+    @close="closeReader"
+  />
+</Transition>
+
 
     <!-- READ MODAL -->
     <Transition name="modal">
@@ -124,367 +140,415 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { auth } from '../firebase';
-import {
-  useTimeCapsules,
-  createTimeCapsule,
-  updateTimeCapsule,
-  openTimeCapsule,
-  deleteTimeCapsule,
-} from '../composables/useTimeCapsules';
-import TimeCapsuleFormModal from '../components/TimeCapsuleFormModal.vue';
-import TimeCapsuleReadModal from '../components/TimeCapsuleReadModal.vue';
-import ConfirmDeleteModal from '../components/ConfirmDeleteModal.vue';
-
-const props = defineProps({
-  dateFilter: {
-    type: String,
-    default: '',
-  },
-  // '' | 'locked' | 'unlocked'
-  lockStatusFilter: {
-    type: String,
-    default: '',
-  },
-});
-
-const isTouchDevice = ref(false);
-const focusedCapsuleId = ref(null);
-
-function updateFocusedCapsule() {
-  if (!isTouchDevice.value) return;
-
-  const cards = document.querySelectorAll('.tc-card[data-capsule-id]');
-  if (!cards.length) {
-    focusedCapsuleId.value = null;
-    return;
+  import { ref, computed, onMounted, onUnmounted } from 'vue';
+  import { auth } from '../firebase';
+  import {
+    useTimeCapsules,
+    createTimeCapsule,
+    updateTimeCapsule,
+    openTimeCapsule,
+    deleteTimeCapsule,
+  } from '../composables/useTimeCapsules';
+  import TimeCapsuleFormModal from '../components/TimeCapsuleFormModal.vue';
+  import TimeCapsuleReadModal from '../components/TimeCapsuleReadModal.vue';
+  import ConfirmDeleteModal from '../components/ConfirmDeleteModal.vue';
+  
+  const props = defineProps({
+    dateFilter: {
+      type: String,
+      default: '',
+    },
+    // '' | 'locked' | 'unlocked'
+    lockStatusFilter: {
+      type: String,
+      default: '',
+    },
+  });
+  
+  const isTouchDevice = ref(false);
+  const focusedCapsuleId = ref(null);
+  
+  function updateFocusedCapsule() {
+    if (!isTouchDevice.value) return;
+  
+    const cards = document.querySelectorAll('.tc-card[data-capsule-id]');
+    if (!cards.length) {
+      focusedCapsuleId.value = null;
+      return;
+    }
+  
+    const viewportCenterY = window.innerHeight / 2;
+    let closestId = null;
+    let minDistance = Infinity;
+  
+    cards.forEach((el) => {
+      const rect = el.getBoundingClientRect();
+      const centerY = rect.top + rect.height / 2;
+      const distance = Math.abs(centerY - viewportCenterY);
+  
+      if (distance < minDistance) {
+        minDistance = distance;
+        closestId = el.dataset.capsuleId;
+      }
+    });
+  
+    if (minDistance < 140) {
+      focusedCapsuleId.value = closestId;
+    } else {
+      focusedCapsuleId.value = null;
+    }
   }
-
-  const viewportCenterY = window.innerHeight / 2;
-  let closestId = null;
-  let minDistance = Infinity;
-
-  cards.forEach((el) => {
-    const rect = el.getBoundingClientRect();
-    const centerY = rect.top + rect.height / 2;
-    const distance = Math.abs(centerY - viewportCenterY);
-
-    if (distance < minDistance) {
-      minDistance = distance;
-      closestId = el.dataset.capsuleId;
+  
+  /* ---------- USERS / NAMES ---------- */
+  
+  /**
+   * Your Firebase UID (Dani)
+   */
+  const DANI_UID = 'uuqNmyiBe5Vm2Ap6PwZFzLVO72Q2';
+  
+  /**
+   * Eva's UID – this is the one you already had as PARTNER_UID.
+   * We still need it for toUid when you send capsules to her.
+   */
+  const EVA_UID = '6SXYP6cypwRZSJSL8GjrP0LtzMi1';
+  
+  const DANI_NAME = 'Dani';
+  const EVA_NAME = 'Eva';
+  
+  // --- auth context ---
+  const currentUser = computed(() => auth.currentUser);
+  const currentUid = computed(() => currentUser.value?.uid || null);
+  
+  /**
+   * Name of the *logged in* user:
+   * - if UID === DANI_UID → "Dani"
+   * - otherwise → "Eva"
+   */
+  const myName = computed(() => {
+    if (!currentUid.value) return DANI_NAME; // default when not logged in
+    return currentUid.value === DANI_UID ? DANI_NAME : EVA_NAME;
+  });
+  
+  /**
+   * Name of the other person:
+   * - if I'm Dani → partner = Eva
+   * - if I'm Eva → partner = Dani
+   */
+  const partnerName = computed(() => {
+    if (!currentUid.value) return EVA_NAME;
+    return currentUid.value === DANI_UID ? EVA_NAME : DANI_NAME;
+  });
+  
+  /**
+   * Map a stored UID in the capsule to a human name.
+   * Only two users exist: Dani + Eva.
+   */
+  function nameForUid(uid) {
+    if (!uid) return 'Unknown';
+    if (uid === DANI_UID) return DANI_NAME;
+    if (uid === EVA_UID) return EVA_NAME;
+    return 'Unknown';
+  }
+  
+  /* ---------- COMPOSABLE ---------- */
+  
+  const {
+    sortedCapsules,
+    loading,
+    error,
+    fetchTimeCapsules,
+    isLocked,
+    isOpened,
+  } = useTimeCapsules();
+  
+  onMounted(() => {
+    fetchTimeCapsules();
+  
+    isTouchDevice.value =
+      typeof window !== 'undefined' &&
+      ('ontouchstart' in window || navigator.maxTouchPoints > 0);
+  
+    if (isTouchDevice.value) {
+      setTimeout(updateFocusedCapsule, 200);
+      window.addEventListener('scroll', updateFocusedCapsule, { passive: true });
+      window.addEventListener('resize', updateFocusedCapsule);
     }
   });
-
-  if (minDistance < 140) {
-    focusedCapsuleId.value = closestId;
-  } else {
-    focusedCapsuleId.value = null;
-  }
-}
-
-// --- fixed users ---
-// TODO: replace with real partner UID + name
-const PARTNER_UID = '6SXYP6cypwRZSJSL8GjrP0LtzMi1';
-const PARTNER_NAME = 'Eva';
-
-// your own display name
-const MY_NAME = 'Dani';
-
-// --- auth context ---
-const currentUser = computed(() => auth.currentUser);
-const currentUid = computed(() => currentUser.value?.uid || null);
-
-// map uid -> display name (only two users exist)
-function nameForUid(uid) {
-  if (!uid) return 'Unknown';
-  if (uid === PARTNER_UID) return PARTNER_NAME;
-  return MY_NAME;
-}
-
-// --- composable ---
-const {
-  sortedCapsules,
-  loading,
-  error,
-  fetchTimeCapsules,
-  isLocked,
-  isOpened,
-} = useTimeCapsules();
-
-onMounted(() => {
-  fetchTimeCapsules();
-
-  isTouchDevice.value =
-    typeof window !== 'undefined' &&
-    ('ontouchstart' in window || navigator.maxTouchPoints > 0);
-
-  if (isTouchDevice.value) {
-    setTimeout(updateFocusedCapsule, 200);
-    window.addEventListener('scroll', updateFocusedCapsule, { passive: true });
-    window.addEventListener('resize', updateFocusedCapsule);
-  }
-});
-
-onUnmounted(() => {
-  if (isTouchDevice.value) {
-    window.removeEventListener('scroll', updateFocusedCapsule);
-    window.removeEventListener('resize', updateFocusedCapsule);
-  }
-});
-
-// --- filtered list ---
-const displayCapsules = computed(() => {
-  let list = sortedCapsules.value || [];
-
-  if (props.dateFilter) {
-    const target = new Date(props.dateFilter);
-    if (!Number.isNaN(target.getTime())) {
-      const ty = target.getFullYear();
-      const tm = target.getMonth();
-      const td = target.getDate();
-
-      list = list.filter((capsule) => {
-        const raw = capsule.unlockAt || capsule.createdAt;
-        if (!raw) return false;
-
-        const d = new Date(raw);
-        if (Number.isNaN(d.getTime())) return false;
-
-        return (
-          d.getFullYear() === ty &&
-          d.getMonth() === tm &&
-          d.getDate() === td
-        );
-      });
+  
+  onUnmounted(() => {
+    if (isTouchDevice.value) {
+      window.removeEventListener('scroll', updateFocusedCapsule);
+      window.removeEventListener('resize', updateFocusedCapsule);
     }
-  }
-
-  if (props.lockStatusFilter === 'locked') {
-    list = list.filter((capsule) => isLocked(capsule));
-  } else if (props.lockStatusFilter === 'unlocked') {
-    list = list.filter((capsule) => !isLocked(capsule));
-  }
-
-  return list;
-});
-
-// --- modal state (create/edit) ---
-const isFormModalVisible = ref(false);
-const editingCapsule = ref(null);
-const saving = ref(false);
-const submitError = ref('');
-
-// --- modal state (reader) ---
-const showReader = ref(false);
-const readerCapsule = ref(null);
-const readerRecipientLabel = ref('');
-
-// --- delete confirm modal state ---
-const isDeleteModalVisible = ref(false);
-const capsulePendingDelete = ref(null);
-
-// --- helpers ---
-function isMine(capsule) {
-  if (!capsule || !currentUid.value) return false;
-  return capsule.fromUid === currentUid.value;
-}
-
-// simple recipient label for the reader modal
-function recipientLabel(capsule) {
-  if (!capsule) return '';
-  return nameForUid(capsule.toUid);
-}
-
-function canEdit(capsule) {
-  if (!capsule) return false;
-  if (!isMine(capsule)) return false;
-  if (isOpened(capsule)) return false;
-  if (!capsule.unlockAt) return false;
-  const unlockTime = new Date(capsule.unlockAt).getTime();
-  return unlockTime > Date.now();
-}
-
-function canDelete(capsule) {
-  if (!capsule) return false;
-  return isMine(capsule);
-}
-
-// --- editor modal open/close ---
-function openCreate() {
-  // FIX: don't pass null to TimeCapsuleFormModal; give a default object with photos: []
-  editingCapsule.value = {
-    id: null,
-    title: '',
-    message: '',
-    unlockAt: null,
-    photos: [],
-    fromUid: currentUid.value || null,
-    toUid: null,
-  };
-  submitError.value = '';
-  isFormModalVisible.value = true;
-}
-
-function openEdit(capsule) {
-  if (!capsule) return;
-  editingCapsule.value = capsule;
-  submitError.value = '';
-  isFormModalVisible.value = true;
-}
-
-function closeFormModal() {
-  isFormModalVisible.value = false;
-  editingCapsule.value = null;
-  submitError.value = '';
-}
-
-// --- create/update via modal ---
-async function handleSaveCapsule(payload) {
-  if (!currentUid.value) {
-    alert('You must be logged in to create a time capsule.');
-    return;
-  }
-
-  const { title, message, unlockAtLocal, recipient, photos } = payload;
-
-  if (!unlockAtLocal) {
-    alert('Please choose an unlock date and time.');
-    return;
-  }
-
-  const unlockAtLocalDate = new Date(unlockAtLocal);
-  if (Number.isNaN(unlockAtLocalDate.getTime())) {
-    alert('Invalid unlock date/time');
-    return;
-  }
-
-  const now = Date.now();
-  const unlockTs = unlockAtLocalDate.getTime();
-  if (unlockTs <= now) {
-    alert('Unlock time must be in the future.');
-    return;
-  }
-
-  const trimmedMessage = (message || '').trim();
-  if (!trimmedMessage) {
-    alert('Message cannot be empty.');
-    return;
-  }
-
-  const unlockAtIso = unlockAtLocalDate.toISOString();
-
-  let toUid;
-  if (!editingCapsule.value || !editingCapsule.value.id) {
-    if (recipient === 'me') {
-      toUid = currentUid.value;
-    } else {
-      toUid = PARTNER_UID || currentUid.value;
+  });
+  
+  /* ---------- FILTERED LIST ---------- */
+  
+  const displayCapsules = computed(() => {
+    let list = sortedCapsules.value || [];
+  
+    if (props.dateFilter) {
+      const target = new Date(props.dateFilter);
+      if (!Number.isNaN(target.getTime())) {
+        const ty = target.getFullYear();
+        const tm = target.getMonth();
+        const td = target.getDate();
+  
+        list = list.filter((capsule) => {
+          const raw = capsule.unlockAt || capsule.createdAt;
+          if (!raw) return false;
+  
+          const d = new Date(raw);
+          if (Number.isNaN(d.getTime())) return false;
+  
+          return (
+            d.getFullYear() === ty &&
+            d.getMonth() === tm &&
+            d.getDate() === td
+          );
+        });
+      }
     }
+  
+    if (props.lockStatusFilter === 'locked') {
+      list = list.filter((capsule) => isLocked(capsule));
+    } else if (props.lockStatusFilter === 'unlocked') {
+      list = list.filter((capsule) => !isLocked(capsule));
+    }
+  
+    return list;
+  });
+  
+  /* ---------- MODAL STATE ---------- */
+  
+  // create/edit
+  const isFormModalVisible = ref(false);
+  const editingCapsule = ref(null);
+  const saving = ref(false);
+  const submitError = ref('');
+  
+  // reader
+  const showReader = ref(false);
+  const readerCapsule = ref(null);
+  const readerRecipientLabel = ref('');
+  
+  // delete confirm
+  const isDeleteModalVisible = ref(false);
+  const capsulePendingDelete = ref(null);
+  
+  /* ---------- HELPERS ---------- */
+  
+  function isMine(capsule) {
+    if (!capsule || !currentUid.value) return false;
+    return capsule.fromUid === currentUid.value;
   }
-
-  saving.value = true;
-  submitError.value = '';
-
-  try {
+  
+  // simple recipient label for the reader modal
+  function recipientLabel(capsule) {
+    if (!capsule) return '';
+    return nameForUid(capsule.toUid);
+  }
+  
+  function canEdit(capsule) {
+    if (!capsule) return false;
+    if (!isMine(capsule)) return false;
+    if (isOpened(capsule)) return false;
+    if (!capsule.unlockAt) return false;
+    const unlockTime = new Date(capsule.unlockAt).getTime();
+    return unlockTime > Date.now();
+  }
+  
+  function canDelete(capsule) {
+    if (!capsule) return false;
+    return isMine(capsule);
+  }
+  
+  /* ---------- EDITOR MODAL OPEN/CLOSE ---------- */
+  
+  function openCreate() {
+    // give form a "blank" capsule, but with safe defaults
+    editingCapsule.value = {
+      id: null,
+      title: '',
+      message: '',
+      unlockAt: null,
+      photos: [],
+      fromUid: currentUid.value || null,
+      toUid: null,
+    };
+    submitError.value = '';
+    isFormModalVisible.value = true;
+  }
+  
+  function openEdit(capsule) {
+    if (!capsule) return;
+    editingCapsule.value = capsule;
+    submitError.value = '';
+    isFormModalVisible.value = true;
+  }
+  
+  function closeFormModal() {
+    isFormModalVisible.value = false;
+    editingCapsule.value = null;
+    submitError.value = '';
+  }
+  
+  /* ---------- CREATE / UPDATE VIA MODAL ---------- */
+  
+  async function handleSaveCapsule(payload) {
+    if (!currentUid.value) {
+      alert('You must be logged in to create a time capsule.');
+      return;
+    }
+  
+    const { title, message, unlockAtLocal, recipient, photos } = payload;
+  
+    if (!unlockAtLocal) {
+      alert('Please choose an unlock date and time.');
+      return;
+    }
+  
+    const unlockAtLocalDate = new Date(unlockAtLocal);
+    if (Number.isNaN(unlockAtLocalDate.getTime())) {
+      alert('Invalid unlock date/time');
+      return;
+    }
+  
+    const now = Date.now();
+    const unlockTs = unlockAtLocalDate.getTime();
+    if (unlockTs <= now) {
+      alert('Unlock time must be in the future.');
+      return;
+    }
+  
+    const trimmedMessage = (message || '').trim();
+    if (!trimmedMessage) {
+      alert('Message cannot be empty.');
+      return;
+    }
+  
+    const unlockAtIso = unlockAtLocalDate.toISOString();
+  
+    // who is this capsule for?
+    let toUid;
+  
+    // new capsule
     if (!editingCapsule.value || !editingCapsule.value.id) {
-      await createTimeCapsule({
-        toUid,
-        unlockAt: unlockAtIso,
-        title: title || '',
-        message: trimmedMessage,
-        photos: photos || [],
-      });
-    } else {
-      await updateTimeCapsule(editingCapsule.value.id, {
-        title: title || '',
-        message: trimmedMessage,
-        unlockAt: unlockAtIso,
-        photos: photos || [],
-      });
+      if (recipient === 'me') {
+        // send to myself
+        toUid = currentUid.value;
+      } else {
+        // send to the other person
+        toUid = currentUid.value === DANI_UID ? EVA_UID : DANI_UID;
+      }
     }
-
-    await fetchTimeCapsules();
-    closeFormModal();
-  } catch (e) {
-    console.warn('[TimeCapsulesView] handleSaveCapsule failed:', e);
-    submitError.value = 'Failed to save time capsule.';
-  } finally {
-    saving.value = false;
-  }
-}
-
-// --- reader modal open/close ---
-function openReader(capsule) {
-  if (!capsule) return;
-  readerCapsule.value = capsule;
-  readerRecipientLabel.value = recipientLabel(capsule);
-  showReader.value = true;
-}
-
-function closeReader() {
-  showReader.value = false;
-  readerCapsule.value = null;
-  readerRecipientLabel.value = '';
-}
-
-// --- open a capsule (and show modal) ---
-async function handleOpen(capsule) {
-  if (!capsule) return;
-  if (isLocked(capsule)) return;
-
-  openReader(capsule);
-
-  if (!isOpened(capsule)) {
+  
+    saving.value = true;
+    submitError.value = '';
+  
     try {
-      await openTimeCapsule(capsule.id);
+      if (!editingCapsule.value || !editingCapsule.value.id) {
+        await createTimeCapsule({
+          toUid,
+          unlockAt: unlockAtIso,
+          title: title || '',
+          message: trimmedMessage,
+          photos: photos || [],
+        });
+      } else {
+        await updateTimeCapsule(editingCapsule.value.id, {
+          title: title || '',
+          message: trimmedMessage,
+          unlockAt: unlockAtIso,
+          photos: photos || [],
+        });
+      }
+  
       await fetchTimeCapsules();
+      closeFormModal();
     } catch (e) {
-      console.warn('[TimeCapsulesView] handleOpen failed:', e);
-      alert('Failed to mark time capsule as opened.');
+      console.warn('[TimeCapsulesView] handleSaveCapsule failed:', e);
+      submitError.value = 'Failed to save time capsule.';
+    } finally {
+      saving.value = false;
     }
   }
-}
-
-// --- delete capsule: modal flow ---
-function promptDelete(capsule) {
-  if (!capsule || !canDelete(capsule)) return;
-  capsulePendingDelete.value = capsule;
-  isDeleteModalVisible.value = true;
-}
-
-function closeDeleteModal() {
-  isDeleteModalVisible.value = false;
-  capsulePendingDelete.value = null;
-}
-
-async function confirmDelete() {
-  const capsule = capsulePendingDelete.value;
-  if (!capsule) {
-    closeDeleteModal();
-    return;
+  
+  /* ---------- READER MODAL ---------- */
+  
+  function openReader(capsule) {
+    if (!capsule) return;
+    readerCapsule.value = capsule;
+    readerRecipientLabel.value = recipientLabel(capsule);
+    showReader.value = true;
   }
-
-  isDeleteModalVisible.value = false;
-  capsulePendingDelete.value = null;
-
-  saving.value = true;
-  submitError.value = '';
-
-  try {
-    await deleteTimeCapsule(capsule.id);
-
-    if (readerCapsule.value && readerCapsule.value.id === capsule.id) {
-      closeReader();
+  
+  function closeReader() {
+    showReader.value = false;
+    readerCapsule.value = null;
+    readerRecipientLabel.value = '';
+  }
+  
+  /* ---------- OPEN CAPSULE ---------- */
+  
+  async function handleOpen(capsule) {
+    if (!capsule) return;
+    if (isLocked(capsule)) return;
+  
+    openReader(capsule);
+  
+    if (!isOpened(capsule)) {
+      try {
+        await openTimeCapsule(capsule.id);
+        await fetchTimeCapsules();
+      } catch (e) {
+        console.warn('[TimeCapsulesView] handleOpen failed:', e);
+        alert('Failed to mark time capsule as opened.');
+      }
     }
-  } catch (e) {
-    console.warn('[TimeCapsulesView] confirmDelete failed:', e);
-    submitError.value = 'Failed to delete time capsule.';
-  } finally {
-    saving.value = false;
   }
-}
-</script>
+  
+  /* ---------- DELETE CAPSULE FLOW ---------- */
+  
+  function promptDelete(capsule) {
+    if (!capsule || !canDelete(capsule)) return;
+    capsulePendingDelete.value = capsule;
+    isDeleteModalVisible.value = true;
+  }
+  
+  function closeDeleteModal() {
+    isDeleteModalVisible.value = false;
+    capsulePendingDelete.value = null;
+  }
+  
+  async function confirmDelete() {
+    const capsule = capsulePendingDelete.value;
+    if (!capsule) {
+      closeDeleteModal();
+      return;
+    }
+  
+    isDeleteModalVisible.value = false;
+    capsulePendingDelete.value = null;
+  
+    saving.value = true;
+    submitError.value = '';
+  
+    try {
+      await deleteTimeCapsule(capsule.id);
+  
+      if (readerCapsule.value && readerCapsule.value.id === capsule.id) {
+        closeReader();
+      }
+    } catch (e) {
+      console.warn('[TimeCapsulesView] confirmDelete failed:', e);
+      submitError.value = 'Failed to delete time capsule.';
+    } finally {
+      saving.value = false;
+    }
+  }
+  </script>
+  
 
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap');
