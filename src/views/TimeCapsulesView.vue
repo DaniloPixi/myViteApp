@@ -312,7 +312,16 @@ function canDelete(capsule) {
 
 // --- editor modal open/close ---
 function openCreate() {
-  editingCapsule.value = null;
+  // FIX: don't pass null to TimeCapsuleFormModal; give a default object with photos: []
+  editingCapsule.value = {
+    id: null,
+    title: '',
+    message: '',
+    unlockAt: null,
+    photos: [],
+    fromUid: currentUid.value || null,
+    toUid: null,
+  };
   submitError.value = '';
   isFormModalVisible.value = true;
 }
@@ -366,7 +375,7 @@ async function handleSaveCapsule(payload) {
   const unlockAtIso = unlockAtLocalDate.toISOString();
 
   let toUid;
-  if (!editingCapsule.value) {
+  if (!editingCapsule.value || !editingCapsule.value.id) {
     if (recipient === 'me') {
       toUid = currentUid.value;
     } else {
@@ -378,7 +387,7 @@ async function handleSaveCapsule(payload) {
   submitError.value = '';
 
   try {
-    if (!editingCapsule.value) {
+    if (!editingCapsule.value || !editingCapsule.value.id) {
       await createTimeCapsule({
         toUid,
         unlockAt: unlockAtIso,

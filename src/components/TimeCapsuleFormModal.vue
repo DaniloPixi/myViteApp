@@ -1,348 +1,519 @@
 <template>
-  <div class="tc-read-root">
-    <BaseCapsuleModal
-      title-id="tc-read-title"
-      :show-close-icon="false"
-      @close="emitClose"
-    >
-      <template #label>
-        Time capsule
-      </template>
+  <BaseCapsuleModal
+    title-id="tc-form-title"
+    :show-close-icon="false"
+    @close="emitClose"
+  >
+    <template #label>
+      Time capsule
+    </template>
 
-      <template #title>
-        {{ capsule.title || 'Untitled capsule' }}
-      </template>
+    <template #title>
+      {{ isEditMode ? 'Edit time capsule' : 'New time capsule' }}
+    </template>
 
-      <template #subtitle>
-        From {{ fromLabel }}
-        <span v-if="recipientLabel">
-          · To {{ recipientLabel }}
-        </span>
-      </template>
+    <template #subtitle>
+      From {{ FROM_NAME }} to {{ recipientLabel }}
+    </template>
 
-      <!-- BODY -->
-      <div class="tc-read-message-wrap">
-        <p class="tc-read-message">
-          {{ capsule.message || 'No message text.' }}
-        </p>
+    <!-- BODY -->
+    <div class="tc-form-body">
+      <!-- Title -->
+      <div class="tc-form-field">
+        <label class="tc-form-label" for="tc-title">Title</label>
+        <input
+          id="tc-title"
+          v-model="title"
+          type="text"
+          class="tc-input"
+          placeholder="Untitled capsule"
+        />
       </div>
 
-      <!-- Media gallery -->
-      <div
-        v-if="capsule.photos && capsule.photos.length"
-        class="tc-read-media-gallery"
-      >
-        <div
-          v-for="(media, index) in capsule.photos"
-          :key="index"
-          class="tc-read-media-item"
-          @click="openMediaViewer(index)"
-        >
-          <img
-            v-if="media.resource_type === 'image' || !media.resource_type"
-            :src="media.url"
-            class="tc-read-media-img"
-            alt="Time capsule image"
-          />
-          <video
-            v-else-if="media.resource_type === 'video'"
-            :src="media.url"
-            class="tc-read-media-video"
-            playsinline
-            muted
-          ></video>
+      <!-- Message -->
+      <div class="tc-form-field">
+        <label class="tc-form-label" for="tc-message">Message</label>
+        <textarea
+          id="tc-message"
+          v-model="message"
+          class="tc-textarea"
+          rows="5"
+          placeholder="Write something for your future hearts..."
+        />
+      </div>
+
+      <!-- Unlock + recipient (centered block) -->
+      <div class="tc-form-field tc-form-field--unlock">
+        <label class="tc-form-label" for="tc-unlock">
+          Unlock date &amp; time
+        </label>
+        <input
+          id="tc-unlock"
+          v-model="unlockAtLocal"
+          type="datetime-local"
+          class="tc-input tc-input--centered"
+        />
+
+        <div class="tc-recipient-toggle">
+          <button
+            type="button"
+            class="tc-chip"
+            :class="recipient === 'me' ? 'tc-chip-active' : ''"
+            @click="recipient = 'me'"
+          >
+            Me
+          </button>
+          <button
+            type="button"
+            class="tc-chip"
+            :class="recipient === 'partner' ? 'tc-chip-active' : ''"
+            @click="recipient = 'partner'"
+          >
+            {{ partnerName || 'Partner' }}
+          </button>
         </div>
       </div>
 
-      <div class="tc-read-meta">
-        <p v-if="capsule.createdAt" class="tc-meta-line">
-          <span class="tc-meta-label">Written</span>
-          <span class="tc-meta-value">{{ formatDate(capsule.createdAt) }}</span>
-        </p>
-        <p v-if="capsule.openedAt" class="tc-meta-line">
-          <span class="tc-meta-label">Opened</span>
-          <span class="tc-meta-value">{{ formatDate(capsule.openedAt) }}</span>
-        </p>
+      <!-- Media upload + preview (centered) -->
+      <div class="tc-form-field tc-form-field--media">
+        <label class="tc-form-label">Photos / videos</label>
+
+        <div class="tc-upload-row">
+          <input
+            ref="fileInput"
+            type="file"
+            class="tc-file-input"
+            accept="image/*,video/*"
+            multiple
+            @change="onFilesSelected"
+          />
+          <button
+            type="button"
+            class="tc-btn tc-btn-ghost tc-upload-btn"
+            :disabled="isUploading || isSubmitting"
+            @click="triggerFilePicker"
+          >
+            <span v-if="isUploading">Uploading…</span>
+            <span v-else>➕ Add photos / videos</span>
+          </button>
+
+          <span v-if="uploadError" class="tc-upload-error">
+            {{ uploadError }}
+          </span>
+        </div>
+
+        <div v-if="photos.length" class="tc-form-photos">
+          <div
+            v-for="(media, index) in photos"
+            :key="index"
+            class="tc-photo-thumb"
+          >
+            <img
+              v-if="media.resource_type === 'image' || !media.resource_type"
+              :src="media.url"
+              alt="Attachment image"
+            />
+            <video
+              v-else-if="media.resource_type === 'video'"
+              :src="media.url"
+              playsinline
+              muted
+            ></video>
+
+            <button
+              type="button"
+              class="tc-photo-remove"
+              @click="removePhoto(index)"
+            >
+              ×
+            </button>
+          </div>
+        </div>
       </div>
 
-      <!-- FOOTER -->
-      <template #footer-text>
-        Saved in your shared galaxy of memories.
-      </template>
+      <p v-if="submitError" class="tc-form-error">
+        {{ submitError }}
+      </p>
+    </div>
 
-      <template #footer-right>
-        <button class="tc-btn tc-btn-ghost" @click="emitClose">
-          Close
-        </button>
-      </template>
-    </BaseCapsuleModal>
+    <!-- FOOTER -->
+    <template #footer-text>
+      Write a note your future selves will unwrap later.
+    </template>
 
-    <!-- FULLSCREEN MEDIA VIEWER -->
-    <ImageModal
-      :is-visible="isMediaViewerVisible"
-      :media-items="capsule.photos || []"
-      :start-index="mediaViewerIndex"
-      @close="closeMediaViewer"
-    />
-  </div>
+    <template #footer-right>
+      <button
+        type="button"
+        class="tc-btn tc-btn-ghost"
+        :disabled="isSubmitting || isUploading"
+        @click="emitClose"
+      >
+        Cancel
+      </button>
+      <button
+        type="button"
+        class="tc-btn tc-btn-primary"
+        :disabled="isSubmitting || isUploading"
+        @click="handleSubmit"
+      >
+        <span v-if="isEditMode">
+          {{ isSubmitting ? 'Saving…' : 'Save changes' }}
+        </span>
+        <span v-else>
+          {{ isSubmitting ? 'Creating…' : 'Create capsule' }}
+        </span>
+      </button>
+    </template>
+  </BaseCapsuleModal>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { computed, ref } from 'vue';
 import BaseCapsuleModal from './BaseCapsuleModal.vue';
-import ImageModal from './ImageModal.vue';
+
+const FROM_NAME = 'Dani';
 
 const props = defineProps({
-  capsule: { type: Object, required: true },
-  isMine: { type: Boolean, default: false },
-  recipientLabel: { type: String, default: '' },
-  partnerName: { type: String, default: 'partner' },
+  capsule: {
+    type: Object,
+    default: null, // can be null in "create" mode
+  },
+  partnerName: {
+    type: String,
+    default: 'partner',
+  },
+  isSubmitting: {
+    type: Boolean,
+    default: false,
+  },
+  submitError: {
+    type: String,
+    default: '',
+  },
+  cloudinaryCloudName: {
+    type: String,
+    default: '',
+  },
+  cloudinaryUploadPreset: {
+    type: String,
+    default: '',
+  },
 });
 
-const emit = defineEmits(['close']);
+const emit = defineEmits(['close', 'save']);
 
-// hard-coded because this app is literally just you + your girlfriend
-const MY_NAME = 'Dani';
+const isEditMode = computed(() => !!props.capsule && !!props.capsule.id);
+
+// Local form state
+const title = ref(props.capsule?.title ?? '');
+const message = ref(props.capsule?.message ?? '');
+const unlockAtLocal = ref(
+  props.capsule?.unlockAt ? toLocalInputValue(props.capsule.unlockAt) : ''
+);
+
+// only used in "create" path in parent
+const recipient = ref('partner');
+
+// photos is ALWAYS an array
+const photos = ref(
+  Array.isArray(props.capsule?.photos) ? [...props.capsule.photos] : []
+);
+
+const recipientLabel = computed(() => {
+  if (recipient.value === 'me') return FROM_NAME;
+  return props.partnerName || 'your partner';
+});
+
+// upload state
+const fileInput = ref(null);
+const isUploading = ref(false);
+const uploadError = ref('');
+
+function toLocalInputValue(isoString) {
+  if (!isoString) return '';
+  const d = new Date(isoString);
+  if (Number.isNaN(d.getTime())) return '';
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  const hours = String(d.getHours()).padStart(2, '0');
+  const minutes = String(d.getMinutes()).padStart(2, '0');
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+}
 
 function emitClose() {
   emit('close');
 }
 
-function formatDate(raw) {
-  if (!raw) return 'Unknown';
-  const d = new Date(raw);
-  if (Number.isNaN(d.getTime())) return 'Unknown';
-  return d.toLocaleString(undefined, {
-    year: 'numeric',
-    month: 'short',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
+function handleSubmit() {
+  emit('save', {
+    title: title.value,
+    message: message.value,
+    unlockAtLocal: unlockAtLocal.value,
+    recipient: recipient.value,
+    photos: photos.value,
   });
 }
 
-// From-label = Dani if it's yours, otherwise partner's name ("Eva")
-const fromLabel = computed(() =>
-  props.isMine ? MY_NAME : props.partnerName
-);
-
-// media viewer state
-const isMediaViewerVisible = ref(false);
-const mediaViewerIndex = ref(0);
-
-function openMediaViewer(index) {
-  mediaViewerIndex.value = index || 0;
-  isMediaViewerVisible.value = true;
+function triggerFilePicker() {
+  uploadError.value = '';
+  if (fileInput.value) {
+    fileInput.value.click();
+  }
 }
 
-function closeMediaViewer() {
-  isMediaViewerVisible.value = false;
+async function onFilesSelected(event) {
+  const files = Array.from(event.target.files || []);
+  if (!files.length) return;
+
+  if (!props.cloudinaryCloudName || !props.cloudinaryUploadPreset) {
+    uploadError.value = 'Media upload is not configured.';
+    event.target.value = '';
+    return;
+  }
+
+  isUploading.value = true;
+  uploadError.value = '';
+
+  try {
+    for (const file of files) {
+      const isVideo = file.type && file.type.startsWith('video');
+      const resourceType = isVideo ? 'video' : 'image';
+
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('upload_preset', props.cloudinaryUploadPreset);
+
+      const endpoint = `https://api.cloudinary.com/v1_1/${props.cloudinaryCloudName}/${resourceType}/upload`;
+
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!res.ok) {
+        let msg = 'Upload failed';
+        try {
+          const errJson = await res.json();
+          msg = errJson?.error?.message || msg;
+        } catch {
+          // ignore parse
+        }
+        throw new Error(msg);
+      }
+
+      const data = await res.json();
+
+      photos.value.push({
+        url: data.secure_url || data.url,
+        resource_type: data.resource_type || resourceType,
+      });
+    }
+  } catch (e) {
+    console.error('[TimeCapsuleFormModal] upload failed:', e);
+    uploadError.value =
+      e?.message || 'Failed to upload media. Please try again.';
+  } finally {
+    isUploading.value = false;
+    if (event.target) event.target.value = '';
+  }
+}
+
+function removePhoto(index) {
+  photos.value.splice(index, 1);
 }
 </script>
 
 <style scoped>
-.tc-read-message-wrap {
-  position: relative;
-  margin-top: 1.1rem;
-  padding: 0.4rem 1.1rem;
-  border-radius: 16px;
-  background:
-    radial-gradient(circle at 0% 0%, rgba(255, 255, 255, 0.08), transparent 65%),
-    rgba(0, 0, 0, 0.9);
-  border: 1px solid rgba(255, 0, 255, 0.75);
-  max-height: 260px;
-  overflow-y: auto;
-  box-shadow:
-    0 0 16px rgba(255, 0, 255, 0.6),
-    0 0 20px rgba(0, 255, 255, 0.45);
-  animation: message-border-glow 2.5s ease-in-out infinite alternate;
-}
-
-@keyframes message-border-glow {
-  0% {
-    border-color: rgba(255, 0, 255, 0.8);
-    box-shadow:
-      0 0 16px rgba(255, 0, 255, 0.8),
-      0 0 20px rgba(0, 255, 255, 0.35);
-  }
-  50% {
-    border-color: rgba(0, 255, 255, 0.9);
-    box-shadow:
-      0 0 18px rgba(0, 255, 255, 0.8),
-      0 0 26px rgba(255, 0, 255, 0.45);
-  }
-  100% {
-    border-color: rgba(255, 0, 255, 0.85);
-    box-shadow:
-      0 0 16px rgba(255, 0, 255, 0.75),
-      0 0 22px rgba(0, 255, 255, 0.45);
-  }
-}
-
-/* subtle fading edges for scroll */
-.tc-read-message-wrap::before,
-.tc-read-message-wrap::after {
-  content: "";
-  position: sticky;
-  left: 0;
-  right: 0;
-  height: 14px;
-  pointer-events: none;
-  z-index: 1;
-}
-
-.tc-read-message-wrap::before {
-  top: 0;
-  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.95), transparent);
-}
-
-.tc-read-message-wrap::after {
-  bottom: 0;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.95), transparent);
-}
-
-.tc-read-message {
-  margin: 0;
-  font-size: 1.3rem;
-  line-height: 1.6;
-  font-family: 'Great Vibes', cursive;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  color: #ffeaff;
-  text-shadow: 0 0 6px rgba(255, 0, 255, 0.3);
-  white-space: pre-line;
-}
-
-/* Media gallery – centered items */
-
-.tc-read-media-gallery {
-  margin-top: 0.9rem;
+/* Main vertical layout */
+.tc-form-body {
+  margin-top: 0.25rem;
+  padding: 0.15rem 0;
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.55rem;
-  justify-content: center;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-height: 55vh;
+  overflow-y: auto;
 }
 
-.tc-read-media-item {
-  position: relative;
-  border-radius: 12px;
-  overflow: hidden;
-  background: rgba(0, 0, 0, 0.9);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  box-shadow:
-    0 0 12px rgba(255, 0, 255, 0.45),
-    0 0 16px rgba(0, 255, 255, 0.35);
-  flex: 0 1 130px;
-  cursor: zoom-in;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
-}
-
-.tc-read-media-item:hover {
-  transform: translateY(-1px);
-  box-shadow:
-    0 0 16px rgba(255, 0, 255, 0.6),
-    0 0 20px rgba(0, 255, 255, 0.45);
-}
-
-.tc-read-media-img,
-.tc-read-media-video {
-  display: block;
-  width: 100%;
-  height: 120px;
-  object-fit: cover;
-}
-
-/* meta info */
-
-.tc-read-meta {
-  margin-top: 0.9rem;
-  align-self: center;
-
-  display: inline-flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  align-items: center;
-  gap: 0.35rem 0.9rem;
-
-  padding: 0.45rem 1.1rem;
-  border-radius: 999px;
-
-  background:
-    radial-gradient(circle at 0% 0%, rgba(0, 255, 255, 0.12), transparent 60%),
-    radial-gradient(circle at 100% 100%, rgba(255, 0, 255, 0.12), transparent 60%),
-    rgba(0, 0, 0, 0.9);
-
-  border: 1px solid rgba(0, 255, 255, 0.55);
-  box-shadow:
-    0 0 10px rgba(0, 255, 255, 0.45),
-    0 0 14px rgba(255, 0, 255, 0.35);
-
-  color: #c7fdff;
-  font-size: 0.8rem;
-}
-
-.tc-meta-line {
-  margin: 0;
-  position: relative;
-
-  display: inline-flex;
-  align-items: baseline;
-  justify-content: center;
+.tc-form-field {
+  display: flex;
+  flex-direction: column;
   gap: 0.25rem;
-  white-space: nowrap;
-  padding-left: 0.9rem; /* space for the dot */
 }
 
-/* glowing dot for each meta line */
-.tc-meta-line::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 50%;
-  width: 6px;
-  height: 6px;
-  border-radius: 999px;
-  transform: translateY(-50%);
-
-  background: radial-gradient(circle, #00ffff 0%, #ff00ff 70%);
-  box-shadow:
-    0 0 6px rgba(0, 255, 255, 0.8),
-    0 0 8px rgba(255, 0, 255, 0.7);
+/* Centered unlock + recipient block */
+.tc-form-field--unlock {
+  align-items: center;
+  text-align: center;
 }
 
-.tc-meta-label {
+.tc-input--centered {
+  max-width: 18rem;
+  width: 100%;
+}
+
+/* Centered media block */
+.tc-form-field--media {
+  align-items: center;
+  text-align: center;
+}
+
+/* Labels */
+.tc-form-label {
+  font-size: 0.78rem;
   text-transform: uppercase;
   letter-spacing: 0.16em;
-  font-size: 0.68rem;
-  opacity: 0.9;
   color: #7ef7ff;
+  opacity: 0.9;
 }
 
-.tc-meta-value {
+/* Inputs */
+.tc-input,
+.tc-textarea {
+  border-radius: 0.6rem;
+  border: 0.0625rem solid rgba(255, 255, 255, 0.25);
+  background: rgba(0, 0, 0, 0.75);
+  color: #f5f5ff;
+  padding: 0.4rem 0.7rem;
+  font-size: 0.9rem;
+  outline: none;
+  box-shadow:
+    inset 0 0 0.25rem rgba(0, 0, 0, 0.6),
+    0 0 0.5rem rgba(255, 0, 255, 0.25);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease,
+    background 0.15s ease;
+}
+
+.tc-input:focus,
+.tc-textarea:focus {
+  border-color: rgba(0, 255, 255, 0.95);
+  box-shadow:
+    inset 0 0 0.3rem rgba(0, 0, 0, 0.7),
+    0 0 0.75rem rgba(0, 255, 255, 0.7);
+  background: rgba(0, 0, 0, 0.9);
+}
+
+.tc-textarea {
+  resize: vertical;
+  min-height: 6.25rem;
+}
+
+/* Recipient toggle */
+.tc-recipient-toggle {
+  display: inline-flex;
+  justify-content: center;
+  gap: 0.4rem;
+  margin-top: 0.4rem;
+  padding: 0.12rem;
+  border-radius: 999rem;
+  background: rgba(0, 0, 0, 0.7);
+  border: 0.0625rem solid rgba(255, 255, 255, 0.25);
+}
+
+.tc-chip {
+  border: none;
+  background: transparent;
+  color: #e2e2ff;
+  padding: 0.22rem 0.8rem;
   font-size: 0.8rem;
-  color: #e4feff;
+  border-radius: 999rem;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease,
+    box-shadow 0.15s ease, transform 0.12s ease;
 }
 
-/* make sure it still feels good on very small screens */
-@media (max-width: 480px) {
-  .tc-read-meta {
-    padding: 0.45rem 0.8rem;
-    gap: 0.25rem 0.6rem;
-  }
+.tc-chip-active {
+  background: radial-gradient(circle at 0% 0%, #00ffff55, #ff00ff55);
+  color: #0a0a0a;
+  box-shadow:
+    0 0 0.5rem rgba(0, 255, 255, 0.8),
+    0 0 0.6rem rgba(255, 0, 255, 0.7);
+  transform: translateY(-0.06rem);
+}
 
-  .tc-meta-line {
-    white-space: normal;
-  }
+/* Upload row */
+.tc-upload-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+}
+
+.tc-file-input {
+  display: none;
+}
+
+.tc-upload-btn {
+  min-width: 9rem;
+}
+
+.tc-upload-error {
+  font-size: 0.78rem;
+  color: #ff6b9a;
+}
+
+/* Photo preview */
+.tc-form-photos {
+  margin-top: 0.3rem;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.45rem;
+}
+
+.tc-photo-thumb {
+  position: relative;
+  width: 5.5rem;
+  height: 5.5rem;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.9);
+  border: 0.0625rem solid rgba(255, 255, 255, 0.2);
+  box-shadow:
+    0 0 0.5rem rgba(255, 0, 255, 0.4),
+    0 0 0.6rem rgba(0, 255, 255, 0.35);
+}
+
+.tc-photo-thumb img,
+.tc-photo-thumb video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.tc-photo-remove {
+  position: absolute;
+  top: 0.2rem;
+  right: 0.2rem;
+  border: none;
+  border-radius: 999rem;
+  width: 1.2rem;
+  height: 1.2rem;
+  font-size: 0.75rem;
+  line-height: 1;
+  cursor: pointer;
+  background: rgba(0, 0, 0, 0.85);
+  color: #ffb0c5;
+  box-shadow: 0 0 0.35rem rgba(0, 0, 0, 0.8);
+}
+
+/* Error */
+.tc-form-error {
+  margin: 0.2rem 0 0;
+  font-size: 0.8rem;
+  color: #ff6b9a;
 }
 
 /* Buttons */
-
 .tc-btn {
-  border-radius: 999px;
+  border-radius: 999rem;
   padding: 0.3rem 0.95rem;
   font-size: 0.8rem;
   cursor: pointer;
-  border: 1px solid transparent;
+  border: 0.0625rem solid transparent;
   background: transparent;
   color: #f5f5ff;
   transition: all 0.15s ease;
@@ -353,35 +524,104 @@ function closeMediaViewer() {
   background: rgba(0, 0, 0, 0.65);
 }
 
-.tc-btn-ghost:hover {
+.tc-btn-ghost:hover:not(:disabled) {
   border-color: rgba(0, 255, 255, 0.9);
-  box-shadow: 0 0 10px rgba(0, 255, 255, 0.6);
-  transform: translateY(-0.5px);
+  box-shadow: 0 0 0.6rem rgba(0, 255, 255, 0.6);
+  transform: translateY(-0.06rem);
 }
 
-/* Scrollbar styling inside message */
-
-.tc-read-message-wrap::-webkit-scrollbar {
-  width: 6px;
+.tc-btn-primary {
+  border-color: magenta;
+  background: rgba(0, 0, 0, 0.8);
+  color: magenta;
+  box-shadow:
+    inset 0 0 0.4rem rgba(255, 0, 255, 0.6),
+    0 0 0.4rem rgba(255, 0, 255, 0.5);
 }
 
-.tc-read-message-wrap::-webkit-scrollbar-track {
-  background: transparent;
+.tc-btn-primary:hover:not(:disabled) {
+  box-shadow:
+    inset 0 0 0.5rem rgba(255, 0, 255, 0.9),
+    0 0 0.6rem rgba(0, 255, 255, 0.6);
+  transform: translateY(-0.06rem);
 }
 
-.tc-read-message-wrap::-webkit-scrollbar-thumb {
-  background: linear-gradient(to bottom, magenta, cyan);
-  border-radius: 999px;
+.tc-btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+  box-shadow: none;
 }
 
-@media (max-width: 700px) {
-  .tc-read-message-wrap {
-    max-height: 220px;
+/* Keep modal compact on mobile */
+:deep(.tc-modal-body) {
+  padding-top: 0.1rem;
+}
+
+@media (max-width: 37.5rem) {
+  :deep(.tc-modal-shell) {
+    width: 90vw;
+    max-width: 26rem;
+    padding: 1.1rem 1rem 0.7rem;
+    border-radius: 1rem;
   }
 
-  .tc-read-media-img,
-  .tc-read-media-video {
-    height: 110px;
+  :deep(.tc-modal-header) {
+    padding-bottom: 0.4rem;
+    margin-bottom: 0.15rem;
+  }
+
+  :deep(.tc-modal-header::after) {
+    margin-top: 0.3rem;
+  }
+
+  :deep(.tc-modal-title) {
+    font-size: 1.8rem;
+  }
+
+  /* keep subtitle, it's short now */
+  .tc-form-body {
+    max-height: 50vh;
+    gap: 0.5rem;
+    padding-right: 0.1rem;
+  }
+
+  .tc-input,
+  .tc-textarea {
+    padding: 0.35rem 0.6rem;
+    font-size: 0.85rem;
+  }
+
+  .tc-textarea {
+    min-height: 5.5rem;
+  }
+
+  .tc-upload-row {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .tc-form-photos {
+    max-height: 7rem;
+    overflow-x: auto;
+    overflow-y: hidden;
+    gap: 0.35rem;
+  }
+
+  .tc-photo-thumb {
+    width: 4.5rem;
+    height: 4.5rem;
+  }
+
+  :deep(.tc-modal-footer) {
+    margin-top: 0.4rem;
+    padding-top: 0.4rem;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+
+  :deep(.tc-modal-footer-right) {
+    justify-content: flex-end;
   }
 }
 </style>

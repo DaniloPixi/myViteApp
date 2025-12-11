@@ -160,11 +160,6 @@ function onClose() {
   }
 }
 
-
-
-
-
-
 /* Close button */
 .tc-modal-close {
   position: absolute;
@@ -238,10 +233,6 @@ function onClose() {
     background-position: 0% 50%;
   }
 }
-
-
-
-
 
 /* Small uppercase label above title */
 .tc-modal-label {
