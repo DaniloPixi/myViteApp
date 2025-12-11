@@ -65,12 +65,23 @@
           </button>
 
           <button
-            v-if="canDelete(capsule)"
-            class="tc-btn tc-btn-danger"
-            @click="promptDelete(capsule)"
-          >
-            Delete
-          </button>
+  v-if="canDelete(capsule)"
+  type="button"
+  class="tc-btn tc-btn-danger tc-btn-icon"
+  @click="promptDelete(capsule)"
+  aria-label="Delete capsule"
+>
+  <svg
+    class="tc-icon-trash"
+    viewBox="0 0 24 24"
+    aria-hidden="true"
+  >
+    <path
+      d="M9 3.5h6c.55 0 1 .45 1 1v1.5h3.25a.75.75 0 0 1 0 1.5H4.75a.75.75 0 0 1 0-1.5H8V4.5c0-.55.45-1 1-1zm1.5 3h3v-1h-3v1zM7.75 9.5a.75.75 0 0 1 .75.75v7.5a.75.75 0 0 1-1.5 0v-7.5c0-.41.34-.75.75-.75zm4.25 0a.75.75 0 0 1 .75.75v7.5a.75.75 0 0 1-1.5 0v-7.5c0-.41.34-.75.75-.75zm4.25 0a.75.75 0 0 1 .75.75v7.5a.75.75 0 0 1-1.5 0v-7.5c0-.41.34-.75.75-.75zM7 8h10l-.74 9.23A2 2 0 0 1 14.27 19H9.73a2 2 0 0 1-1.99-1.77L7 8z"
+    />
+  </svg>
+</button>
+
 
           <button
             class="tc-btn tc-btn-primary"
@@ -826,6 +837,35 @@
   color: #f5f5ff;
   transition: box-shadow 0.15s ease, border-color 0.15s ease, background 0.15s ease;
   white-space: nowrap;
+}
+/* Icon-style buttons (for delete) */
+.tc-btn-icon {
+  padding: 0.2rem;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Make the danger button not too wide when used as icon-only */
+.tc-btn-danger.tc-btn-icon {
+  padding-inline: 0.35rem;
+}
+
+/* Trash icon sizing */
+.tc-icon-trash {
+  width: 1rem;
+  height: 1rem;
+  display: block;
+  fill: currentColor; /* <- this is the important line */
+}
+
+
+/* Slight tweak for very small screens so it never overflows */
+@media (max-width: 37.5rem) {
+  .tc-btn-danger.tc-btn-icon {
+    padding-inline: 0.3rem;
+  }
 }
 
 .tc-btn-ghost {
