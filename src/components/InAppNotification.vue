@@ -3,8 +3,9 @@
     <div class="ian-panel">
       <div class="ian-content">
         <div class="ian-icon">
-          <img src="/icon.svg" alt="icon" />
-        </div>
+  <img src="/icons/manifest-icon-192-maskable.png" alt="icon" />
+</div>
+
 
         <div class="ian-text">
           <h5 class="ian-title">{{ title }}</h5>

@@ -170,17 +170,17 @@ async function sendPushNotification(title, body, link = '/', excludeUid, data = 
     );
 
     const message = {
-      // 🔴 BACK TO NOTIFICATION + DATA (this is what Firebase's internal handler likes)
+      // notification + data (stable)
       notification: { title, body },
 
-      // Extra payload for clients / service worker
       data: stringifiedData,
 
       webpush: {
         fcm_options: { link: stringifiedData.url },
         notification: {
-          icon: stringifiedData.icon || '/icon.svg',
-          badge: stringifiedData.badge || '/icon.svg',
+          // 🔥 use the new app icon for web push
+          icon: stringifiedData.icon || '/icons/manifest-icon-192-maskable.png',
+          badge: stringifiedData.badge || '/icons/manifest-icon-192-maskable.png',
         },
       },
 
@@ -234,6 +234,7 @@ async function sendPushNotification(title, body, link = '/', excludeUid, data = 
     console.error('Error during sendPushNotification function:', error);
   }
 }
+
 
 
 

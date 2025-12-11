@@ -13,7 +13,7 @@ export default defineConfig({
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
       },
-      // Switch to the 'injectManifest' strategy to use our own service worker
+      // Use our own service worker implementation
       strategies: 'injectManifest',
       srcDir: 'src',
       filename: 'sw.js',
@@ -25,26 +25,33 @@ export default defineConfig({
         background_color: '#ffffff',
         theme_color: '#000000',
         icons: [
+          // maskable icons (for Android, etc.)
           {
-            src: '/manifest-icon-192.maskable.png',
+            src: '/icons/manifest-icon-192-maskable.png',
             sizes: '192x192',
             type: 'image/png',
-            purpose: 'any maskable',
+            purpose: 'maskable',
           },
           {
-            src: '/manifest-icon-512.maskable.png',
+            src: '/icons/manifest-icon-512-maskable.png',
             sizes: '512x512',
             type: 'image/png',
-            purpose: 'any maskable',
+            purpose: 'maskable',
+          },
+          // regular icons as fallback
+          {
+            src: '/icons/manifest-icon-192.png',
+            sizes: '192x192',
+            type: 'image/png',
+            purpose: 'any',
           },
           {
-            src: '/icon.svg',
-            sizes: '72x72 96x96 128x128 256x256',
-            type: 'image/svg+xml',
+            src: '/icons/manifest-icon-512.png',
+            sizes: '512x512',
+            type: 'image/png',
             purpose: 'any',
           },
         ],
-        // 🔥 New: screenshots for richer install UI (Chrome, etc.)
         screenshots: [
           {
             src: '/screenshots/grus-home-narrow.png',
