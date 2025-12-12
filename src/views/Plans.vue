@@ -93,15 +93,32 @@ import PlanFormModal from '../components/PlanFormModal.vue';
 import ConfirmDeleteModal from '../components/ConfirmDeleteModal.vue';
 import ProgressBar from '../components/ProgressBar.vue';
 
-
 const props = defineProps({
-  user: Object,
-  locationFilter: String,
-  hashtagFilter: String,
-  dateFilter: String,
-  timeFilter: String,
-  durationFilter: Array,
-  // 🔥 new:
+  user: {
+    type: Object,
+    required: true,
+  },
+  locationFilter: {
+    type: String,
+    default: '',
+  },
+  hashtagFilter: {
+    type: String,
+    default: '',
+  },
+  dateFilter: {
+    type: String,
+    default: '',
+  },
+  timeFilter: {
+    type: String,
+    default: '',
+  },
+  durationFilter: {
+    type: Array,
+    default: () => [],
+  },
+  // 🔥 new: ID to focus
   focusPlanId: {
     type: String,
     default: null,
@@ -172,6 +189,47 @@ const getPlanBubbleStyle = (plan, index) => {
 
   return style;
 };
+
+function scrollToPlanWithRetry(id) {
+  if (!id) return;
+
+  let attempts = 0;
+  const maxAttempts = 10;
+  const delay = 150;
+
+  const selector = `[data-plan-id="${id}"]`;
+
+  const tryOnce = () => {
+    const el = document.querySelector(selector);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.classList.add('plan-highlight');
+
+      setTimeout(() => {
+        el.classList.remove('plan-highlight');
+      }, 1500);
+
+      return;
+    }
+
+    attempts += 1;
+    if (attempts < maxAttempts) {
+      setTimeout(tryOnce, delay);
+    }
+  };
+
+  nextTick(tryOnce);
+}
+
+watch(
+  () => props.focusPlanId,
+  (id) => {
+    if (!id) return;
+    scrollToPlanWithRetry(id);
+  },
+  { immediate: true }
+);
+
 
 const getScaleForDesktop = (plan) => {
   if (!plan.rect) return 1;

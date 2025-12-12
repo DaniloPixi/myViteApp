@@ -138,10 +138,19 @@ import { usePhotoUtils } from '../composables/usePhotoUtils';
 const { getOptimizedUrl } = usePhotoUtils();
 
 const props = defineProps({
-  locationFilter: String,
-  hashtagFilter: String,
-  dateFilter: String,
-  // 🔥 new:
+  locationFilter: {
+    type: String,
+    default: '',
+  },
+  hashtagFilter: {
+    type: String,
+    default: '',
+  },
+  dateFilter: {
+    type: String,
+    default: '',
+  },
+  // 🔥 new: ID to focus when coming from a notification
   focusMemoId: {
     type: String,
     default: null,
@@ -194,6 +203,47 @@ watch(
     nextTick(() => {
       scrollToMemo(id);
     });
+  },
+  { immediate: true }
+);
+function scrollToMemoWithRetry(id) {
+  if (!id) return;
+
+  let attempts = 0;
+  const maxAttempts = 10; // ~1.5s total
+  const delay = 150; // ms
+
+  const selector = `[data-memo-id="${id}"]`;
+
+  const tryOnce = () => {
+    const el = document.querySelector(selector);
+    if (el) {
+      // When we find it, scroll + highlight
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.classList.add('memo-highlight');
+
+      setTimeout(() => {
+        el.classList.remove('memo-highlight');
+      }, 1500);
+
+      return;
+    }
+
+    attempts += 1;
+    if (attempts < maxAttempts) {
+      setTimeout(tryOnce, delay);
+    }
+  };
+
+  // start retry loop
+  nextTick(tryOnce);
+}
+
+watch(
+  () => props.focusMemoId,
+  (id) => {
+    if (!id) return;
+    scrollToMemoWithRetry(id);
   },
   { immediate: true }
 );
