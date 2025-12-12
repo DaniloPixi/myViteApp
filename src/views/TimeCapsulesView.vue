@@ -28,6 +28,7 @@
         :key="capsule.id"
         class="tc-card"
         :data-capsule-id="capsule.id"
+         :ref="el => registerCapsuleRef(capsule.id, el)"
         :class="[
           isMine(capsule) ? 'tc-card-mine' : 'tc-card-theirs',
           isLocked(capsule) ? 'tc-card-locked' : 'tc-card-unlocked',
@@ -151,7 +152,7 @@
 </template>
 
 <script setup>
-  import { ref, computed, onMounted, onUnmounted } from 'vue';
+  import { ref, computed, onMounted, onUnmounted,watch, nextTick } from 'vue';
   import { auth } from '../firebase';
   import {
     useTimeCapsules,
@@ -165,16 +166,22 @@
   import ConfirmDeleteModal from '../components/ConfirmDeleteModal.vue';
   
   const props = defineProps({
-    dateFilter: {
-      type: String,
-      default: '',
-    },
-    // '' | 'locked' | 'unlocked'
-    lockStatusFilter: {
-      type: String,
-      default: '',
-    },
-  });
+  dateFilter: {
+    type: String,
+    default: '',
+  },
+  // '' | 'locked' | 'unlocked'
+  lockStatusFilter: {
+    type: String,
+    default: '',
+  },
+  // 🔥 new: for deep-link focus
+  focusCapsuleId: {
+    type: String,
+    default: null,
+  },
+});
+
   
   const isTouchDevice = ref(false);
   const focusedCapsuleId = ref(null);
@@ -271,7 +278,56 @@
     isLocked,
     isOpened,
   } = useTimeCapsules();
-  
+  // Map capsuleId -> DOM element
+const capsuleRefs = ref({});
+
+function registerCapsuleRef(id, el) {
+  if (!id) return;
+  if (el) {
+    capsuleRefs.value[id] = el;
+  } else {
+    delete capsuleRefs.value[id];
+  }
+}
+
+function scrollToCapsuleWithRetry(id) {
+  if (!id) return;
+
+  let attempts = 0;
+  const maxAttempts = 10;
+  const delay = 150; // ms
+
+  const tryOnce = () => {
+    const el = capsuleRefs.value[id];
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.classList.add('tc-card-highlight');
+
+      setTimeout(() => {
+        el.classList.remove('tc-card-highlight');
+      }, 1500);
+
+      return;
+    }
+
+    attempts += 1;
+    if (attempts < maxAttempts) {
+      setTimeout(tryOnce, delay);
+    }
+  };
+
+  nextTick(tryOnce);
+}
+
+watch(
+  () => props.focusCapsuleId,
+  (id) => {
+    if (!id) return;
+    scrollToCapsuleWithRetry(id);
+  },
+  { immediate: true }
+);
+
   onMounted(() => {
     fetchTimeCapsules();
   
@@ -686,6 +742,13 @@
     border-color 0.25s ease,
     transform 0.22s cubic-bezier(0.25, 0.8, 0.25, 1);
   backface-visibility: hidden;
+}
+.tc-card-highlight {
+  box-shadow:
+    inset 0 0 14px var(--bubble-inner-shadow-color, rgba(255, 0, 255, 0.7)),
+    0 0 22px var(--bubble-outer-shadow-color, rgba(0, 255, 255, 0.6));
+  transform: scale(1.6);
+  z-index: 3;
 }
 
 .tc-card:hover {

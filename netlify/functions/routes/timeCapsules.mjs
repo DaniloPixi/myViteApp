@@ -122,7 +122,7 @@ export default function createTimeCapsulesRouter(
         .status(401)
         .json({ success: false, message: 'Unauthorized: no user in request.' });
     }
-
+  
     const {
       toUid,
       unlockAt: unlockAtRaw,
@@ -130,14 +130,14 @@ export default function createTimeCapsulesRouter(
       message,
       photos,
     } = req.body || {};
-
+  
     if (!toUid || !unlockAtRaw) {
       return res.status(400).json({
         success: false,
         message: 'Missing required fields: toUid and unlockAt',
       });
     }
-
+  
     const unlockAtIso = parseUnlockAt(unlockAtRaw);
     if (!unlockAtIso) {
       return res.status(400).json({
@@ -145,7 +145,7 @@ export default function createTimeCapsulesRouter(
         message: 'Invalid unlockAt date/time format.',
       });
     }
-
+  
     const now = new Date();
     const unlockDate = new Date(unlockAtIso);
     if (unlockDate.getTime() <= now.getTime()) {
@@ -154,12 +154,12 @@ export default function createTimeCapsulesRouter(
         message: 'unlockAt must be in the future.',
       });
     }
-
+  
     const unlockDateKey = dateKeyFromIso(unlockAtIso);
-
+  
     try {
       const displayName = name || email || 'Someone';
-
+  
       const docRef = await db.collection('timeCapsules').add({
         fromUid: uid,
         fromName: displayName,
@@ -173,7 +173,43 @@ export default function createTimeCapsulesRouter(
         openedAt: null,
         opened: false,
       });
-
+  
+      // 🔔 Notify the other person that a capsule has been scheduled
+      try {
+        const deepLinkUrl = `/?view=capsules&capsuleId=${docRef.id}`;
+        const unlockPretty = unlockDate.toLocaleString(undefined, {
+          year: 'numeric',
+          month: 'short',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+        });
+  
+        const notifTitle = '⏳ New time capsule';
+        const notifBody = title
+          ? `"${title}" will unlock on ${unlockPretty}`
+          : `A new capsule will unlock on ${unlockPretty}`;
+  
+        await sendPushNotification(
+          notifTitle,
+          notifBody,
+          deepLinkUrl,
+          uid, // exclude creator → only partner gets it (in prod)
+          {
+            type: 'capsuleCreated',
+            url: deepLinkUrl,
+            capsuleId: docRef.id,
+            unlockAt: unlockAtIso,
+            unlockDateKey,
+            fromUid: uid,
+            fromName: displayName,
+            toUid,
+          },
+        );
+      } catch (notifyError) {
+        console.warn('[timeCapsules] Failed to send "capsule created" notification:', notifyError);
+      }
+  
       return res.status(201).json({
         success: true,
         id: docRef.id,
@@ -187,6 +223,7 @@ export default function createTimeCapsulesRouter(
       });
     }
   });
+  
 
   /**
    * PUT /api/time-capsules/:id
@@ -312,27 +349,27 @@ export default function createTimeCapsulesRouter(
    * Mark a capsule as opened by the recipient and notify the creator.
    */
   router.post('/:id/open', async (req, res) => {
-    const { uid } = req.user || {};
+    const { uid, name, email } = req.user || {};
     if (!uid) {
       return res
         .status(401)
         .json({ success: false, message: 'Unauthorized: no user in request.' });
     }
-
+  
     const { id } = req.params;
-
+  
     try {
       const docRef = db.collection('timeCapsules').doc(id);
       const snap = await docRef.get();
-
+  
       if (!snap.exists) {
         return res
           .status(404)
           .json({ success: false, message: 'Time capsule not found.' });
       }
-
+  
       const data = snap.data();
-
+  
       // Only the intended recipient (or creator, for self-capsule) can "open"
       if (data.toUid !== uid && data.fromUid !== uid) {
         return res.status(403).json({
@@ -340,7 +377,7 @@ export default function createTimeCapsulesRouter(
           message: 'You are not allowed to open this capsule.',
         });
       }
-
+  
       // Check unlock time
       const now = new Date();
       const unlockDate = new Date(data.unlockAt);
@@ -350,7 +387,7 @@ export default function createTimeCapsulesRouter(
           message: 'This capsule is not unlocked yet.',
         });
       }
-
+  
       // If already opened, just return success (idempotent)
       if (!data.opened) {
         await docRef.set(
@@ -360,21 +397,39 @@ export default function createTimeCapsulesRouter(
           },
           { merge: true },
         );
-
+  
         // Notify creator that their capsule was opened.
         try {
+          const openerName = name || email || 'Someone';
+          const deepLinkUrl = `/?view=capsules&capsuleId=${id}`;
+  
           const title = 'Your time capsule was opened ✨';
           const body = data.title
-            ? `"${data.title}" has just been opened.`
-            : 'One of your time capsules has been opened.';
-          const link = '/#/time-capsules';
-
-          await sendPushNotification(title, body, link, uid);
+            ? `${openerName} just opened "${data.title}".`
+            : `${openerName} just opened one of your time capsules.`;
+  
+          await sendPushNotification(
+            title,
+            body,
+            deepLinkUrl,
+            uid, // exclude the opener → notify the creator
+            {
+              type: 'capsuleOpened',
+              url: deepLinkUrl,
+              capsuleId: id,
+              unlockAt: data.unlockAt || '',
+              fromUid: data.fromUid || '',
+              toUid: data.toUid || '',
+              openedByUid: uid,
+              openedByName: openerName,
+              capsuleTitle: data.title || '',
+            },
+          );
         } catch (notifyError) {
           console.warn('Failed to send time capsule opened notification:', notifyError);
         }
       }
-
+  
       return res.status(200).json({ success: true });
     } catch (error) {
       console.error('Error in POST /api/time-capsules/:id/open:', error);
@@ -385,6 +440,7 @@ export default function createTimeCapsulesRouter(
       });
     }
   });
+  
 
   /**
    * DELETE /api/time-capsules/:id

@@ -109,6 +109,7 @@
                 v-if="currentView === 'capsules'"
   :date-filter="dateFilter"
   :lock-status-filter="lockStatusFilter"
+  :focus-capsule-id="focusCapsuleId"
                 />
               </div>
             </transition>
@@ -173,6 +174,7 @@ let unsubscribePlans = null;
 
 const focusMemoId = ref(null);
 const focusPlanId = ref(null);
+const focusCapsuleId = ref(null);
 const lastNotificationData = ref(null);
 const notificationQueue = ref([]);
 // In-app notification state
@@ -445,7 +447,8 @@ function showInAppNotificationFromPayload(payloadLike) {
   let body = data.body || notif.body;
 
   // Fallback titles if none provided
-  if (!title) {
+   // Fallback titles if none provided
+   if (!title) {
     if (type === 'questCompleted') {
       title = 'Quest completed 🎉';
     } else if (type === 'love') {
@@ -463,23 +466,39 @@ function showInAppNotificationFromPayload(payloadLike) {
       title = '✏️ Plan tweaked';
     } else if (type === 'planDeleted') {
       title = '❌ Plan cancelled';
+    } else if (type === 'capsuleCreated') {
+      // 🔥 NEW
+      title = '⏳ New time capsule';
+    } else if (type === 'capsuleOpened') {
+      // 🔥 NEW
+      title = '✨ Time capsule opened';
     } else {
       title = 'Notification';
     }
   }
 
+
   // Fallback bodies if none provided
-  if (!body) {
+    // Fallback bodies if none provided
+    if (!body) {
     if (type === 'questCompleted') {
       const userName = data.userName || 'Someone';
       const text = data.text || 'a quest';
       body = `${userName} completed: ${text}`;
     } else if (type === 'love') {
       body = 'They just sent you an “I love you”.';
-    } else if (type === 'memoCreated' || type === 'memoUpdated' || type === 'memoDeleted') {
+    } else if (
+      type === 'memoCreated' ||
+      type === 'memoUpdated' ||
+      type === 'memoDeleted'
+    ) {
       const desc = data.description || '';
       body = desc || 'Open Moments to see what changed.';
-    } else if (type === 'planCreated' || type === 'planUpdated' || type === 'planDeleted') {
+    } else if (
+      type === 'planCreated' ||
+      type === 'planUpdated' ||
+      type === 'planDeleted'
+    ) {
       const text = data.text || '';
       const date = data.date || '';
       const time = data.time || '';
@@ -488,10 +507,38 @@ function showInAppNotificationFromPayload(payloadLike) {
         text && when
           ? `“${text}” · ${when}`
           : text || (when ? `Plan for ${when}` : 'Open Plans to see what changed.');
+    } else if (type === 'capsuleCreated') {
+      // 🔥 NEW
+      const fromName = data.fromName || 'Someone';
+      const unlockAt = data.unlockAt;
+      let unlockPretty = '';
+      if (unlockAt) {
+        const d = new Date(unlockAt);
+        if (!Number.isNaN(d.getTime())) {
+          unlockPretty = d.toLocaleString(undefined, {
+            year: 'numeric',
+            month: 'short',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+          });
+        }
+      }
+      body = unlockPretty
+        ? `${fromName} scheduled a capsule for ${unlockPretty}.`
+        : `${fromName} scheduled a new capsule.`;
+    } else if (type === 'capsuleOpened') {
+      // 🔥 NEW
+      const opener = data.openedByName || 'Someone';
+      const capsuleTitle = data.capsuleTitle || '';
+      body = capsuleTitle
+        ? `${opener} opened "${capsuleTitle}".`
+        : `${opener} opened one of your time capsules.`;
     } else {
       body = '';
     }
   }
+
 
   // 🔥 Instead of showing immediately, enqueue it
   enqueueNotification(title, body, data);
@@ -547,39 +594,7 @@ onMounted(() => {
 
   // --- Deep-link handling via ?view=... & ...Id ---
   if (typeof window !== 'undefined') {
-    try {
-      const url = new URL(window.location.href);
-      const params = url.searchParams;
-
-      const viewParam = params.get('view');
-      const memoIdParam = params.get('memoId');
-      const planIdParam = params.get('planId');
-
-      const allowedViews = ['home', 'memos', 'plans', 'capsules'];
-
-      if (viewParam && allowedViews.includes(viewParam)) {
-        currentView.value = viewParam;
-      }
-
-      if (memoIdParam) {
-        focusMemoId.value = memoIdParam;
-      }
-      if (planIdParam) {
-        focusPlanId.value = planIdParam;
-      }
-
-      // Clean URL after consuming params
-      params.delete('view');
-      params.delete('memoId');
-      params.delete('planId');
-
-      const cleanQuery = params.toString();
-      const cleanUrl = url.pathname + (cleanQuery ? `?${cleanQuery}` : '') + url.hash;
-
-      window.history.replaceState({}, '', cleanUrl);
-    } catch (e) {
-      console.warn('Failed to parse URL for deep-link params:', e);
-    }
+    applyDeepLinkFromUrlString(window.location.href);
   }
 
   // --- Navigation colors ---
@@ -601,6 +616,7 @@ function applyDeepLinkFromUrlString(urlString) {
     const viewParam = params.get('view');
     const memoIdParam = params.get('memoId');
     const planIdParam = params.get('planId');
+    const capsuleIdParam = params.get('capsuleId');
 
     const allowedViews = ['home', 'memos', 'plans', 'capsules'];
 
@@ -614,11 +630,15 @@ function applyDeepLinkFromUrlString(urlString) {
     if (planIdParam) {
       focusPlanId.value = planIdParam;
     }
+    if (capsuleIdParam) {
+      focusCapsuleId.value = capsuleIdParam;
+    }
 
-    // Optional: clean query from address bar
+    // Clean URL after consuming params
     params.delete('view');
     params.delete('memoId');
     params.delete('planId');
+    params.delete('capsuleId');
 
     const cleanQuery = params.toString();
     const cleanUrl = url.pathname + (cleanQuery ? `?${cleanQuery}` : '') + url.hash;
@@ -628,6 +648,8 @@ function applyDeepLinkFromUrlString(urlString) {
     console.warn('Failed to apply deep link from URL:', e);
   }
 }
+
+
 function handleInAppNotificationClick() {
   const data = lastNotificationData.value;
 
