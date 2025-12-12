@@ -737,11 +737,116 @@ onUnmounted(() => {
   justify-content: center;
   margin-top: 2rem;
   margin-bottom: 2rem;
-  border-bottom: 1px solid magenta;
   padding-bottom: 1rem;
-  box-shadow: 0 18px 26px -6px rgba(255, 0, 255, 0.5);
+
+  /* keep the shadow geometry exactly */
+  box-shadow: 0 36px 12px 28px rgba(255, 0, 255, 0.5);
+
+  /* border-bottom can't be a gradient, so we draw it with ::after */
+  border-bottom: none;
+
+  position: relative;
+  isolation: isolate;
+
+  animation: navShadowShift 10s ease-in-out infinite alternate;
 }
 
+/* base gradient line (cyan -> magenta) */
+.view-nav::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3%;
+  pointer-events: none;
+  z-index: 1;
+
+  background: linear-gradient(
+    90deg,
+    rgba(0, 255, 255, 0.95),
+    rgba(255, 0, 255, 0.95)
+  );
+
+  /* a tiny glow so it reads as “light” */
+  filter: drop-shadow(0 0 10px rgba(255, 0, 255, 0.35));
+}
+
+/* moving “center” highlight that morphs cyan <-> magenta */
+.view-nav::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+  pointer-events: none;
+  z-index: 2;
+
+  /* a narrow bright blob; we slide it along the line */
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgba(0, 255, 255, 0.95) 0%,
+    rgba(0, 255, 255, 0.35) 35%,
+    transparent 70%
+  );
+  background-repeat: no-repeat;
+  background-size: 26% 100%;
+  background-position: 0% 0%;
+
+  opacity: 0.95;
+  filter: blur(0.4px) hue-rotate(0deg) saturate(1.4);
+  mix-blend-mode: screen;
+
+  animation:
+  navCenterSlide 7.5s ease-in-out infinite alternate,
+  navCenterHue 11s ease-in-out infinite alternate;
+}
+
+/* keep links above everything */
+
+@keyframes navCenterSlide {
+  0%   { background-position: 0% 0%;   background-size: 18% 100%; opacity: 0.55; }
+  10%  { background-position: 8% 0%;   background-size: 22% 100%; opacity: 0.70; }
+  22%  { background-position: 22% 0%;  background-size: 28% 100%; opacity: 0.85; }
+  35%  { background-position: 40% 0%;  background-size: 24% 100%; opacity: 0.72; }
+  50%  { background-position: 58% 0%;  background-size: 30% 100%; opacity: 0.92; }
+  66%  { background-position: 74% 0%;  background-size: 23% 100%; opacity: 0.74; }
+  82%  { background-position: 90% 0%;  background-size: 27% 100%; opacity: 0.88; }
+  100% { background-position: 100% 0%; background-size: 18% 100%; opacity: 0.60; }
+}
+
+/* Cyan -> Magenta drift, with a little “wobble” in saturation/brightness */
+@keyframes navCenterHue {
+  0%   { filter: blur(0.4px) hue-rotate(0deg)   saturate(1.35) brightness(1.05); }
+  12%  { filter: blur(0.5px) hue-rotate(14deg)  saturate(1.55) brightness(1.10); }
+  26%  { filter: blur(0.4px) hue-rotate(32deg)  saturate(1.40) brightness(1.02); }
+  40%  { filter: blur(0.6px) hue-rotate(55deg)  saturate(1.70) brightness(1.12); }
+  55%  { filter: blur(0.4px) hue-rotate(78deg)  saturate(1.45) brightness(1.04); }
+  72%  { filter: blur(0.6px) hue-rotate(98deg)  saturate(1.80) brightness(1.14); }
+  88%  { filter: blur(0.4px) hue-rotate(112deg) saturate(1.55) brightness(1.06); }
+  100% { filter: blur(0.5px) hue-rotate(120deg) saturate(1.65) brightness(1.10); }
+}
+
+@keyframes navShadowShift {
+  0%   { box-shadow: 0 18px 26px -6px rgba(255,   0, 255, 0.28); } /* magenta */
+  10%  { box-shadow: 0 19px 27px -6px rgba(255,   0, 235, 0.32); }
+  20%  { box-shadow: 0 20px 28px -6px rgba(255,   0, 205, 0.36); }
+  30%  { box-shadow: 0 20px 29px -6px rgba(230,   0, 255, 0.30); } /* violet wobble */
+  40%  { box-shadow: 0 21px 30px -6px rgba(190,   0, 255, 0.38); }
+  50%  { box-shadow: 0 22px 32px -6px rgba(120,  40, 255, 0.34); } /* bridge (blue-ish) */
+  60%  { box-shadow: 0 23px 33px -6px rgba( 40, 140, 255, 0.40); }
+  70%  { box-shadow: 0 24px 34px -6px rgba(  0, 200, 255, 0.36); }
+  80%  { box-shadow: 0 24px 34px -6px rgba(  0, 235, 255, 0.42); }
+  90%  { box-shadow: 0 23px 33px -6px rgba(  0, 255, 235, 0.38); }
+  100% { box-shadow: 0 22px 32px -6px rgba(  0, 255, 255, 0.34); } /* cyan */
+}
+
+
+.view-nav a {
+  position: relative;
+  z-index: 3;
+}
 .view-nav a {
   margin: 0 1.5rem;
   cursor: pointer;
