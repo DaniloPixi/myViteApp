@@ -16,7 +16,7 @@
 
       <!-- Memos List -->
       <div v-if="filteredMemos.length > 0" class="memos-list">
-        <div v-for="memo in filteredMemos" :key="memo.id" class="memo-card" :data-memo-id="memo.id" tabindex="0">
+        <div v-for="memo in filteredMemos" :key="memo.id" class="memo-card" :data-memo-id="memo.id" :ref="el => registerMemoRef(memo.id, el)" tabindex="0">
           <!-- Layer 1: Background Gallery -->
           <div class="gallery-container">
             <div
@@ -127,7 +127,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, watch, computed } from 'vue';
+import { ref, onMounted, onUnmounted, watch, computed ,nextTick } from 'vue';
 import { getFirestore, collection, query, orderBy, onSnapshot } from 'firebase/firestore';
 import { auth } from '../firebase';
 import MemoForm from '../components/MemoForm.vue';
@@ -181,44 +181,28 @@ const normalizeFilters = computed(() => ({
   hashtag: normalizeHashtag(props.hashtagFilter),
   date: props.dateFilter,
 }));
-function scrollToMemo(id) {
+const memoRefs = ref({});
+
+// called by template to register/unregister DOM nodes
+function registerMemoRef(id, el) {
   if (!id) return;
-  // assumes each memo card root has data-memo-id
-  const el = document.querySelector(`[data-memo-id="${id}"]`);
-  if (!el) return;
-
-  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-
-  // temporary highlight
-  el.classList.add('memo-highlight');
-  setTimeout(() => {
-    el.classList.remove('memo-highlight');
-  }, 1500);
+  if (el) {
+    memoRefs.value[id] = el;
+  } else {
+    delete memoRefs.value[id];
+  }
 }
 
-watch(
-  () => props.focusMemoId,
-  (id) => {
-    if (!id) return;
-    nextTick(() => {
-      scrollToMemo(id);
-    });
-  },
-  { immediate: true }
-);
 function scrollToMemoWithRetry(id) {
   if (!id) return;
 
   let attempts = 0;
-  const maxAttempts = 10; // ~1.5s total
+  const maxAttempts = 10;
   const delay = 150; // ms
 
-  const selector = `[data-memo-id="${id}"]`;
-
   const tryOnce = () => {
-    const el = document.querySelector(selector);
+    const el = memoRefs.value[id];
     if (el) {
-      // When we find it, scroll + highlight
       el.scrollIntoView({ behavior: 'smooth', block: 'center' });
       el.classList.add('memo-highlight');
 
@@ -235,7 +219,6 @@ function scrollToMemoWithRetry(id) {
     }
   };
 
-  // start retry loop
   nextTick(tryOnce);
 }
 
@@ -247,6 +230,7 @@ watch(
   },
   { immediate: true }
 );
+
 
 const ensureGalleryState = (memoId) => {
   if (!galleryState.value[memoId]) {
