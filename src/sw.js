@@ -40,105 +40,83 @@ registerRoute(
 
 // --- Firebase Background Message Handler ---
 messaging.onBackgroundMessage((payload) => {
-  console.log('[SW] onBackgroundMessage received:', payload);
+  console.log('[sw] onBackgroundMessage', payload);
 
+  const notification = payload?.notification || {};
   const data = payload?.data || {};
-  const notif = payload?.notification || {};
 
-  const title =
-    data.title ||
-    notif.title ||
-    'Gruandus 💕';
+  const title = notification.title || 'Notification';
+  const body = notification.body || '';
 
-  const body =
-    data.body ||
-    notif.body ||
-    '';
-
-  const url =
-    data.url ||
-    data.link ||
+  // Prefer data.url (we set this from the backend); fall back to FCM link or root
+  const clickUrl =
+    (data && data.url) ||
+    (payload?.fcmOptions && payload.fcmOptions.link) ||
     '/';
-
-  const type = data.type || 'generic';
 
   const options = {
     body,
-    body,
-    icon: data.icon || '/icons/notification-icon.png',
-    badge: data.badge || '/icons/notification-icon.png',
     data: {
-      url,
-      type,
+      // this is what notificationclick will read
+      url: clickUrl,
       ...data,
     },
-    vibrate: [100, 50, 100],
-    tag: type,
-    actions: [
-      { action: 'open', title: 'Open' },
-    ],
+    icon: data.icon || '/icons/notification-icon.png',
+    badge: data.badge || '/icons/notification-icon.png',
   };
 
+  // Show OS-level notification (status bar)
   self.registration.showNotification(title, options);
 
-  if (type === 'questCompleted') {
-    const messageForClients = {
+  // If it’s a questCompleted event, poke all windows (unchanged behavior)
+  if (data && data.type === 'questCompleted') {
+    const msg = {
       type: 'questCompleted',
       date: data.date,
       text: data.text,
       userName: data.userName,
-      questId: data.questId,
     };
 
     self.clients
       .matchAll({ type: 'window', includeUncontrolled: true })
       .then((clients) => {
         clients.forEach((client) => {
-          client.postMessage(messageForClients);
+          client.postMessage(msg);
         });
       });
   }
 });
 
 
+
 // --- Notification Click Handler ---
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
 
-  const notificationData = event.notification.data || {};
-  const urlToOpen = notificationData.url || '/';
-  const action = event.action; // 'open' / custom actions / '' for default
+  const urlFromNotif = event.notification?.data?.url;
+  const urlToOpen = urlFromNotif
+    ? new URL(urlFromNotif, self.location.origin).href
+    : self.location.origin + '/';
 
   event.waitUntil(
     self.clients
-      .matchAll({ type: 'window', includeUncontrolled: true })
+      .matchAll({
+        type: 'window',
+        includeUncontrolled: true,
+      })
       .then((clientList) => {
-        // Try to find an open tab from the same origin
-        let matchingClient = null;
-
-        for (const client of clientList) {
-          try {
-            const clientUrl = new URL(client.url);
-
-            if (clientUrl.origin === self.location.origin) {
-              matchingClient = client;
-              break;
+        if (clientList.length > 0) {
+          let client = clientList[0];
+          for (let i = 0; i < clientList.length; i++) {
+            if (clientList[i].focused) {
+              client = clientList[i];
             }
-          } catch (e) {
-            // Ignore badly formatted URLs
           }
+          return client.focus().then((client) => client.navigate(urlToOpen));
+        } else {
+          return self.clients.openWindow(urlToOpen);
         }
-
-        if (matchingClient) {
-          return matchingClient.focus().then(() => {
-            if ('navigate' in matchingClient) {
-              return matchingClient.navigate(urlToOpen);
-            }
-          });
-        }
-
-        // No matching tab → open a new one
-        return self.clients.openWindow(urlToOpen);
       })
   );
 });
+
