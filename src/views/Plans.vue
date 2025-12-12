@@ -86,20 +86,51 @@
   </div>
 </template>
 <script setup>
-import { ref, onMounted, onUnmounted, computed, watch } from 'vue';
+
+import { ref, onMounted, onUnmounted, computed, watch , nextTick } from 'vue';
 import { getFirestore, collection, query, orderBy, onSnapshot } from 'firebase/firestore';
 import PlanFormModal from '../components/PlanFormModal.vue';
 import ConfirmDeleteModal from '../components/ConfirmDeleteModal.vue';
 import ProgressBar from '../components/ProgressBar.vue';
 
+
 const props = defineProps({
-  user: { type: Object, required: true },
-  locationFilter: { type: String, default: '' },
-  hashtagFilter: { type: String, default: '' },
-  dateFilter: { type: String, default: '' },
-  timeFilter: { type: String, default: '' },
-  durationFilter: { type: Array, default: () => [] },
+  user: Object,
+  locationFilter: String,
+  hashtagFilter: String,
+  dateFilter: String,
+  timeFilter: String,
+  durationFilter: Array,
+  // 🔥 new:
+  focusPlanId: {
+    type: String,
+    default: null,
+  },
 });
+
+function scrollToPlan(id) {
+  if (!id) return;
+  const el = document.querySelector(`[data-plan-id="${id}"]`);
+  if (!el) return;
+
+  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+  el.classList.add('plan-highlight');
+  setTimeout(() => {
+    el.classList.remove('plan-highlight');
+  }, 1500);
+}
+
+watch(
+  () => props.focusPlanId,
+  (id) => {
+    if (!id) return;
+    nextTick(() => {
+      scrollToPlan(id);
+    });
+  },
+  { immediate: true }
+);
 
 const plans = ref([]);
 const isLoading = ref(true);
@@ -464,6 +495,13 @@ watch(
   justify-content: center;
   gap: 1.5rem;
   padding: 2rem 0;
+}
+.plan-highlight {
+  box-shadow:
+    0 0 16px rgba(0, 255, 255, 0.7),
+    0 0 22px rgba(255, 0, 255, 0.6);
+  transform: translateY(-2px) scale(1.01);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
 }
 
 .plan-card {

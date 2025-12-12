@@ -37,7 +37,6 @@ export default function (db, sendPushNotification) {
     try {
       const { text, date, time, location, hashtags } = req.body;
       const { uid, name, email } = req.user;
-
       const createdBy = name || email || 'Someone';
 
       const planData = {
@@ -55,6 +54,7 @@ export default function (db, sendPushNotification) {
 
       const snippet = getTextSnippet(text);
       const when = formatWhen(date, time);
+      const viewUrl = `/?view=plans&planId=${newPlanRef.id}`;
 
       const notifTitle = '📅 New plan just dropped';
       const notifBody =
@@ -69,11 +69,11 @@ export default function (db, sendPushNotification) {
       await sendPushNotification(
         notifTitle,
         notifBody,
-        '/?view=plans',
+        viewUrl,
         uid, // exclude sender
         {
           type: 'planCreated',
-          url: '/?view=plans',
+          url: viewUrl,
           planId: newPlanRef.id,
           text: snippet,
           date: date || '',
@@ -110,6 +110,7 @@ export default function (db, sendPushNotification) {
 
       const snippet = getTextSnippet(text);
       const when = formatWhen(date, time);
+      const viewUrl = `/?view=plans&planId=${planId}`;
 
       const notifTitle = '❌ Plan cancelled';
       const notifBody =
@@ -124,11 +125,11 @@ export default function (db, sendPushNotification) {
       await sendPushNotification(
         notifTitle,
         notifBody,
-        '/?view=plans',
+        viewUrl,
         uid, // exclude sender
         {
           type: 'planDeleted',
-          url: '/?view=plans',
+          url: viewUrl,
           planId,
           text: snippet,
           date: date || '',
@@ -164,6 +165,7 @@ export default function (db, sendPushNotification) {
 
       const snippet = getTextSnippet(text);
       const when = formatWhen(date, time);
+      const viewUrl = `/?view=plans&planId=${planId}`;
 
       const notifTitle = '✏️ Plan tweaked';
       const notifBody =
@@ -178,11 +180,11 @@ export default function (db, sendPushNotification) {
       await sendPushNotification(
         notifTitle,
         notifBody,
-        '/?view=plans',
+        viewUrl,
         uid, // exclude sender
         {
           type: 'planUpdated',
-          url: '/?view=plans',
+          url: viewUrl,
           planId,
           text: snippet,
           date: date || '',

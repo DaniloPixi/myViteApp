@@ -70,7 +70,7 @@
                 :class="{ active: currentView === 'capsules' }"
                 :style="getNavStyle('capsules', 3)"
               >
-                Time Capsules
+              Capsules
               </a>
             </nav>
 
@@ -86,20 +86,24 @@
                 </div>
 
                 <MemosAndMoments
-                  v-if="currentView === 'memos'"
-                  :location-filter="locationFilter"
-                  :hashtag-filter="hashtagFilter"
-                  :date-filter="dateFilter"
-                />
-                <Plans
-                  v-if="currentView === 'plans'"
-                  :user="user"
-                  :location-filter="locationFilter"
-                  :hashtag-filter="hashtagFilter"
-                  :date-filter="dateFilter"
-                  :time-filter="timeFilter"
-                  :duration-filter="durationFilter"
-                />
+  v-if="currentView === 'memos'"
+  :location-filter="locationFilter"
+  :hashtag-filter="hashtagFilter"
+  :date-filter="dateFilter"
+  :focus-memo-id="focusMemoId"
+/>
+
+<Plans
+  v-if="currentView === 'plans'"
+  :user="user"
+  :location-filter="locationFilter"
+  :hashtag-filter="hashtagFilter"
+  :date-filter="dateFilter"
+  :time-filter="timeFilter"
+  :duration-filter="durationFilter"
+  :focus-plan-id="focusPlanId"
+/>
+
                 <TimeCapsulesView
                 v-if="currentView === 'capsules'"
   :date-filter="dateFilter"
@@ -166,6 +170,9 @@ const plans = ref([]);
 let unsubscribeMemos = null;
 let unsubscribePlans = null;
 
+const focusMemoId = ref(null);
+const focusPlanId = ref(null);
+
 // In-app notification state
 const inAppNotification = reactive({
   visible: false,
@@ -180,6 +187,8 @@ const dateFilter = ref('');
 const timeFilter = ref('');
 const durationFilter = ref([]);
 const lockStatusFilter = ref('');
+
+
 
 // --- Enabled filters per view ---
 const enabledFilters = computed(() => {
@@ -489,6 +498,7 @@ messaging.onMessage((payload) => {
 
 // --- Lifecycle Hooks ---
 onMounted(() => {
+  // --- Notification support + SW message bridge ---
   supportsNotifications.value =
     typeof window !== 'undefined' &&
     'Notification' in window &&
@@ -515,19 +525,44 @@ onMounted(() => {
     });
   }
 
-  // 🔥 NEW: Respect ?view=... from the URL so notifications can deep-link
-  try {
-    const url = new URL(window.location.href);
-    const viewParam = url.searchParams.get('view');
+  // --- Deep-link handling via ?view=... & ...Id ---
+  if (typeof window !== 'undefined') {
+    try {
+      const url = new URL(window.location.href);
+      const params = url.searchParams;
 
-    const allowedViews = ['home', 'memos', 'plans', 'capsules'];
-    if (viewParam && allowedViews.includes(viewParam)) {
-      currentView.value = viewParam;
+      const viewParam = params.get('view');
+      const memoIdParam = params.get('memoId');
+      const planIdParam = params.get('planId');
+
+      const allowedViews = ['home', 'memos', 'plans', 'capsules'];
+
+      if (viewParam && allowedViews.includes(viewParam)) {
+        currentView.value = viewParam;
+      }
+
+      if (memoIdParam) {
+        focusMemoId.value = memoIdParam;
+      }
+      if (planIdParam) {
+        focusPlanId.value = planIdParam;
+      }
+
+      // Clean URL after consuming params
+      params.delete('view');
+      params.delete('memoId');
+      params.delete('planId');
+
+      const cleanQuery = params.toString();
+      const cleanUrl = url.pathname + (cleanQuery ? `?${cleanQuery}` : '') + url.hash;
+
+      window.history.replaceState({}, '', cleanUrl);
+    } catch (e) {
+      console.warn('Failed to parse URL for deep-link params:', e);
     }
-  } catch (e) {
-    console.warn('Failed to parse URL for view param:', e);
   }
 
+  // --- Navigation colors ---
   const colors = ['magenta', 'turquoise'];
   const startingColorIndex = Math.round(Math.random());
 
@@ -535,6 +570,8 @@ onMounted(() => {
     return colors[(startingColorIndex + index) % 2];
   });
 });
+
+
 
 onUnmounted(() => {
   if (unsubscribeAuth) {

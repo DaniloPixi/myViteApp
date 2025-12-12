@@ -62,6 +62,7 @@ export default function (db, cloudinary, extractPublicId, sendPushNotification) 
       const newMemoRef = await db.collection('memos').add(memoData);
 
       const snippet = getDescriptionSnippet(description);
+      const viewUrl = `/?view=memos&memoId=${newMemoRef.id}`;
 
       const notifTitle = `📝 New moment from ${createdBy}`;
       const notifBody = snippet
@@ -71,11 +72,11 @@ export default function (db, cloudinary, extractPublicId, sendPushNotification) 
       await sendPushNotification(
         notifTitle,
         notifBody,
-        '/?view=memos',
+        viewUrl,
         uid, // exclude sender
         {
           type: 'memoCreated',
-          url: '/?view=memos',
+          url: viewUrl,
           memoId: newMemoRef.id,
           createdBy,
           description: snippet,
@@ -120,6 +121,7 @@ export default function (db, cloudinary, extractPublicId, sendPushNotification) 
       await memoRef.set(updateData, { merge: true });
 
       const snippet = getDescriptionSnippet(description);
+      const viewUrl = `/?view=memos&memoId=${memoId}`;
 
       const notifTitle = '✏️ Moment updated';
       const notifBody = snippet
@@ -129,11 +131,11 @@ export default function (db, cloudinary, extractPublicId, sendPushNotification) 
       await sendPushNotification(
         notifTitle,
         notifBody,
-        '/?view=memos',
+        viewUrl,
         uid, // exclude sender
         {
           type: 'memoUpdated',
-          url: '/?view=memos',
+          url: viewUrl,
           memoId,
           description: snippet,
           location: location || '',
@@ -175,6 +177,7 @@ export default function (db, cloudinary, extractPublicId, sendPushNotification) 
       await memoRef.delete();
 
       const snippet = getDescriptionSnippet(description);
+      const viewUrl = `/?view=memos&memoId=${memoId}`;
 
       const notifTitle = '🗑️ Moment deleted';
       const notifBody = snippet
@@ -184,11 +187,11 @@ export default function (db, cloudinary, extractPublicId, sendPushNotification) 
       await sendPushNotification(
         notifTitle,
         notifBody,
-        '/?view=memos',
+        viewUrl,
         uid, // exclude sender
         {
           type: 'memoDeleted',
-          url: '/?view=memos',
+          url: viewUrl,
           memoId,
           description: snippet,
         }

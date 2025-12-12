@@ -16,7 +16,7 @@
 
       <!-- Memos List -->
       <div v-if="filteredMemos.length > 0" class="memos-list">
-        <div v-for="memo in filteredMemos" :key="memo.id" class="memo-card" tabindex="0">
+        <div v-for="memo in filteredMemos" :key="memo.id" class="memo-card" :data-memo-id="memo.id" tabindex="0">
           <!-- Layer 1: Background Gallery -->
           <div class="gallery-container">
             <div
@@ -138,9 +138,14 @@ import { usePhotoUtils } from '../composables/usePhotoUtils';
 const { getOptimizedUrl } = usePhotoUtils();
 
 const props = defineProps({
-  locationFilter: { type: String, default: '' },
-  hashtagFilter: { type: String, default: '' },
-  dateFilter: { type: String, default: '' },
+  locationFilter: String,
+  hashtagFilter: String,
+  dateFilter: String,
+  // 🔥 new:
+  focusMemoId: {
+    type: String,
+    default: null,
+  },
 });
 
 const memos = ref([]);
@@ -167,6 +172,31 @@ const normalizeFilters = computed(() => ({
   hashtag: normalizeHashtag(props.hashtagFilter),
   date: props.dateFilter,
 }));
+function scrollToMemo(id) {
+  if (!id) return;
+  // assumes each memo card root has data-memo-id
+  const el = document.querySelector(`[data-memo-id="${id}"]`);
+  if (!el) return;
+
+  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+  // temporary highlight
+  el.classList.add('memo-highlight');
+  setTimeout(() => {
+    el.classList.remove('memo-highlight');
+  }, 1500);
+}
+
+watch(
+  () => props.focusMemoId,
+  (id) => {
+    if (!id) return;
+    nextTick(() => {
+      scrollToMemo(id);
+    });
+  },
+  { immediate: true }
+);
 
 const ensureGalleryState = (memoId) => {
   if (!galleryState.value[memoId]) {
@@ -450,6 +480,13 @@ onUnmounted(() => {
               0 12px 24px rgba(0, 0, 0, 0.4),
               0 8px 12px rgba(0, 0, 0, 0.5),
               0 0 30px 10px rgba(0, 255, 255, 0.5);
+}
+.memo-highlight {
+  box-shadow:
+    0 0 16px rgba(255, 0, 255, 0.7),
+    0 0 22px rgba(0, 255, 255, 0.6);
+  transform: translateY(-2px) scale(1.01);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
 }
 
 .gallery-container {
