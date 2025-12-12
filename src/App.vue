@@ -3,9 +3,10 @@
     <CursorTrail />
     <!-- In-App Notification Banner -->
     <InAppNotification
-      :title="inAppNotification.title"
-      :body="inAppNotification.body"
-      v-model:visible="inAppNotification.visible"
+    :title="inAppNotification.title"
+  :body="inAppNotification.body"
+  v-model:visible="inAppNotification.visible"
+  @click="handleInAppNotificationClick"
     />
 
     <!-- Fixed Notification Controls -->
@@ -172,7 +173,7 @@ let unsubscribePlans = null;
 
 const focusMemoId = ref(null);
 const focusPlanId = ref(null);
-
+const lastNotificationData = ref(null);
 // In-app notification state
 const inAppNotification = reactive({
   visible: false,
@@ -482,7 +483,11 @@ function showInAppNotificationFromPayload(payloadLike) {
   inAppNotification.title = title;
   inAppNotification.body = body;
   inAppNotification.visible = true;
+
+  // 🔥 NEW: remember the data so click can deep-link later
+  lastNotificationData.value = data;
 }
+
 
 
 
@@ -571,6 +576,58 @@ onMounted(() => {
   });
 });
 
+function applyDeepLinkFromUrlString(urlString) {
+  if (typeof window === 'undefined' || !urlString) return;
+
+  try {
+    const url = new URL(urlString, window.location.origin);
+    const params = url.searchParams;
+
+    const viewParam = params.get('view');
+    const memoIdParam = params.get('memoId');
+    const planIdParam = params.get('planId');
+
+    const allowedViews = ['home', 'memos', 'plans', 'capsules'];
+
+    if (viewParam && allowedViews.includes(viewParam)) {
+      currentView.value = viewParam;
+    }
+
+    if (memoIdParam) {
+      focusMemoId.value = memoIdParam;
+    }
+    if (planIdParam) {
+      focusPlanId.value = planIdParam;
+    }
+
+    // Optional: clean query from address bar
+    params.delete('view');
+    params.delete('memoId');
+    params.delete('planId');
+
+    const cleanQuery = params.toString();
+    const cleanUrl = url.pathname + (cleanQuery ? `?${cleanQuery}` : '') + url.hash;
+
+    window.history.replaceState({}, '', cleanUrl);
+  } catch (e) {
+    console.warn('Failed to apply deep link from URL:', e);
+  }
+}
+function handleInAppNotificationClick() {
+  const data = lastNotificationData.value;
+
+  if (!data) {
+    inAppNotification.visible = false;
+    return;
+  }
+
+  const urlString = data.url || data.link || '/';
+
+  applyDeepLinkFromUrlString(urlString);
+
+  inAppNotification.visible = false;
+  lastNotificationData.value = null;
+}
 
 
 onUnmounted(() => {

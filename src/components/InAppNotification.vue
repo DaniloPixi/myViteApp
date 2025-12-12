@@ -1,11 +1,10 @@
 <template>
-  <div v-if="visible" class="in-app-notification" @click="dismiss">
+  <div v-if="visible" class="in-app-notification" @click="emit('click')">
     <div class="ian-panel">
       <div class="ian-content">
         <div class="ian-icon">
-  <img src="/icons/manifest-icon-192-maskable.png" alt="icon" />
-</div>
-
+          <img src="/icons/manifest-icon-192-maskable.png" alt="icon" />
+        </div>
 
         <div class="ian-text">
           <h5 class="ian-title">{{ title }}</h5>
@@ -22,24 +21,24 @@
 const props = defineProps({
   title: {
     type: String,
-    required: true
+    required: true,
   },
   body: {
     type: String,
-    required: true
+    required: true,
   },
   visible: {
     type: Boolean,
-    required: true
-  }
+    required: true,
+  },
 });
 
-const emit = defineEmits(['update:visible']);
+const emit = defineEmits(['update:visible', 'click']);
 
-// No auto-dismiss: stays until user clicks
 const dismiss = () => {
   emit('update:visible', false);
 };
+
 </script>
 
 <style scoped>
@@ -48,7 +47,7 @@ const dismiss = () => {
   top: 1.2rem;
   left: 50%;
   transform: translateX(-50%);
-  width: min(640px, 96vw); /* bigger, but still responsive */
+  width: min(640px, 96vw);
   z-index: 2000;
   cursor: pointer;
 
@@ -76,7 +75,7 @@ const dismiss = () => {
 /* subtle fading edges if content wraps */
 .ian-panel::before,
 .ian-panel::after {
-  content: "";
+  content: '';
   position: absolute;
   left: 0;
   right: 0;
@@ -163,7 +162,6 @@ const dismiss = () => {
   letter-spacing: 0.02em;
   white-space: pre-line;
 
-  /* gradient text */
   background: linear-gradient(
     120deg,
     rgba(255, 0, 255, 0.95),
