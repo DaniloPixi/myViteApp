@@ -8,17 +8,31 @@ const outDir = resolve('public/icons');
 
 mkdirSync(outDir, { recursive: true });
 
-// Simple helper: resize from source to exact size
 async function makeIcon(size, filename) {
   const out = resolve(outDir, filename);
   await sharp(src)
     .resize(size, size, {
-      fit: 'cover',
+      fit: 'cover', // good for square app icons
     })
     .png()
     .toFile(out);
 
   console.log(` ✓ ${filename} (${size}x${size})`);
+}
+
+// For notification icon, we "contain" the image inside a square
+// with transparent padding, so the shape isn't cropped.
+async function makeNotificationIcon(size, filename) {
+  const out = resolve(outDir, filename);
+  await sharp(src)
+    .resize(size, size, {
+      fit: 'contain',
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
+    })
+    .png()
+    .toFile(out);
+
+  console.log(` ✓ ${filename} (${size}x${size}) [notification]`);
 }
 
 async function run() {
@@ -28,11 +42,12 @@ async function run() {
   await makeIcon(192, 'manifest-icon-192.png');
   await makeIcon(512, 'manifest-icon-512.png');
 
-  // "Maskable" icons – here we just resize as well.
-  // For perfect maskable icons you usually add extra padding,
-  // but this kills the DevTools warnings and sizes are correct.
+  // Maskable icons
   await makeIcon(192, 'manifest-icon-192-maskable.png');
   await makeIcon(512, 'manifest-icon-512-maskable.png');
+
+  // Notification icon (used in push notifications)
+  await makeNotificationIcon(96, 'notification-icon.png');
 
   console.log('All icons generated into public/icons/');
 }

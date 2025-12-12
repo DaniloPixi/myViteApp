@@ -65,8 +65,8 @@ messaging.onBackgroundMessage((payload) => {
   const options = {
     body,
     body,
-    icon: data.icon || '/icons/manifest-icon-192-maskable.png',
-    badge: data.badge || '/icons/manifest-icon-192-maskable.png',
+    icon: data.icon || '/icons/notification-icon.png',
+    badge: data.badge || '/icons/notification-icon.png',
     data: {
       url,
       type,

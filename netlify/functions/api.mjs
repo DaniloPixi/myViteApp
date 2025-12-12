@@ -179,8 +179,9 @@ async function sendPushNotification(title, body, link = '/', excludeUid, data = 
         fcm_options: { link: stringifiedData.url },
         notification: {
           // 🔥 use the new app icon for web push
-          icon: stringifiedData.icon || '/icons/manifest-icon-192-maskable.png',
-          badge: stringifiedData.badge || '/icons/manifest-icon-192-maskable.png',
+          // dedicated notification icon – simple, transparent, good shape
+    icon: stringifiedData.icon || '/icons/notification-icon.png',
+    badge: stringifiedData.badge || '/icons/notification-icon.png',
         },
       },
 
