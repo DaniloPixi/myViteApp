@@ -260,22 +260,70 @@ function questStatusFor(customData) {
 /* --- Keyframes for Calendar Glow Animation --- */
 @keyframes pulse-calendar-glow {
   0%, 100% {
-    box-shadow: inset 0 2px 4px rgba(0,0,0,0.4),
-                inset 0 0 10px rgba(255, 0, 255, 0.5),
-                /* Left Glow: Magenta */
-                -50px 0px 80px -30px rgba(255, 0, 255, 0.5),
-                /* Right Glow: Turquoise */
-                50px 0px 80px -30px rgba(0, 255, 255, 0.5);
+    box-shadow:
+      inset 0 2px 4px rgba(0,0,0,0.40),
+      inset 0 0 10px rgba(255, 0, 255, 0.45),
+      -50px 0px 80px -30px rgba(255, 0, 255, 0.45),
+       50px 0px 80px -30px rgba(0, 255, 255, 0.45);
   }
+
+  12.5% {
+    box-shadow:
+      inset 0 2px 4px rgba(0,0,0,0.40),
+      inset 0 0 10px rgba(220, 40, 255, 0.48),
+      -53px 0px 84px -32px rgba(220, 40, 255, 0.48),
+       53px 0px 84px -32px rgba(40, 220, 255, 0.48);
+  }
+
+  25% {
+    box-shadow:
+      inset 0 2px 4px rgba(0,0,0,0.40),
+      inset 0 0 10px rgba(140, 120, 255, 0.50),
+      -56px 0px 88px -34px rgba(140, 120, 255, 0.52),
+       56px 0px 88px -34px rgba(120, 255, 255, 0.50);
+  }
+
+  37.5% {
+    box-shadow:
+      inset 0 2px 4px rgba(0,0,0,0.40),
+      inset 0 0 10px rgba(60, 210, 255, 0.52),
+      -58px 0px 92px -36px rgba(60, 210, 255, 0.60),
+       58px 0px 92px -36px rgba(255, 60, 235, 0.56);
+  }
+
   50% {
-    box-shadow: inset 0 2px 4px rgba(0,0,0,0.4),
-                inset 0 0 10px rgba(0, 255, 255, 0.5),
-                /* Left Glow: Turquoise */
-                -60px 0px 90px -40px rgba(0, 255, 255, 0.7),
-                /* Right Glow: Magenta */
-                60px 0px 90px -40px rgba(255, 0, 255, 0.7);
+    box-shadow:
+      inset 0 2px 4px rgba(0,0,0,0.40),
+      inset 0 0 10px rgba(0, 255, 255, 0.52),
+      -60px 0px 95px -38px rgba(0, 255, 255, 0.70),
+       60px 0px 95px -38px rgba(255, 0, 255, 0.70);
+  }
+
+  62.5% {
+    box-shadow:
+      inset 0 2px 4px rgba(0,0,0,0.40),
+      inset 0 0 10px rgba(60, 210, 255, 0.52),
+      -58px 0px 92px -36px rgba(0, 255, 255, 0.58),
+       58px 0px 92px -36px rgba(255, 80, 230, 0.62);
+  }
+
+  75% {
+    box-shadow:
+      inset 0 2px 4px rgba(0,0,0,0.40),
+      inset 0 0 10px rgba(140, 120, 255, 0.50),
+      -56px 0px 88px -34px rgba(255, 70, 235, 0.52),
+       56px 0px 88px -34px rgba(70, 235, 255, 0.52);
+  }
+
+  87.5% {
+    box-shadow:
+      inset 0 2px 4px rgba(0,0,0,0.40),
+      inset 0 0 10px rgba(220, 40, 255, 0.48),
+      -53px 0px 84px -32px rgba(255, 35, 245, 0.48),
+       53px 0px 84px -32px rgba(35, 245, 255, 0.48);
   }
 }
+
 
 
 /* --- Calendar Styles (Unchanged) --- */
@@ -295,7 +343,7 @@ function questStatusFor(customData) {
               50px 0px 60px -40px rgba(0, 255, 255, 0.5);
   width: 100%;
   outline: none !important;
-  animation: pulse-calendar-glow 6s infinite ease-in-out;
+  animation: pulse-calendar-glow 8s infinite ease-in-out;
 }
 
 .custom-calendar .vc-header .vc-title { font-family: 'Great Vibes', cursive;padding-top:0.4rem; font-size: 2em;background-color: rgba(0, 0, 0, 0);color:rgb(236, 5, 148); text-shadow: 0 0 10px magenta; }
