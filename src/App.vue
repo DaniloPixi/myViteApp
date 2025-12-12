@@ -174,6 +174,7 @@ let unsubscribePlans = null;
 const focusMemoId = ref(null);
 const focusPlanId = ref(null);
 const lastNotificationData = ref(null);
+const notificationQueue = ref([]);
 // In-app notification state
 const inAppNotification = reactive({
   visible: false,
@@ -284,8 +285,6 @@ const clearDataListeners = () => {
 };
 
 // --- Core Notification Logic ---
-// --- Core Notification Logic ---
-// --- Core Notification Logic ---
 async function registerDeviceForNotifications() {
   if (!supportsNotifications.value) {
     console.warn('Notifications are not supported in this browser.');
@@ -357,7 +356,21 @@ async function enableNotifications() {
   }
 }
 
+function enqueueNotification(title, body, data) {
+  notificationQueue.value.push({ title, body, data });
+  maybeShowNextNotification();
+}
 
+function maybeShowNextNotification() {
+  // if one is already visible or queue is empty, do nothing
+  if (inAppNotification.visible || notificationQueue.value.length === 0) return;
+
+  const next = notificationQueue.value.shift();
+  inAppNotification.title = next.title;
+  inAppNotification.body = next.body;
+  inAppNotification.visible = true;
+  lastNotificationData.value = next.data || null;
+}
 // --- Authentication State Management ---
 const unsubscribeAuth = auth.onAuthStateChanged((currentUser) => {
   user.value = currentUser;
@@ -480,17 +493,19 @@ function showInAppNotificationFromPayload(payloadLike) {
     }
   }
 
-  inAppNotification.title = title;
-  inAppNotification.body = body;
-  inAppNotification.visible = true;
-
-  // 🔥 NEW: remember the data so click can deep-link later
-  lastNotificationData.value = data;
+  // 🔥 Instead of showing immediately, enqueue it
+  enqueueNotification(title, body, data);
 }
-
-
-
-
+watch(
+  () => inAppNotification.visible,
+  (visible) => {
+    if (!visible) {
+      // banner was closed (either by click or by X)
+      lastNotificationData.value = null;
+      maybeShowNextNotification();
+    }
+  }
+);
 
 
 // --- Foreground Message Handling ---
@@ -616,18 +631,15 @@ function applyDeepLinkFromUrlString(urlString) {
 function handleInAppNotificationClick() {
   const data = lastNotificationData.value;
 
-  if (!data) {
-    inAppNotification.visible = false;
-    return;
+  if (data) {
+    const urlString = data.url || data.link || '/';
+    applyDeepLinkFromUrlString(urlString);
   }
 
-  const urlString = data.url || data.link || '/';
-
-  applyDeepLinkFromUrlString(urlString);
-
+  // Closing the banner will trigger the watcher, which will show the next queued one
   inAppNotification.visible = false;
-  lastNotificationData.value = null;
 }
+
 
 
 onUnmounted(() => {
