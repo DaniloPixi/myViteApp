@@ -22,10 +22,13 @@
           v-for="memo in filteredMemos"
           :key="memo.id"
           class="memo-card"
-          :class="{ 'is-active': activeMemoId === memo.id }"
           :data-memo-id="memo.id"
           :ref="(el) => registerMemoRef(memo.id, el)"
           tabindex="0"
+          :class="{
+            'is-active': (isTouchDevice && focusedMemoId === memo.id) || (!isTouchDevice && false),
+          }"
+          :style="getMemoCardStyle(memo.id)"
         >
           <!-- Layer 1: Background Gallery -->
           <div class="gallery-container">
@@ -163,7 +166,6 @@ const props = defineProps({
   locationFilter: { type: String, default: "" },
   hashtagFilter: { type: String, default: "" },
   dateFilter: { type: String, default: "" },
-  // 🔥 new: ID to focus when coming from a notification
   focusMemoId: { type: String, default: null },
 });
 
@@ -183,13 +185,96 @@ const selectedImageIndex = ref(0);
 const galleryState = ref({});
 let unsubscribeFromMemos = null;
 
-// ✅ NEW: scroll-based “active” card (mobile scroll spotlight)
-const activeMemoId = ref(null);
+// --------- refs + “plans-style” scroll focus ----------
 const memoRefs = ref({});
-let memoObserver = null;
+const memoRects = ref({});
+const isTouchDevice = ref(false);
 
+let rafPending = false;
+const scheduleRectsUpdate = () => {
+  if (rafPending) return;
+  rafPending = true;
+  requestAnimationFrame(() => {
+    rafPending = false;
+    updateMemoRects();
+  });
+};
+
+function registerMemoRef(id, el) {
+  if (!id) return;
+  if (el) memoRefs.value[id] = el;
+  else delete memoRefs.value[id];
+}
+
+const updateMemoRects = () => {
+  // Only needed for touch “center focus”
+  if (!isTouchDevice.value) return;
+
+  const nextRects = {};
+  for (const [id, el] of Object.entries(memoRefs.value)) {
+    if (!el) continue;
+    nextRects[id] = el.getBoundingClientRect();
+  }
+  memoRects.value = nextRects;
+};
+
+const focusedMemoId = computed(() => {
+  if (!isTouchDevice.value) return null;
+
+  let closestId = null;
+  let minDistance = Infinity;
+  const viewportCenterY = window.innerHeight / 2;
+
+  for (const memo of filteredMemos.value) {
+    const rect = memoRects.value[memo.id];
+    if (!rect) continue;
+
+    const cardCenterY = rect.top + rect.height / 2;
+    const distance = Math.abs(viewportCenterY - cardCenterY);
+
+    if (distance < minDistance) {
+      minDistance = distance;
+      closestId = memo.id;
+    }
+  }
+
+  // threshold (similar idea to your plans)
+  if (minDistance < 140) return closestId;
+  return null;
+});
+
+const getScaleForMobile = (memoId) => {
+  const rect = memoRects.value[memoId];
+  if (!rect) return 1;
+
+  const viewportCenterY = window.innerHeight / 2;
+  const cardCenterY = rect.top + rect.height / 2;
+  const distance = Math.abs(viewportCenterY - cardCenterY);
+
+  const maxDistance = window.innerHeight / 2;
+  // “breathing” effect like plans: 1..1.08-ish
+  return Math.max(1, 1.08 - distance / maxDistance);
+};
+
+const getMemoCardStyle = (memoId) => {
+  // Desktop: let hover CSS do its thing
+  if (!isTouchDevice.value) return {};
+
+  // Mobile: inline transform based on proximity
+  const scale = getScaleForMobile(memoId);
+
+  // Give the centered one a tiny lift (feels more “active”)
+  const isFocused = focusedMemoId.value === memoId;
+  const lift = isFocused ? -6 : 0;
+
+  return {
+    transform: `translateY(${lift}px) scale(${scale})`,
+  };
+};
+
+// ---------- filters ----------
 const normalizeHashtag = (value) => {
-  const trimmed = value.trim().toLowerCase();
+  const trimmed = (value || "").trim().toLowerCase();
   if (!trimmed) return "";
   return trimmed.startsWith("#") ? trimmed : `#${trimmed}`;
 };
@@ -199,154 +284,6 @@ const normalizeFilters = computed(() => ({
   hashtag: normalizeHashtag(props.hashtagFilter),
   date: props.dateFilter,
 }));
-
-// called by template to register/unregister DOM nodes
-function registerMemoRef(id, el) {
-  if (!id) return;
-
-  if (el) {
-    memoRefs.value[id] = el;
-
-    // if observer already exists, observe immediately
-    if (memoObserver) memoObserver.observe(el);
-  } else {
-    const existing = memoRefs.value[id];
-    if (existing && memoObserver) memoObserver.unobserve(existing);
-    delete memoRefs.value[id];
-  }
-}
-
-function setupMemoObserver() {
-  // clean up
-  if (memoObserver) {
-    memoObserver.disconnect();
-    memoObserver = null;
-  }
-
-  // feature-detect (very old browsers)
-  if (typeof IntersectionObserver === "undefined") return;
-
-  memoObserver = new IntersectionObserver(
-    (entries) => {
-      // We only “activate” items that are meaningfully visible.
-      // Pick the most visible one.
-      let bestId = null;
-      let bestRatio = 0;
-
-      for (const entry of entries) {
-        const id = entry.target?.dataset?.memoId;
-        if (!id) continue;
-
-        if (entry.isIntersecting) {
-          const r = entry.intersectionRatio || 0;
-          if (r >= 0.6 && r > bestRatio) {
-            bestRatio = r;
-            bestId = id;
-          }
-        }
-      }
-
-      if (bestId) {
-        activeMemoId.value = bestId;
-        return;
-      }
-
-      // If nothing meets threshold, we can keep current active as long as it's still reasonably visible.
-      // Otherwise clear it.
-      const currentEl = activeMemoId.value ? memoRefs.value[activeMemoId.value] : null;
-      if (!currentEl) {
-        activeMemoId.value = null;
-        return;
-      }
-
-      // If current active is no longer in view, clear
-      const stillInView = entries.some(
-        (e) => e.target === currentEl && e.isIntersecting && (e.intersectionRatio || 0) >= 0.3
-      );
-      if (!stillInView) activeMemoId.value = null;
-    },
-    {
-      root: null,
-      // “Center-weight” the activation region so it feels like a spotlight while scrolling
-      rootMargin: "-20% 0px -20% 0px",
-      threshold: [0, 0.25, 0.3, 0.5, 0.6, 0.75, 1],
-    }
-  );
-
-  // observe all current nodes
-  Object.values(memoRefs.value).forEach((el) => {
-    if (el) memoObserver.observe(el);
-  });
-}
-
-function scrollToMemoWithRetry(id) {
-  if (!id) return;
-
-  let attempts = 0;
-  const maxAttempts = 10;
-  const delay = 150; // ms
-
-  const tryOnce = () => {
-    const el = memoRefs.value[id];
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth", block: "center" });
-      el.classList.add("memo-highlight");
-
-      // also set active so it previews immediately
-      activeMemoId.value = id;
-
-      setTimeout(() => {
-        el.classList.remove("memo-highlight");
-      }, 1500);
-
-      return;
-    }
-
-    attempts += 1;
-    if (attempts < maxAttempts) {
-      setTimeout(tryOnce, delay);
-    }
-  };
-
-  nextTick(tryOnce);
-}
-
-watch(
-  () => props.focusMemoId,
-  (id) => {
-    if (!id) return;
-    scrollToMemoWithRetry(id);
-  },
-  { immediate: true }
-);
-
-const ensureGalleryState = (memoId) => {
-  if (!galleryState.value[memoId]) {
-    galleryState.value[memoId] = { currentIndex: 0, touchStartX: 0 };
-  }
-  return galleryState.value[memoId];
-};
-
-const getMemoMedia = (memo) => (Array.isArray(memo.photos) ? memo.photos : []);
-
-const getThumbnailUrl = (media) => {
-  if (media.resource_type === "video") {
-    return media.url.replace(/\.mp4$/, ".jpg");
-  }
-  return getOptimizedUrl(media.url, { width: 600 });
-};
-
-const openImageModal = (media, index) => {
-  selectedMediaItems.value = media;
-  selectedImageIndex.value = index;
-  isImageModalVisible.value = true;
-};
-
-const closeImageModal = () => {
-  isImageModalVisible.value = false;
-  selectedMediaItems.value = [];
-  selectedImageIndex.value = 0;
-};
 
 const filteredMemos = computed(() => {
   const { location, hashtag, date } = normalizeFilters.value;
@@ -360,6 +297,35 @@ const filteredMemos = computed(() => {
   });
 });
 
+// ---------- gallery helpers ----------
+const ensureGalleryState = (memoId) => {
+  if (!galleryState.value[memoId]) {
+    galleryState.value[memoId] = { currentIndex: 0, touchStartX: 0 };
+  }
+  return galleryState.value[memoId];
+};
+
+const getMemoMedia = (memo) => (Array.isArray(memo.photos) ? memo.photos : []);
+
+const getThumbnailUrl = (media) => {
+  if (media.resource_type === "video") return media.url.replace(/\.mp4$/, ".jpg");
+  return getOptimizedUrl(media.url, { width: 600 });
+};
+
+// ---------- modal ----------
+const openImageModal = (media, index) => {
+  selectedMediaItems.value = media;
+  selectedImageIndex.value = index;
+  isImageModalVisible.value = true;
+};
+
+const closeImageModal = () => {
+  isImageModalVisible.value = false;
+  selectedMediaItems.value = [];
+  selectedImageIndex.value = 0;
+};
+
+// ---------- firestore ----------
 const subscribeToMemos = () => {
   if (unsubscribeFromMemos) unsubscribeFromMemos();
   loading.value = true;
@@ -370,9 +336,13 @@ const subscribeToMemos = () => {
     const memosQuery = query(collection(db, "memos"), orderBy("createdAt", "desc"));
     unsubscribeFromMemos = onSnapshot(
       memosQuery,
-      (snapshot) => {
+      async (snapshot) => {
         memos.value = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
         loading.value = false;
+
+        // after DOM renders, compute rects once
+        await nextTick();
+        setTimeout(updateMemoRects, 50);
       },
       (err) => {
         console.error("Error fetching memos in real-time:", err);
@@ -387,24 +357,7 @@ const subscribeToMemos = () => {
   }
 };
 
-const deleteMemo = async (memoId) => {
-  try {
-    if (!auth.currentUser) throw new Error("Authentication required.");
-    const idToken = await auth.currentUser.getIdToken();
-    const response = await fetch(`/api/memos/${memoId}`, {
-      method: "DELETE",
-      headers: { Authorization: `Bearer ${idToken}` },
-    });
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || "Failed to delete memo.");
-    }
-  } catch (err) {
-    console.error("Error deleting memo:", err);
-    error.value = err.message;
-  }
-};
-
+// ---------- CRUD UI ----------
 const openAddForm = () => {
   selectedMemo.value = null;
   showForm.value = true;
@@ -429,14 +382,31 @@ const promptDelete = (memoId) => {
   isDeleteModalVisible.value = true;
 };
 
-const handleDelete = async () => {
-  if (deletingMemoId.value) {
-    await deleteMemo(deletingMemoId.value);
+const deleteMemo = async (memoId) => {
+  try {
+    if (!auth.currentUser) throw new Error("Authentication required.");
+    const idToken = await auth.currentUser.getIdToken();
+    const response = await fetch(`/api/memos/${memoId}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${idToken}` },
+    });
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || "Failed to delete memo.");
+    }
+  } catch (err) {
+    console.error("Error deleting memo:", err);
+    error.value = err.message;
   }
+};
+
+const handleDelete = async () => {
+  if (deletingMemoId.value) await deleteMemo(deletingMemoId.value);
   isDeleteModalVisible.value = false;
   deletingMemoId.value = null;
 };
 
+// ---------- misc ----------
 const formatDate = (dateString) => {
   if (!dateString) return "No date";
   const options = { year: "numeric", month: "long", day: "numeric" };
@@ -445,17 +415,13 @@ const formatDate = (dateString) => {
 
 const prevImage = (memoId) => {
   const state = ensureGalleryState(memoId);
-  if (state.currentIndex > 0) {
-    state.currentIndex -= 1;
-  }
+  if (state.currentIndex > 0) state.currentIndex -= 1;
 };
 
 const nextImage = (memoId) => {
   const memo = memos.value.find((m) => m.id === memoId);
   const state = ensureGalleryState(memoId);
-  if (memo && state.currentIndex < getMemoMedia(memo).length - 1) {
-    state.currentIndex += 1;
-  }
+  if (memo && state.currentIndex < getMemoMedia(memo).length - 1) state.currentIndex += 1;
 };
 
 const handleTouchStart = (memoId, event) => {
@@ -464,8 +430,6 @@ const handleTouchStart = (memoId, event) => {
 
 const handleTouchMove = (memoId, event) => {
   if (ensureGalleryState(memoId).touchStartX === 0) return;
-
-  // Prevent horizontal swipes from triggering browser navigation on mobile
   if (Math.abs(event.touches[0].clientX - galleryState.value[memoId].touchStartX) > 10) {
     event.preventDefault();
   }
@@ -486,12 +450,48 @@ const handleTouchEnd = (memoId, event) => {
   state.touchStartX = 0;
 };
 
+// ---------- focus from notification ----------
+function scrollToMemoWithRetry(id) {
+  if (!id) return;
+
+  let attempts = 0;
+  const maxAttempts = 10;
+  const delay = 150;
+
+  const tryOnce = () => {
+    const el = memoRefs.value[id];
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      el.classList.add("memo-highlight");
+
+      setTimeout(() => {
+        el.classList.remove("memo-highlight");
+      }, 1500);
+
+      return;
+    }
+
+    attempts += 1;
+    if (attempts < maxAttempts) setTimeout(tryOnce, delay);
+  };
+
+  nextTick(tryOnce);
+}
+
+watch(
+  () => props.focusMemoId,
+  (id) => {
+    if (!id) return;
+    scrollToMemoWithRetry(id);
+  },
+  { immediate: true }
+);
+
 watch(
   () => auth.currentUser,
   (currentUser) => {
-    if (currentUser) {
-      subscribeToMemos();
-    } else {
+    if (currentUser) subscribeToMemos();
+    else {
       if (unsubscribeFromMemos) unsubscribeFromMemos();
       memos.value = [];
     }
@@ -506,27 +506,39 @@ watch(
   { deep: true }
 );
 
-// ✅ When the rendered list changes, re-bind observer to the current DOM
+// When filters change, DOM changes -> recalc rects after render (touch only)
 watch(
   filteredMemos,
   async () => {
     await nextTick();
-    setupMemoObserver();
+    setTimeout(updateMemoRects, 50);
   },
   { flush: "post" }
 );
 
+const onScroll = () => scheduleRectsUpdate();
+const onResize = () => scheduleRectsUpdate();
+
 onMounted(async () => {
+  isTouchDevice.value = "ontouchstart" in window || navigator.maxTouchPoints > 0;
+
   subscribeToMemos();
+
   await nextTick();
-  setupMemoObserver();
+  setTimeout(updateMemoRects, 50);
+
+  if (isTouchDevice.value) {
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onResize, { passive: true });
+  }
 });
 
 onUnmounted(() => {
   if (unsubscribeFromMemos) unsubscribeFromMemos();
-  if (memoObserver) {
-    memoObserver.disconnect();
-    memoObserver = null;
+
+  if (isTouchDevice.value) {
+    window.removeEventListener("scroll", onScroll);
+    window.removeEventListener("resize", onResize);
   }
 });
 </script>
@@ -597,23 +609,32 @@ onUnmounted(() => {
   border: 1px solid rgba(255, 255, 255, 0.1);
   display: flex;
   flex-direction: column;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  will-change: transform;
+  backface-visibility: hidden;
 }
 
-/* ✅ hover + scroll-active + keyboard focus */
-.memo-card:hover,
-.memo-card.is-active {
+/* Desktop hover keeps your original vibe */
+.memo-card:hover {
   transform: translateY(-10px) scale(1.03);
 }
 
-.memo-card:nth-child(odd):hover,
-.memo-card:nth-child(odd).is-active {
+.memo-card:nth-child(odd):hover {
   box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.2), 0 12px 24px rgba(0, 0, 0, 0.4),
     0 8px 12px rgba(0, 0, 0, 0.5), 0 0 30px 10px rgba(255, 0, 255, 0.5);
 }
 
-.memo-card:nth-child(even):hover,
-.memo-card:nth-child(even).is-active {
+.memo-card:nth-child(even):hover {
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.2), 0 12px 24px rgba(0, 0, 0, 0.4),
+    0 8px 12px rgba(0, 0, 0, 0.5), 0 0 30px 10px rgba(0, 255, 255, 0.5);
+}
+
+/* Mobile “plans-style” center focus: reuse your fancy hover glow */
+.memo-card.is-active:nth-child(odd) {
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.2), 0 12px 24px rgba(0, 0, 0, 0.4),
+    0 8px 12px rgba(0, 0, 0, 0.5), 0 0 30px 10px rgba(255, 0, 255, 0.5);
+}
+.memo-card.is-active:nth-child(even) {
   box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.2), 0 12px 24px rgba(0, 0, 0, 0.4),
     0 8px 12px rgba(0, 0, 0, 0.5), 0 0 30px 10px rgba(0, 255, 255, 0.5);
 }
@@ -662,10 +683,7 @@ onUnmounted(() => {
 
 .memo-content {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  inset: 0;
   z-index: 2;
   background: linear-gradient(to bottom, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.7) 30%, transparent 100%);
   padding: 1rem;
@@ -674,10 +692,10 @@ onUnmounted(() => {
   justify-content: space-between;
   pointer-events: none;
   opacity: 0;
-  transition: opacity 0.3s ease-in-out;
+  transition: opacity 0.25s ease-in-out;
 }
 
-/* ✅ hover + keyboard focus + mobile tap (focus-within) + scroll-active */
+/* hover + keyboard focus + focus-within + mobile centered focus */
 .memo-card:hover .memo-content,
 .memo-card:focus .memo-content,
 .memo-card:focus-within .memo-content,
@@ -699,7 +717,7 @@ onUnmounted(() => {
 
   opacity: 0;
   transform: translateY(-6px);
-  transition: opacity 0.25s ease, transform 0.25s ease;
+  transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
 .memo-card:hover .memo-description,
@@ -783,7 +801,6 @@ onUnmounted(() => {
 
 .edit-button:hover,
 .delete-button:hover {
-  text-decoration: none;
   color: magenta;
 }
 
@@ -820,10 +837,6 @@ onUnmounted(() => {
   transform: translateY(-50%) scale(3);
 }
 
-.gallery-nav:focus {
-  outline: none;
-}
-
 .gallery-nav.visible {
   opacity: 1;
 }
@@ -856,7 +869,7 @@ onUnmounted(() => {
   background-color: rgb(21, 209, 223);
 }
 
-/* ✅ better focus behavior for keyboard users */
+/* Focus outline, but only for keyboard users */
 .memo-card:focus {
   outline: none;
 }
@@ -887,7 +900,6 @@ onUnmounted(() => {
   }
 
   .memo-footer {
-    display: flex;
     flex-direction: row;
     justify-content: space-between;
     align-items: center;
