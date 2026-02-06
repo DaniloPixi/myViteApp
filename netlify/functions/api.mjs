@@ -132,7 +132,7 @@ const extractPublicId = (url) => {
  * - Put a real monochrome transparent PNG at /badge-96.png
  * - If you update the badge, bump BADGE_VER to bust caches on Android
  */
-const BADGE_VER = '1'; // bump to '2' if Android keeps showing an old cached badge/icon
+const BADGE_VER = '2'; // bump to '2' if Android keeps showing an old cached badge/icon
 
 async function sendPushNotification(title, body, link = '/', excludeUid, data = {}) {
   if (!db) {
