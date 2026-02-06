@@ -22,10 +22,11 @@ const firebaseConfig = {
 // Initialize Firebase
 firebase.initializeApp(firebaseConfig);
 const messaging = firebase.messaging();
-
-// --- Service Worker Lifecycle ---
-self.skipWaiting();
-
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
 // --- PWA Pre-caching and Runtime Caching ---
 precacheAndRoute(self.__WB_MANIFEST || []);
 

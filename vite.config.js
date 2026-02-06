@@ -8,8 +8,8 @@ export default defineConfig({
     vue(),
     Inspector(),
     VitePWA({
-      registerType: 'autoUpdate',
-      injectRegister: 'auto',
+      registerType: 'prompt',
+      injectRegister: null,
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
       },
