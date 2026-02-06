@@ -604,7 +604,8 @@ onUnmounted(() => {
   min-height: 25rem;
   border-radius: 1.25rem;
   overflow: hidden;
-  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.1), 0 8px 16px rgba(0, 0, 0, 0.3),
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.1),
+    0 8px 16px rgba(0, 0, 0, 0.3),
     0 4px 8px rgba(0, 0, 0, 0.4);
   border: 1px solid rgba(255, 255, 255, 0.1);
   display: flex;
@@ -620,27 +621,36 @@ onUnmounted(() => {
 }
 
 .memo-card:nth-child(odd):hover {
-  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.2), 0 12px 24px rgba(0, 0, 0, 0.4),
-    0 8px 12px rgba(0, 0, 0, 0.5), 0 0 30px 10px rgba(255, 0, 255, 0.5);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.2),
+    0 12px 24px rgba(0, 0, 0, 0.4),
+    0 8px 12px rgba(0, 0, 0, 0.5),
+    0 0 30px 10px rgba(255, 0, 255, 0.5);
 }
 
 .memo-card:nth-child(even):hover {
-  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.2), 0 12px 24px rgba(0, 0, 0, 0.4),
-    0 8px 12px rgba(0, 0, 0, 0.5), 0 0 30px 10px rgba(0, 255, 255, 0.5);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.2),
+    0 12px 24px rgba(0, 0, 0, 0.4),
+    0 8px 12px rgba(0, 0, 0, 0.5),
+    0 0 30px 10px rgba(0, 255, 255, 0.5);
 }
 
 /* Mobile “plans-style” center focus: reuse your fancy hover glow */
 .memo-card.is-active:nth-child(odd) {
-  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.2), 0 12px 24px rgba(0, 0, 0, 0.4),
-    0 8px 12px rgba(0, 0, 0, 0.5), 0 0 30px 10px rgba(255, 0, 255, 0.5);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.2),
+    0 12px 24px rgba(0, 0, 0, 0.4),
+    0 8px 12px rgba(0, 0, 0, 0.5),
+    0 0 30px 10px rgba(255, 0, 255, 0.5);
 }
 .memo-card.is-active:nth-child(even) {
-  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.2), 0 12px 24px rgba(0, 0, 0, 0.4),
-    0 8px 12px rgba(0, 0, 0, 0.5), 0 0 30px 10px rgba(0, 255, 255, 0.5);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.2),
+    0 12px 24px rgba(0, 0, 0, 0.4),
+    0 8px 12px rgba(0, 0, 0, 0.5),
+    0 0 30px 10px rgba(0, 255, 255, 0.5);
 }
 
 .memo-highlight {
-  box-shadow: 0 0 16px rgba(255, 0, 255, 0.7), 0 0 22px rgba(0, 255, 255, 0.6);
+  box-shadow: 0 0 16px rgba(255, 0, 255, 0.7),
+    0 0 22px rgba(0, 255, 255, 0.6);
   transform: translateY(-2px) scale(1.01);
   transition: box-shadow 0.2s ease, transform 0.2s ease;
 }
@@ -685,7 +695,12 @@ onUnmounted(() => {
   position: absolute;
   inset: 0;
   z-index: 2;
-  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.7) 30%, transparent 100%);
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.9) 0%,
+    rgba(0, 0, 0, 0.7) 30%,
+    transparent 100%
+  );
   padding: 1rem;
   display: flex;
   flex-direction: column;
@@ -693,6 +708,22 @@ onUnmounted(() => {
   pointer-events: none;
   opacity: 0;
   transition: opacity 0.25s ease-in-out;
+}
+
+/* ✅ NEW: vignette overlay (no flat black background) */
+.memo-content::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(0, 0, 0, 0) 35%,
+    rgba(0, 0, 0, 0.35) 60%,
+    rgba(0, 0, 0, 0.7) 100%
+  );
 }
 
 /* hover + keyboard focus + focus-within + mobile centered focus */
@@ -703,8 +734,18 @@ onUnmounted(() => {
   opacity: 1;
 }
 
+/* ✅ NEW: show vignette only when active */
+.memo-card:hover .memo-content::before,
+.memo-card:focus .memo-content::before,
+.memo-card:focus-within .memo-content::before,
+.memo-card.is-active .memo-content::before {
+  opacity: 1;
+}
+
 .memo-content > * {
   pointer-events: auto;
+  position: relative; /* ensures content sits above ::before */
+  z-index: 1;
 }
 
 .memo-description {
@@ -713,7 +754,11 @@ onUnmounted(() => {
   color: magenta;
   margin-bottom: 0.15rem;
   font-family: "Great Vibes", cursive;
-  text-shadow: 0 0 10px #ff00ff, 0 0 20px #00ffff;
+
+  /* ✅ UPDATED: more readable on bright/busy images */
+  text-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.85),
+    0 0 14px rgba(0, 0, 0, 0.6);
 
   opacity: 0;
   transform: translateY(-6px);
@@ -746,7 +791,8 @@ onUnmounted(() => {
   border-radius: 999px;
   font-size: 0.8em;
   color: #fff;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25), 0 0 10px rgba(255, 255, 255, 0.15);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25),
+    0 0 10px rgba(255, 255, 255, 0.15);
 }
 
 .meta-icon {
@@ -766,11 +812,12 @@ onUnmounted(() => {
 
 .hashtag {
   background: rgba(0, 0, 0, 0.35);
-  color: #fff;
+  color: #16ace7;
   padding: 0.35rem 0.65rem;
   border-radius: 999px;
   font-size: 0.85em;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25), 0 0 10px rgba(255, 255, 255, 0.15);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25),
+    0 0 10px rgba(255, 255, 255, 0.15);
 }
 
 .memo-footer {
@@ -906,3 +953,4 @@ onUnmounted(() => {
   }
 }
 </style>
+
