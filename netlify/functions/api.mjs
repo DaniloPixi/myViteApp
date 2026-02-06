@@ -154,12 +154,18 @@ async function sendPushNotification(title, body, link = '/', excludeUid, data = 
     const allTokens = tokensSnapshot.docs.map((doc) => ({ token: doc.id, uid: doc.data().uid }));
     console.log(`Found ${allTokens.length} total tokens in DB.`);
 
-    const isLocalEnv = !process.env.FIREBASE_PROJECT_ID;
-    console.log(`Running in local environment: ${isLocalEnv}`);
+    const isDevish =
+  process.env.NETLIFY_DEV === 'true' ||
+  (process.env.CONTEXT && process.env.CONTEXT !== 'production') ||
+  process.env.NODE_ENV !== 'production';
 
-    const recipientTokens = isLocalEnv
-      ? allTokens.map((t) => t.token)
-      : allTokens.filter((t) => t.uid !== excludeUid).map((t) => t.token);
+console.log(`Running in dev-ish mode: ${isDevish} (CONTEXT=${process.env.CONTEXT || 'n/a'})`);
+
+// In dev-ish mode: send to everyone (including yourself) so you can test easily.
+// In production: exclude the sender (if excludeUid is provided).
+const recipientTokens = isDevish
+  ? allTokens.map((t) => t.token)
+  : allTokens.filter((t) => t.uid !== excludeUid).map((t) => t.token);
 
     console.log(`Found ${recipientTokens.length} tokens to send to.`);
 
