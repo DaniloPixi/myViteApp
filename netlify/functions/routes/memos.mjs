@@ -1,3 +1,4 @@
+// netlify/functions/routes/memos.mjs
 import express from 'express';
 
 // This function will set up the routes and return a router.
@@ -27,17 +28,16 @@ export default function (db, cloudinary, extractPublicId, sendPushNotification) 
 
   router.get('/', async (req, res) => {
     try {
-      const memosSnapshot = await db
-        .collection('memos')
-        .orderBy('createdAt', 'desc')
-        .get();
+      const memosSnapshot = await db.collection('memos').orderBy('createdAt', 'desc').get();
       const memos = memosSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
       res.status(200).json(memos);
     } catch (error) {
       console.error('Error in GET /api/memos:', error);
-      res
-        .status(500)
-        .json({ success: false, message: 'Internal server error.', details: error.message });
+      res.status(500).json({
+        success: false,
+        message: 'Internal server error.',
+        details: error.message,
+      });
     }
   });
 
@@ -65,31 +65,29 @@ export default function (db, cloudinary, extractPublicId, sendPushNotification) 
       const viewUrl = `/?view=memos&memoId=${newMemoRef.id}`;
 
       const notifTitle = `📝 New moment from ${createdBy}`;
-      const notifBody = snippet
-        ? `“${snippet}”`
-        : 'A new moment was saved for you.';
+      const notifBody = snippet ? `“${snippet}”` : 'A new moment was saved for you.';
 
-      await sendPushNotification(
-        notifTitle,
-        notifBody,
-        viewUrl,
-        uid, // exclude sender
-        {
-          type: 'memoCreated',
-          url: viewUrl,
-          memoId: newMemoRef.id,
-          createdBy,
-          description: snippet,
-          location: location || '',
-        }
-      );
+      await sendPushNotification(notifTitle, notifBody, viewUrl, uid, {
+        type: 'memoCreated',
+        url: viewUrl,
+        memoId: newMemoRef.id,
+        createdBy,
+        description: snippet,
+        location: location || '',
+
+        // Optional overrides (leave commented unless you create these assets):
+        // icon: '/icons/manifest-icon-192.png',
+        // badge: '/badge-96.png',
+      });
 
       res.status(201).json({ success: true, memoId: newMemoRef.id });
     } catch (error) {
       console.error('Error in POST /api/memos:', error);
-      res
-        .status(500)
-        .json({ success: false, message: 'Internal server error.', details: error.message });
+      res.status(500).json({
+        success: false,
+        message: 'Internal server error.',
+        details: error.message,
+      });
     }
   });
 
@@ -124,30 +122,28 @@ export default function (db, cloudinary, extractPublicId, sendPushNotification) 
       const viewUrl = `/?view=memos&memoId=${memoId}`;
 
       const notifTitle = '✏️ Moment updated';
-      const notifBody = snippet
-        ? `“${snippet}”`
-        : 'One of your moments was updated.';
+      const notifBody = snippet ? `“${snippet}”` : 'One of your moments was updated.';
 
-      await sendPushNotification(
-        notifTitle,
-        notifBody,
-        viewUrl,
-        uid, // exclude sender
-        {
-          type: 'memoUpdated',
-          url: viewUrl,
-          memoId,
-          description: snippet,
-          location: location || '',
-        }
-      );
+      await sendPushNotification(notifTitle, notifBody, viewUrl, uid, {
+        type: 'memoUpdated',
+        url: viewUrl,
+        memoId,
+        description: snippet,
+        location: location || '',
+
+        // Optional overrides:
+        // icon: '/icons/manifest-icon-192.png',
+        // badge: '/badge-96.png',
+      });
 
       res.status(200).json({ success: true, message: 'Memo updated successfully.' });
     } catch (error) {
       console.error('Error in /api/memos PUT:', error);
-      res
-        .status(500)
-        .json({ success: false, message: 'Internal server error.', details: error.message });
+      res.status(500).json({
+        success: false,
+        message: 'Internal server error.',
+        details: error.message,
+      });
     }
   });
 
@@ -180,31 +176,27 @@ export default function (db, cloudinary, extractPublicId, sendPushNotification) 
       const viewUrl = `/?view=memos&memoId=${memoId}`;
 
       const notifTitle = '🗑️ Moment deleted';
-      const notifBody = snippet
-        ? `“${snippet}” was removed`
-        : 'One of your moments was removed.';
+      const notifBody = snippet ? `“${snippet}” was removed` : 'One of your moments was removed.';
 
-      await sendPushNotification(
-        notifTitle,
-        notifBody,
-        viewUrl,
-        uid, // exclude sender
-        {
-          type: 'memoDeleted',
-          url: viewUrl,
-          memoId,
-          description: snippet,
-        }
-      );
+      await sendPushNotification(notifTitle, notifBody, viewUrl, uid, {
+        type: 'memoDeleted',
+        url: viewUrl,
+        memoId,
+        description: snippet,
 
-      res
-        .status(200)
-        .json({ success: true, message: 'Memo and associated photos deleted.' });
+        // Optional overrides:
+        // icon: '/icons/manifest-icon-192.png',
+        // badge: '/badge-96.png',
+      });
+
+      res.status(200).json({ success: true, message: 'Memo and associated photos deleted.' });
     } catch (error) {
       console.error('Error in /api/memos DELETE:', error);
-      res
-        .status(500)
-        .json({ success: false, message: 'Internal server error.', details: error.message });
+      res.status(500).json({
+        success: false,
+        message: 'Internal server error.',
+        details: error.message,
+      });
     }
   });
 

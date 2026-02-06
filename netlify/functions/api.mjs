@@ -1,3 +1,5 @@
+// netlify/functions/api.mjs  (or your current api file)
+
 import express from 'express';
 import serverless from 'serverless-http';
 import admin from 'firebase-admin';
@@ -20,61 +22,61 @@ try {
   if (admin.apps.length === 0) {
     let serviceAccount;
     if (process.env.FIREBASE_PROJECT_ID) {
-      console.log("Initializing Firebase Admin with environment variables (Production Mode).");
+      console.log('Initializing Firebase Admin with environment variables (Production Mode).');
       serviceAccount = {
-        type: "service_account",
+        type: 'service_account',
         project_id: process.env.FIREBASE_PROJECT_ID,
         private_key_id: process.env.FIREBASE_PRIVATE_KEY_ID,
         private_key: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
         client_email: process.env.FIREBASE_CLIENT_EMAIL,
         client_id: process.env.FIREBASE_CLIENT_ID,
-        auth_uri: "https://accounts.google.com/o/oauth2/auth",
-        token_uri: "https://oauth2.googleapis.com/token",
-        auth_provider_x509_cert_url: "https://www.googleapis.com/oauth2/v1/certs",
-        client_x509_cert_url: process.env.FIREBASE_CLIENT_X509_CERT_URL
+        auth_uri: 'https://accounts.google.com/o/oauth2/auth',
+        token_uri: 'https://oauth2.googleapis.com/token',
+        auth_provider_x509_cert_url: 'https://www.googleapis.com/oauth2/v1/certs',
+        client_x509_cert_url: process.env.FIREBASE_CLIENT_X509_CERT_URL,
       };
     } else {
-      console.log("Initializing Firebase Admin with local serviceAccountKey.json (Local Mode).");
+      console.log('Initializing Firebase Admin with local serviceAccountKey.json (Local Mode).');
       const keyPath = path.join(process.cwd(), 'netlify', 'functions', 'serviceAccountKey.json');
       serviceAccount = JSON.parse(fs.readFileSync(keyPath, 'utf8'));
     }
     admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
     db = admin.firestore();
-    console.log("✅ Firebase Admin Initialized SUCCESSFULLY.");
+    console.log('✅ Firebase Admin Initialized SUCCESSFULLY.');
   } else {
     db = admin.firestore();
   }
 } catch (error) {
   db = null;
-  console.error("❌ CRITICAL: FIREBASE ADMIN SDK INITIALIZATION FAILED.", error);
+  console.error('❌ CRITICAL: FIREBASE ADMIN SDK INITIALIZATION FAILED.', error);
 }
 
 // --- Dual-Environment Cloudinary Initialization ---
 try {
   let cloudinaryConfig = {};
   if (process.env.CLOUDINARY_API_KEY) {
-      console.log("Initializing Cloudinary with environment variables (Production Mode).");
-      cloudinaryConfig = {
-          cloud_name: 'dknmcj1qj',
-          api_key: process.env.CLOUDINARY_API_KEY,
-          api_secret: process.env.CLOUDINARY_API_SECRET,
-      };
+    console.log('Initializing Cloudinary with environment variables (Production Mode).');
+    cloudinaryConfig = {
+      cloud_name: 'dknmcj1qj',
+      api_key: process.env.CLOUDINARY_API_KEY,
+      api_secret: process.env.CLOUDINARY_API_SECRET,
+    };
   } else {
-      console.log("Initializing Cloudinary with local cloudinaryCreds.json (Local Mode).");
-      const credsPath = path.join(process.cwd(), 'netlify', 'functions', 'cloudinaryCreds.json');
-      if (fs.existsSync(credsPath)) {
-          const { api_key, api_secret } = JSON.parse(fs.readFileSync(credsPath, 'utf8'));
-          cloudinaryConfig = { cloud_name: 'dknmcj1qj', api_key, api_secret };
-      } else {
-          console.warn("Cloudinary credentials not found for local development. Deletion will be skipped.");
-      }
+    console.log('Initializing Cloudinary with local cloudinaryCreds.json (Local Mode).');
+    const credsPath = path.join(process.cwd(), 'netlify', 'functions', 'cloudinaryCreds.json');
+    if (fs.existsSync(credsPath)) {
+      const { api_key, api_secret } = JSON.parse(fs.readFileSync(credsPath, 'utf8'));
+      cloudinaryConfig = { cloud_name: 'dknmcj1qj', api_key, api_secret };
+    } else {
+      console.warn('Cloudinary credentials not found for local development. Deletion will be skipped.');
+    }
   }
   if (cloudinaryConfig.api_key) {
     cloudinary.config(cloudinaryConfig);
-    console.log("✅ Cloudinary Initialized SUCCESSFULLY.");
+    console.log('✅ Cloudinary Initialized SUCCESSFULLY.');
   }
 } catch (error) {
-  console.error("❌ CRITICAL: CLOUDINARY INITIALIZATION FAILED.", error);
+  console.error('❌ CRITICAL: CLOUDINARY INITIALIZATION FAILED.', error);
 }
 
 const app = express();
@@ -83,7 +85,7 @@ app.use(bodyParser.json());
 // --- Middleware ---
 const checkDb = (req, res, next) => {
   if (!db) {
-    return res.status(503).json({ success: false, message: "DATABASE NOT CONNECTED. Check server logs." });
+    return res.status(503).json({ success: false, message: 'DATABASE NOT CONNECTED. Check server logs.' });
   }
   next();
 };
@@ -107,22 +109,34 @@ const authenticateToken = async (req, res, next) => {
 
 // --- Helper Functions ---
 const extractPublicId = (url) => {
-    const regex = /upload\/(?:v\d+\/)?([\w\/\-]+)/;
-    const match = url.match(regex);
-    if (match && match[1]) {
-        const pathWithExtension = match[1];
-        const lastDotIndex = pathWithExtension.lastIndexOf('.');
-        if (lastDotIndex > -1) {
-            return pathWithExtension.substring(0, lastDotIndex);
-        }
-        return pathWithExtension;
+  const regex = /upload\/(?:v\d+\/)?([\w\/\-]+)/;
+  const match = url.match(regex);
+  if (match && match[1]) {
+    const pathWithExtension = match[1];
+    const lastDotIndex = pathWithExtension.lastIndexOf('.');
+    if (lastDotIndex > -1) {
+      return pathWithExtension.substring(0, lastDotIndex);
     }
-    return null;
+    return pathWithExtension;
+  }
+  return null;
 };
+
+/**
+ * ✅ Web tokens only: send DATA-only and let the Service Worker render.
+ * This prevents:
+ * - double notifications
+ * - Chrome bell fallback caused by auto-render paths
+ *
+ * IMPORTANT:
+ * - Put a real monochrome transparent PNG at /badge-96.png
+ * - If you update the badge, bump BADGE_VER to bust caches on Android
+ */
+const BADGE_VER = '1'; // bump to '2' if Android keeps showing an old cached badge/icon
 
 async function sendPushNotification(title, body, link = '/', excludeUid, data = {}) {
   if (!db) {
-    console.log("sendPushNotification: DB not available. Aborting.");
+    console.log('sendPushNotification: DB not available. Aborting.');
     return;
   }
 
@@ -133,26 +147,24 @@ async function sendPushNotification(title, body, link = '/', excludeUid, data = 
   try {
     const tokensSnapshot = await db.collection('fcmTokens').get();
     if (tokensSnapshot.empty) {
-      console.log("No FCM tokens found in the database.");
+      console.log('No FCM tokens found in the database.');
       return;
     }
 
-    const allTokens = tokensSnapshot.docs.map(doc => ({ token: doc.id, uid: doc.data().uid }));
+    const allTokens = tokensSnapshot.docs.map((doc) => ({ token: doc.id, uid: doc.data().uid }));
     console.log(`Found ${allTokens.length} total tokens in DB.`);
 
     const isLocalEnv = !process.env.FIREBASE_PROJECT_ID;
     console.log(`Running in local environment: ${isLocalEnv}`);
 
     const recipientTokens = isLocalEnv
-      ? allTokens.map(t => t.token)
-      : allTokens
-          .filter(t => t.uid !== excludeUid)
-          .map(t => t.token);
+      ? allTokens.map((t) => t.token)
+      : allTokens.filter((t) => t.uid !== excludeUid).map((t) => t.token);
 
     console.log(`Found ${recipientTokens.length} tokens to send to.`);
 
     if (recipientTokens.length === 0) {
-      console.log("No recipient tokens after filtering. Aborting send.");
+      console.log('No recipient tokens after filtering. Aborting send.');
       console.log(`--- Push notification process finished ---`);
       return;
     }
@@ -169,34 +181,28 @@ async function sendPushNotification(title, body, link = '/', excludeUid, data = 
       Object.entries(baseData).map(([k, v]) => [String(k), String(v)])
     );
 
+    // ✅ Force same-origin stable assets + cache busting
+    const icon = stringifiedData.icon || `/icons/manifest-icon-192.png?v=${BADGE_VER}`;
+    const badge = stringifiedData.badge || `/badge-96.png?v=${BADGE_VER}`;
+    const url = stringifiedData.url || link || '/';
+
+    // ✅ DATA-ONLY for web: DO NOT include any `notification` object anywhere.
     const message = {
       data: {
         ...stringifiedData,
         title: String(title),
         body: String(body),
-        // make sure these exist so SW can use them
-        icon: stringifiedData.icon || '/icons/manifest-icon-192.png',
-        badge: stringifiedData.badge || '/badge-96.png',
-        url: stringifiedData.url || link || '/',
+        icon: String(icon),
+        badge: String(badge),
+        url: String(url),
       },
-    
-      // Keep only link (optional)
+
       webpush: {
-        fcm_options: { link: stringifiedData.url || link || '/' },
+        // This is fine to keep (click-through hint); SW still handles click.
+        fcm_options: { link: String(url) },
+        // DO NOT set webpush.notification here, or Chrome may auto-render.
       },
-    
-      android: {
-        priority: 'high',
-      },
-    
-      apns: {
-        headers: {
-          'apns-push-type': 'alert',
-          'apns-priority': '10',
-        },
-        payload: { aps: { sound: 'default' } },
-      },
-    
+
       tokens: recipientTokens,
     };
 
@@ -229,15 +235,8 @@ async function sendPushNotification(title, body, link = '/', excludeUid, data = 
   }
 }
 
-
-
-
-
-
 // --- API Endpoints ---
 const apiRouter = express.Router();
-
-// Non-authenticated or general routes can go here
 
 // Authenticated routes
 apiRouter.use(authenticateToken);
@@ -247,14 +246,12 @@ apiRouter.use(checkDb);
 apiRouter.use('/plans', createPlansRouter(db, sendPushNotification));
 apiRouter.use('/memos', createMemosRouter(db, cloudinary, extractPublicId, sendPushNotification));
 apiRouter.use('/quests', createQuestsRouter(db, sendPushNotification));
-
-// 🔴 CHANGED: pass cloudinary + extractPublicId into time-capsules router
 apiRouter.use(
   '/time-capsules',
-  createTimeCapsulesRouter(db, cloudinary, extractPublicId, sendPushNotification),
+  createTimeCapsulesRouter(db, cloudinary, extractPublicId, sendPushNotification)
 );
 
-// Standalone registration endpoint (can be kept here or moved)
+// Standalone registration endpoint
 app.post('/api/register', authenticateToken, checkDb, async (req, res) => {
   const { token } = req.body;
   const { uid } = req.user;
@@ -271,40 +268,23 @@ app.post('/api/register', authenticateToken, checkDb, async (req, res) => {
 });
 
 app.post('/api/send-love', authenticateToken, checkDb, async (req, res) => {
-  const { uid, name } = req.user; // Get sender's UID and name
-  const senderName = name || 'Someone'; // Fallback to 'Someone' if name is not available
+  const { name } = req.user;
+  const senderName = name || 'Someone';
 
   try {
-    const url = '/'; // Path to open when the notification is clicked
+    const url = '/';
 
-    // IMPORTANT: we pass `null` as excludeUid so *no one* is filtered out.
-    await sendPushNotification(
-      `A message from ${senderName}`,
-      'I love you',
+    await sendPushNotification(`A message from ${senderName}`, 'I love you', url, null, {
+      type: 'love',
       url,
-      null, // <- do NOT exclude the sender here
-      {
-        type: 'love',
-        url,
-        // you can add per-type visuals later:
-        // icon: '/icons/love-192.png',
-        // badge: '/icons/love-badge-72.png',
-      }
-    );
+    });
 
-    res
-      .status(200)
-      .json({ success: true, message: '"I love you" notification sent successfully.' });
+    res.status(200).json({ success: true, message: '"I love you" notification sent successfully.' });
   } catch (error) {
     console.error('Error in /api/send-love:', error);
-    res
-      .status(500)
-      .json({ success: false, message: 'Internal server error while sending notification.' });
+    res.status(500).json({ success: false, message: 'Internal server error while sending notification.' });
   }
 });
-
-
-
 
 app.use((req, res, next) => {
   console.log('INCOMING', req.method, req.path);
@@ -314,3 +294,6 @@ app.use((req, res, next) => {
 app.use('/api', apiRouter);
 
 export const handler = serverless(app);
+
+// Export for routers that need it
+export { extractPublicId };

@@ -39,51 +39,71 @@ registerRoute(
 );
 
 // --- Helpers ---
-function getFrom(obj, path, fallback) {
-  // tiny safe getter: getFrom(payload, ['a','b','c'], default)
-  try {
-    return path.reduce((acc, key) => (acc && acc[key] != null ? acc[key] : undefined), obj) ?? fallback;
-  } catch {
-    return fallback;
-  }
-}
-
 function normalizeUrl(maybeUrl) {
-  if (!maybeUrl) return self.location.origin + '/';
+  if (!maybeUrl) return new URL('/', self.location.origin).href;
   try {
     return new URL(maybeUrl, self.location.origin).href;
   } catch {
-    return self.location.origin + '/';
+    return new URL('/', self.location.origin).href;
   }
 }
 
-// IMPORTANT DEFAULTS:
-// - icon: can be your pretty full icon (shows in notification drawer)
-// - badge: MUST be a monochrome transparent PNG for Android status bar
+function sameOriginPath(input, fallbackPath) {
+  // Ensure icon/badge are same-origin paths, not remote URLs.
+  // Also strips accidental "http(s)://..." to prevent fetch failures + bell fallback.
+  if (!input) return fallbackPath;
+
+  try {
+    // If it's already a relative path like "/badge-96.png?v=1"
+    if (typeof input === 'string' && input.startsWith('/')) return input;
+
+    // If it's an absolute URL, keep only its path+search IF same origin
+    const u = new URL(String(input), self.location.origin);
+    if (u.origin === self.location.origin) return u.pathname + u.search;
+
+    // Different origin => reject to fallback
+    return fallbackPath;
+  } catch {
+    return fallbackPath;
+  }
+}
+
+// Defaults (must exist in /public)
 const DEFAULT_ICON = '/icons/manifest-icon-192.png';
-const DEFAULT_BADGE = '/badge-96.png'; // put this in /public so it serves from root
+const DEFAULT_BADGE = '/badge-96.png';
 
 // --- Firebase Background Message Handler ---
+// IMPORTANT: This expects your backend to send DATA-ONLY (no payload.notification).
 messaging.onBackgroundMessage((payload) => {
   console.log('[sw] onBackgroundMessage', payload);
 
   const data = payload?.data || {};
 
+  // Title/body now come from data (your API sends them there)
   const title = data.title || 'Notification';
   const body = data.body || '';
 
+  // Routing: keep whatever you send (type, memoId, view params, etc.)
   const clickUrl = data.url || '/';
+
+  // Force same-origin paths (prevents Chrome bell fallback when it can't fetch)
+  const icon = sameOriginPath(data.icon, DEFAULT_ICON);
+  const badge = sameOriginPath(data.badge, DEFAULT_BADGE);
 
   const options = {
     body,
-    data: { url: clickUrl, ...data },
-    icon: data.icon || '/icons/manifest-icon-192.png',
-    badge: data.badge || '/badge-96.png',
+    icon,
+    badge,
+    data: {
+      url: clickUrl,
+      ...data,
+    },
   };
 
+  // Show OS-level notification (single source of truth)
   self.registration.showNotification(title, options);
 
-  // keep your questCompleted postMessage behavior unchanged
+  // If it’s a questCompleted event, poke all windows (unchanged behavior)
   if (data.type === 'questCompleted') {
     const msg = {
       type: 'questCompleted',
@@ -92,31 +112,12 @@ messaging.onBackgroundMessage((payload) => {
       userName: data.userName,
     };
 
-    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
-      clients.forEach((client) => client.postMessage(msg));
-    });
+    self.clients
+      .matchAll({ type: 'window', includeUncontrolled: true })
+      .then((clients) => {
+        clients.forEach((client) => client.postMessage(msg));
+      });
   }
-});
-
-
-// --- Optional: Catch non-FCM Web Push (if any) ---
-// If you ONLY ever use Firebase messaging, you can delete this.
-// Keeping it prevents “silent drops” if some pushes hit the generic push event.
-self.addEventListener('push', (event) => {
-  // If Firebase handled it, event.data may still exist, but we don't want double notifications.
-  // Firebase's messaging SW handler does NOT fire this handler directly in most setups,
-  // but some stacks do. We guard by checking for a "firebase-messaging-msg-data" shape.
-  let payload = null;
-  try {
-    payload = event.data ? event.data.json() : null;
-  } catch {
-    payload = null;
-  }
-  if (!payload) return;
-
-  // Heuristic: if it looks like an FCM payload (has notification or data fields), let it pass
-  // ONLY if you are not using messaging.onBackgroundMessage (but you are).
-  // So we simply do nothing to avoid duplicates.
 });
 
 // --- Notification Click Handler ---
