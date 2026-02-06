@@ -76,29 +76,42 @@ const DEFAULT_BADGE = '/badge-96.png';
 // --- Firebase Background Message Handler ---
 // IMPORTANT: This expects your backend to send DATA-ONLY (no payload.notification).
 messaging.onBackgroundMessage((payload) => {
-  // 1) Broadcast payload to open windows so you can SEE it in your app (no console required)
   const broadcast = async (msg) => {
     const clientsList = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
     for (const client of clientsList) client.postMessage(msg);
   };
 
-  // Send raw payload to the app for debugging
-  broadcast({ type: 'SW_DEBUG_PUSH', payload });
+  // --- Detect whether Chrome/FCM is likely to auto-display ---
+  // These signals mean: "this message isn't pure data-only"
+  const looksAuto =
+    !!payload?.notification ||                 // classic FCM notification
+    !!payload?.fcmMessage?.notification ||     // some wrappers
+    typeof payload?.icon === 'string' ||       // top-level icon is a big hint
+    typeof payload?.image === 'string' ||      // top-level image hint
+    typeof payload?.title === 'string' ||      // top-level title hint
+    typeof payload?.body === 'string';         // top-level body hint
 
-  const hasNotification = !!payload?.notification; // <-- this is the key
+  // Debug to your app (no console needed)
+  broadcast({
+    type: 'SW_DEBUG_PUSH_FLAGS',
+    flags: {
+      has_notification: !!payload?.notification,
+      has_fcmMessage_notification: !!payload?.fcmMessage?.notification,
+      has_top_level_icon: typeof payload?.icon === 'string',
+      has_top_level_title: typeof payload?.title === 'string',
+      has_top_level_body: typeof payload?.body === 'string',
+      looksAuto,
+      topKeys: Object.keys(payload || {}),
+      dataKeys: Object.keys(payload?.data || {}),
+    },
+  });
+
+  // If it looks auto-renderable, DO NOT show a second notification.
+  if (looksAuto) return;
+
+  // --- Pure data-only path: we render exactly one notification ---
   const data = payload?.data || {};
 
-  // 2) If FCM delivered a "notification" payload, Chrome may auto-display it.
-  // If we ALSO showNotification, you get duplicates.
-  if (hasNotification) {
-    // We avoid duplicates by NOT showing our own notification here.
-    // Your click routing still works via webpush.fcm_options.link (from backend),
-    // or the default Chrome behavior.
-    broadcast({ type: 'SW_DEBUG_INFO', note: 'payload.notification present -> skipping showNotification to prevent duplicates' });
-    return;
-  }
-
-  // 3) Data-only path: WE display the notification (single, controlled notification)
   const title = data.title || 'Notification';
   const body = data.body || '';
 
@@ -108,29 +121,32 @@ messaging.onBackgroundMessage((payload) => {
     payload?.webpush?.fcm_options?.link ||
     '/';
 
-  const icon = (typeof data.icon === 'string' && data.icon.startsWith('/')) ? data.icon : '/icons/manifest-icon-192.png';
-  const badge = (typeof data.badge === 'string' && data.badge.startsWith('/')) ? data.badge : '/badge-96.png';
+  const icon = (typeof data.icon === 'string' && data.icon.startsWith('/'))
+    ? data.icon
+    : '/icons/manifest-icon-192.png';
 
-  const options = {
+  const badge = (typeof data.badge === 'string' && data.badge.startsWith('/'))
+    ? data.badge
+    : '/badge-96.png';
+
+  self.registration.showNotification(title, {
     body,
     icon,
     badge,
     data: { url: clickUrl, ...data },
-  };
+  });
 
-  self.registration.showNotification(title, options);
-
-  // keep your questCompleted postMessage behavior unchanged
+  // keep your questCompleted postMessage behavior
   if (data.type === 'questCompleted') {
-    const msg = {
+    broadcast({
       type: 'questCompleted',
       date: data.date,
       text: data.text,
       userName: data.userName,
-    };
-    broadcast(msg);
+    });
   }
 });
+
 
 
 // --- Notification Click Handler ---
