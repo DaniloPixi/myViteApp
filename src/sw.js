@@ -67,48 +67,24 @@ const DEFAULT_BADGE = '/badge-96.png'; // put this in /public so it serves from 
 messaging.onBackgroundMessage((payload) => {
   console.log('[sw] onBackgroundMessage', payload);
 
-  // FCM can deliver title/body in different places depending on how you send
-  const notification = payload?.notification || {};
   const data = payload?.data || {};
 
-  const title = notification.title || data.title || 'Notification';
-  const body = notification.body || data.body || '';
+  const title = data.title || 'Notification';
+  const body = data.body || '';
 
-  // Prefer your app routing field, then fcm_options link, then root
-  const clickUrl =
-    data.url ||
-    getFrom(payload, ['fcmOptions', 'link'], null) ||
-    getFrom(payload, ['webpush', 'fcm_options', 'link'], null) ||
-    '/';
-
-  // These may arrive from data or notification depending on your server payload shape
-  // (We support both so you can keep your current backend.)
-  const icon =
-    data.icon ||
-    notification.icon ||
-    DEFAULT_ICON;
-
-  const badge =
-    data.badge ||
-    notification.badge ||
-    DEFAULT_BADGE;
+  const clickUrl = data.url || '/';
 
   const options = {
     body,
-    // Keep *all* your data so your app can route (memos/plans/etc)
-    data: {
-      url: clickUrl,
-      ...data,
-    },
-    icon,
-    badge,
+    data: { url: clickUrl, ...data },
+    icon: data.icon || '/icons/manifest-icon-192.png',
+    badge: data.badge || '/badge-96.png',
   };
 
-  // Show OS-level notification
   self.registration.showNotification(title, options);
 
-  // If it’s a questCompleted event, poke all windows (unchanged behavior)
-  if (data && data.type === 'questCompleted') {
+  // keep your questCompleted postMessage behavior unchanged
+  if (data.type === 'questCompleted') {
     const msg = {
       type: 'questCompleted',
       date: data.date,
@@ -116,13 +92,12 @@ messaging.onBackgroundMessage((payload) => {
       userName: data.userName,
     };
 
-    self.clients
-      .matchAll({ type: 'window', includeUncontrolled: true })
-      .then((clients) => {
-        clients.forEach((client) => client.postMessage(msg));
-      });
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+      clients.forEach((client) => client.postMessage(msg));
+    });
   }
 });
+
 
 // --- Optional: Catch non-FCM Web Push (if any) ---
 // If you ONLY ever use Firebase messaging, you can delete this.

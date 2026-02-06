@@ -170,40 +170,33 @@ async function sendPushNotification(title, body, link = '/', excludeUid, data = 
     );
 
     const message = {
-      // notification + data (stable)
-      notification: { title, body },
-
-      data: stringifiedData,
-
-      webpush: {
-        fcm_options: { link: stringifiedData.url },
-        notification: {
-          // 🔥 use the new app icon for web push
-          // dedicated notification icon – simple, transparent, good shape
-    icon: stringifiedData.icon || '/icons/notification-icon2.png',
-    badge: stringifiedData.badge || '/icons/notification-icon2.png',
-        },
+      data: {
+        ...stringifiedData,
+        title: String(title),
+        body: String(body),
+        // make sure these exist so SW can use them
+        icon: stringifiedData.icon || '/icons/manifest-icon-192.png',
+        badge: stringifiedData.badge || '/badge-96.png',
+        url: stringifiedData.url || link || '/',
       },
-
+    
+      // Keep only link (optional)
+      webpush: {
+        fcm_options: { link: stringifiedData.url || link || '/' },
+      },
+    
       android: {
         priority: 'high',
-        notification: {
-          channel_id: 'high_priority_notifications',
-        },
       },
-
+    
       apns: {
         headers: {
           'apns-push-type': 'alert',
           'apns-priority': '10',
         },
-        payload: {
-          aps: {
-            sound: 'default',
-          },
-        },
+        payload: { aps: { sound: 'default' } },
       },
-
+    
       tokens: recipientTokens,
     };
 
