@@ -9,14 +9,24 @@
       <div class="add-memo-section">
         <button @click="openAddForm" class="add-memo-btn">
           <svg class="add-memo-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 121.24 122.88">
-            <path d="M10.05,96.6C6.38,105.51,1.42,113.97,0,122.88l5.13-0.44c8.1-23.56,15.4-39.4,31.23-59.21 C48.24,48.39,61.13,36.58,77.66,27.2c8.8-5,20.07-10.47,30.21-11.85c2.77-0.38,5.58-0.49,8.46-0.24 c-31.4,7.19-56.26,23.84-76.12,48.8C32.1,74.09,25.05,85.4,18.57,97.32l11.94,2.18l-4.97-2.47l17.78-2.83 c-6.6-2.33-13.12-1.55-15.21-4.06c18.3-0.83,33.34-4.78,43.9-12.45c-3.93-0.55-8.46-1.04-10.82-2.17 c17.69-5.98,27.92-16.73,40.9-26.27c-16.87,3.54-32.48,2.96-37-0.25c29.77,2.21,49-6.02,55.59-26.77c0.57-2.24,0.73-4.5,0.37-6.78 C118.74,0.62,92.49-4.39,83.95,7.77c-1.71,2.43-4.12,4.66-6.11,7.48L85.97,0c-21.88,7.39-23.68,15.54-35,40.09 c0.9-7.47,2.97-14.24,5.66-20.63c-27.34,10.55-36.45,37.11-37.91,59.7c-0.79-7.88,0.67-17.78,3.49-28.9 c-7.98,8-13.41,17.39-11.47,30.79l-3.65-1.63l1.92,7.19l-5.46-2.59L10.05,96.6L10.05,96.6z" />
+            <path
+              d="M10.05,96.6C6.38,105.51,1.42,113.97,0,122.88l5.13-0.44c8.1-23.56,15.4-39.4,31.23-59.21 C48.24,48.39,61.13,36.58,77.66,27.2c8.8-5,20.07-10.47,30.21-11.85c2.77-0.38,5.58-0.49,8.46-0.24 c-31.4,7.19-56.26,23.84-76.12,48.8C32.1,74.09,25.05,85.4,18.57,97.32l11.94,2.18l-4.97-2.47l17.78-2.83 c-6.6-2.33-13.12-1.55-15.21-4.06c18.3-0.83,33.34-4.78,43.9-12.45c-3.93-0.55-8.46-1.04-10.82-2.17 c17.69-5.98,27.92-16.73,40.9-26.27c-16.87,3.54-32.48,2.96-37-0.25c29.77,2.21,49-6.02,55.59-26.77c0.57-2.24,0.73-4.5,0.37-6.78 C118.74,0.62,92.49-4.39,83.95,7.77c-1.71,2.43-4.12,4.66-6.11,7.48L85.97,0c-21.88,7.39-23.68,15.54-35,40.09 c0.9-7.47,2.97-14.24,5.66-20.63c-27.34,10.55-36.45,37.11-37.91,59.7c-0.79-7.88,0.67-17.78,3.49-28.9 c-7.98,8-13.41,17.39-11.47,30.79l-3.65-1.63l1.92,7.19l-5.46-2.59L10.05,96.6L10.05,96.6z"
+            />
           </svg>
         </button>
       </div>
 
       <!-- Memos List -->
       <div v-if="filteredMemos.length > 0" class="memos-list">
-        <div v-for="memo in filteredMemos" :key="memo.id" class="memo-card" :data-memo-id="memo.id" :ref="el => registerMemoRef(memo.id, el)" tabindex="0">
+        <div
+          v-for="memo in filteredMemos"
+          :key="memo.id"
+          class="memo-card"
+          :class="{ 'is-active': activeMemoId === memo.id }"
+          :data-memo-id="memo.id"
+          :ref="(el) => registerMemoRef(memo.id, el)"
+          tabindex="0"
+        >
           <!-- Layer 1: Background Gallery -->
           <div class="gallery-container">
             <div
@@ -44,17 +54,25 @@
             <div>
               <div class="memo-meta">
                 <span class="meta-item">
-                  <svg class="meta-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" /></svg>
-                  {{ memo.location || 'No location' }}
+                  <svg class="meta-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                    <path
+                      d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"
+                    />
+                  </svg>
+                  {{ memo.location || "No location" }}
                 </span>
                 <span class="meta-item">
-                  <svg class="meta-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20a2 2 0 0 0 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V8h14v12zM7 10h5v5H7z" /></svg>
+                  <svg class="meta-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                    <path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20a2 2 0 0 0 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V8h14v12zM7 10h5v5H7z" />
+                  </svg>
                   {{ formatDate(memo.date) }}
                 </span>
               </div>
+
               <div v-if="memo.hashtags && memo.hashtags.length" class="memo-hashtags">
                 <span v-for="tag in memo.hashtags" :key="tag" class="hashtag">{{ tag }}</span>
               </div>
+
               <div class="memo-footer">
                 <span class="created-by">By: {{ memo.createdBy }}</span>
                 <div class="card-actions">
@@ -71,12 +89,16 @@
               @click.stop="prevImage(memo.id)"
               class="gallery-nav prev-btn"
               :class="{ visible: galleryState[memo.id]?.currentIndex > 0 }"
-            >&lsaquo;</button>
+            >
+              &lsaquo;
+            </button>
             <button
               @click.stop="nextImage(memo.id)"
               class="gallery-nav next-btn"
               :class="{ visible: galleryState[memo.id]?.currentIndex < getMemoMedia(memo).length - 1 }"
-            >&rsaquo;</button>
+            >
+              &rsaquo;
+            </button>
             <div class="gallery-dots">
               <span
                 v-for="(media, index) in getMemoMedia(memo)"
@@ -127,34 +149,22 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, watch, computed ,nextTick } from 'vue';
-import { getFirestore, collection, query, orderBy, onSnapshot } from 'firebase/firestore';
-import { auth } from '../firebase';
-import MemoForm from '../components/MemoForm.vue';
-import ConfirmDeleteModal from '../components/ConfirmDeleteModal.vue';
-import ImageModal from '../components/ImageModal.vue';
-import { usePhotoUtils } from '../composables/usePhotoUtils';
+import { ref, onMounted, onUnmounted, watch, computed, nextTick } from "vue";
+import { getFirestore, collection, query, orderBy, onSnapshot } from "firebase/firestore";
+import { auth } from "../firebase";
+import MemoForm from "../components/MemoForm.vue";
+import ConfirmDeleteModal from "../components/ConfirmDeleteModal.vue";
+import ImageModal from "../components/ImageModal.vue";
+import { usePhotoUtils } from "../composables/usePhotoUtils";
 
 const { getOptimizedUrl } = usePhotoUtils();
 
 const props = defineProps({
-  locationFilter: {
-    type: String,
-    default: '',
-  },
-  hashtagFilter: {
-    type: String,
-    default: '',
-  },
-  dateFilter: {
-    type: String,
-    default: '',
-  },
+  locationFilter: { type: String, default: "" },
+  hashtagFilter: { type: String, default: "" },
+  dateFilter: { type: String, default: "" },
   // 🔥 new: ID to focus when coming from a notification
-  focusMemoId: {
-    type: String,
-    default: null,
-  },
+  focusMemoId: { type: String, default: null },
 });
 
 const memos = ref([]);
@@ -162,18 +172,26 @@ const loading = ref(true);
 const error = ref(null);
 const showForm = ref(false);
 const selectedMemo = ref(null);
+
 const isDeleteModalVisible = ref(false);
 const deletingMemoId = ref(null);
+
 const isImageModalVisible = ref(false);
 const selectedMediaItems = ref([]);
 const selectedImageIndex = ref(0);
+
 const galleryState = ref({});
 let unsubscribeFromMemos = null;
 
+// ✅ NEW: scroll-based “active” card (mobile scroll spotlight)
+const activeMemoId = ref(null);
+const memoRefs = ref({});
+let memoObserver = null;
+
 const normalizeHashtag = (value) => {
   const trimmed = value.trim().toLowerCase();
-  if (!trimmed) return '';
-  return trimmed.startsWith('#') ? trimmed : `#${trimmed}`;
+  if (!trimmed) return "";
+  return trimmed.startsWith("#") ? trimmed : `#${trimmed}`;
 };
 
 const normalizeFilters = computed(() => ({
@@ -181,16 +199,84 @@ const normalizeFilters = computed(() => ({
   hashtag: normalizeHashtag(props.hashtagFilter),
   date: props.dateFilter,
 }));
-const memoRefs = ref({});
 
 // called by template to register/unregister DOM nodes
 function registerMemoRef(id, el) {
   if (!id) return;
+
   if (el) {
     memoRefs.value[id] = el;
+
+    // if observer already exists, observe immediately
+    if (memoObserver) memoObserver.observe(el);
   } else {
+    const existing = memoRefs.value[id];
+    if (existing && memoObserver) memoObserver.unobserve(existing);
     delete memoRefs.value[id];
   }
+}
+
+function setupMemoObserver() {
+  // clean up
+  if (memoObserver) {
+    memoObserver.disconnect();
+    memoObserver = null;
+  }
+
+  // feature-detect (very old browsers)
+  if (typeof IntersectionObserver === "undefined") return;
+
+  memoObserver = new IntersectionObserver(
+    (entries) => {
+      // We only “activate” items that are meaningfully visible.
+      // Pick the most visible one.
+      let bestId = null;
+      let bestRatio = 0;
+
+      for (const entry of entries) {
+        const id = entry.target?.dataset?.memoId;
+        if (!id) continue;
+
+        if (entry.isIntersecting) {
+          const r = entry.intersectionRatio || 0;
+          if (r >= 0.6 && r > bestRatio) {
+            bestRatio = r;
+            bestId = id;
+          }
+        }
+      }
+
+      if (bestId) {
+        activeMemoId.value = bestId;
+        return;
+      }
+
+      // If nothing meets threshold, we can keep current active as long as it's still reasonably visible.
+      // Otherwise clear it.
+      const currentEl = activeMemoId.value ? memoRefs.value[activeMemoId.value] : null;
+      if (!currentEl) {
+        activeMemoId.value = null;
+        return;
+      }
+
+      // If current active is no longer in view, clear
+      const stillInView = entries.some(
+        (e) => e.target === currentEl && e.isIntersecting && (e.intersectionRatio || 0) >= 0.3
+      );
+      if (!stillInView) activeMemoId.value = null;
+    },
+    {
+      root: null,
+      // “Center-weight” the activation region so it feels like a spotlight while scrolling
+      rootMargin: "-20% 0px -20% 0px",
+      threshold: [0, 0.25, 0.3, 0.5, 0.6, 0.75, 1],
+    }
+  );
+
+  // observe all current nodes
+  Object.values(memoRefs.value).forEach((el) => {
+    if (el) memoObserver.observe(el);
+  });
 }
 
 function scrollToMemoWithRetry(id) {
@@ -203,11 +289,14 @@ function scrollToMemoWithRetry(id) {
   const tryOnce = () => {
     const el = memoRefs.value[id];
     if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      el.classList.add('memo-highlight');
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      el.classList.add("memo-highlight");
+
+      // also set active so it previews immediately
+      activeMemoId.value = id;
 
       setTimeout(() => {
-        el.classList.remove('memo-highlight');
+        el.classList.remove("memo-highlight");
       }, 1500);
 
       return;
@@ -231,7 +320,6 @@ watch(
   { immediate: true }
 );
 
-
 const ensureGalleryState = (memoId) => {
   if (!galleryState.value[memoId]) {
     galleryState.value[memoId] = { currentIndex: 0, touchStartX: 0 };
@@ -242,8 +330,8 @@ const ensureGalleryState = (memoId) => {
 const getMemoMedia = (memo) => (Array.isArray(memo.photos) ? memo.photos : []);
 
 const getThumbnailUrl = (media) => {
-  if (media.resource_type === 'video') {
-    return media.url.replace(/\.mp4$/, '.jpg');
+  if (media.resource_type === "video") {
+    return media.url.replace(/\.mp4$/, ".jpg");
   }
   return getOptimizedUrl(media.url, { width: 600 });
 };
@@ -279,7 +367,7 @@ const subscribeToMemos = () => {
 
   try {
     const db = getFirestore();
-    const memosQuery = query(collection(db, 'memos'), orderBy('createdAt', 'desc'));
+    const memosQuery = query(collection(db, "memos"), orderBy("createdAt", "desc"));
     unsubscribeFromMemos = onSnapshot(
       memosQuery,
       (snapshot) => {
@@ -287,32 +375,32 @@ const subscribeToMemos = () => {
         loading.value = false;
       },
       (err) => {
-        console.error('Error fetching memos in real-time:', err);
-        error.value = 'Failed to load memos. Please check your connection.';
+        console.error("Error fetching memos in real-time:", err);
+        error.value = "Failed to load memos. Please check your connection.";
         loading.value = false;
-      },
+      }
     );
   } catch (err) {
-    console.error('Error setting up memos subscription:', err);
-    error.value = 'An unexpected error occurred.';
+    console.error("Error setting up memos subscription:", err);
+    error.value = "An unexpected error occurred.";
     loading.value = false;
   }
 };
 
 const deleteMemo = async (memoId) => {
   try {
-    if (!auth.currentUser) throw new Error('Authentication required.');
+    if (!auth.currentUser) throw new Error("Authentication required.");
     const idToken = await auth.currentUser.getIdToken();
     const response = await fetch(`/api/memos/${memoId}`, {
-      method: 'DELETE',
+      method: "DELETE",
       headers: { Authorization: `Bearer ${idToken}` },
     });
     if (!response.ok) {
       const errorData = await response.json();
-      throw new Error(errorData.message || 'Failed to delete memo.');
+      throw new Error(errorData.message || "Failed to delete memo.");
     }
   } catch (err) {
-    console.error('Error deleting memo:', err);
+    console.error("Error deleting memo:", err);
     error.value = err.message;
   }
 };
@@ -350,8 +438,8 @@ const handleDelete = async () => {
 };
 
 const formatDate = (dateString) => {
-  if (!dateString) return 'No date';
-  const options = { year: 'numeric', month: 'long', day: 'numeric' };
+  if (!dateString) return "No date";
+  const options = { year: "numeric", month: "long", day: "numeric" };
   return new Date(dateString).toLocaleDateString(undefined, options);
 };
 
@@ -376,6 +464,7 @@ const handleTouchStart = (memoId, event) => {
 
 const handleTouchMove = (memoId, event) => {
   if (ensureGalleryState(memoId).touchStartX === 0) return;
+
   // Prevent horizontal swipes from triggering browser navigation on mobile
   if (Math.abs(event.touches[0].clientX - galleryState.value[memoId].touchStartX) > 10) {
     event.preventDefault();
@@ -385,15 +474,13 @@ const handleTouchMove = (memoId, event) => {
 const handleTouchEnd = (memoId, event) => {
   const state = ensureGalleryState(memoId);
   if (state.touchStartX === 0) return;
+
   const touchEndX = event.changedTouches[0].clientX;
   const diffX = state.touchStartX - touchEndX;
 
   if (Math.abs(diffX) > 50) {
-    if (diffX > 0) {
-      nextImage(memoId);
-    } else {
-      prevImage(memoId);
-    }
+    if (diffX > 0) nextImage(memoId);
+    else prevImage(memoId);
   }
 
   state.touchStartX = 0;
@@ -408,7 +495,7 @@ watch(
       if (unsubscribeFromMemos) unsubscribeFromMemos();
       memos.value = [];
     }
-  },
+  }
 );
 
 watch(
@@ -416,378 +503,394 @@ watch(
   (newMemos) => {
     newMemos.forEach((memo) => ensureGalleryState(memo.id));
   },
-  { deep: true },
+  { deep: true }
 );
 
-onMounted(() => {
+// ✅ When the rendered list changes, re-bind observer to the current DOM
+watch(
+  filteredMemos,
+  async () => {
+    await nextTick();
+    setupMemoObserver();
+  },
+  { flush: "post" }
+);
+
+onMounted(async () => {
   subscribeToMemos();
+  await nextTick();
+  setupMemoObserver();
 });
 
 onUnmounted(() => {
-  if (unsubscribeFromMemos) {
-    unsubscribeFromMemos();
+  if (unsubscribeFromMemos) unsubscribeFromMemos();
+  if (memoObserver) {
+    memoObserver.disconnect();
+    memoObserver = null;
   }
 });
 </script>
 
 <style scoped>
+.memos-moments-view {
+  padding: 1rem;
+}
+
+.loading-state,
+.error-state,
+.no-memos-state {
+  text-align: center;
+  padding: 3rem;
+  color: #aaa;
+}
+
+.error-state {
+  color: #ff6b6b;
+}
+
+.add-memo-section {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 2rem;
+}
+
+.add-memo-btn {
+  background-color: transparent;
+  border: 0.0625rem transparent;
+  color: magenta;
+  padding: 0;
+  border-radius: 50%;
+  width: 4rem;
+  height: 3.125rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  transition: all 1s ease-in-out;
+}
+
+.add-memo-btn .add-memo-icon {
+  width: 3.4rem;
+  height: 4rem;
+  fill: currentColor;
+}
+
+.add-memo-btn:hover {
+  color: turquoise;
+}
+
+.memos-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.memo-card {
+  position: relative;
+  min-height: 25rem;
+  border-radius: 1.25rem;
+  overflow: hidden;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.1), 0 8px 16px rgba(0, 0, 0, 0.3),
+    0 4px 8px rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* ✅ hover + scroll-active + keyboard focus */
+.memo-card:hover,
+.memo-card.is-active {
+  transform: translateY(-10px) scale(1.03);
+}
+
+.memo-card:nth-child(odd):hover,
+.memo-card:nth-child(odd).is-active {
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.2), 0 12px 24px rgba(0, 0, 0, 0.4),
+    0 8px 12px rgba(0, 0, 0, 0.5), 0 0 30px 10px rgba(255, 0, 255, 0.5);
+}
+
+.memo-card:nth-child(even):hover,
+.memo-card:nth-child(even).is-active {
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.2), 0 12px 24px rgba(0, 0, 0, 0.4),
+    0 8px 12px rgba(0, 0, 0, 0.5), 0 0 30px 10px rgba(0, 255, 255, 0.5);
+}
+
+.memo-highlight {
+  box-shadow: 0 0 16px rgba(255, 0, 255, 0.7), 0 0 22px rgba(0, 255, 255, 0.6);
+  transform: translateY(-2px) scale(1.01);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.gallery-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+.photo-gallery,
+.photo-item {
+  height: 100%;
+}
+
+.photo-gallery {
+  display: flex;
+  transition: transform 0.3s ease-in-out;
+}
+
+.photo-item {
+  flex: 0 0 100%;
+}
+
+.photo-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  cursor: pointer;
+  transition: filter 0.3s ease;
+}
+
+.photo-item .adult-content-blur {
+  filter: blur(1rem);
+}
+
+.memo-content {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.7) 30%, transparent 100%);
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease-in-out;
+}
+
+/* ✅ hover + keyboard focus + mobile tap (focus-within) + scroll-active */
+.memo-card:hover .memo-content,
+.memo-card:focus .memo-content,
+.memo-card:focus-within .memo-content,
+.memo-card.is-active .memo-content {
+  opacity: 1;
+}
+
+.memo-content > * {
+  pointer-events: auto;
+}
+
+.memo-description {
+  font-size: 1.8em;
+  line-height: 1.6;
+  color: magenta;
+  margin-bottom: 0.15rem;
+  font-family: "Great Vibes", cursive;
+  text-shadow: 0 0 10px #ff00ff, 0 0 20px #00ffff;
+
+  opacity: 0;
+  transform: translateY(-6px);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.memo-card:hover .memo-description,
+.memo-card:focus .memo-description,
+.memo-card:focus-within .memo-description,
+.memo-card.is-active .memo-description {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.memo-meta {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+  justify-content: space-evenly;
+}
+
+.meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: rgba(0, 0, 0, 0.35);
+  padding: 0.35rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.8em;
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25), 0 0 10px rgba(255, 255, 255, 0.15);
+}
+
+.meta-icon {
+  width: 1rem;
+  height: 1rem;
+  fill: currentColor;
+  opacity: 0.8;
+}
+
+.memo-hashtags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.6rem;
+  justify-content: space-evenly;
+}
+
+.hashtag {
+  background: rgba(0, 0, 0, 0.35);
+  color: #fff;
+  padding: 0.35rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.85em;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25), 0 0 10px rgba(255, 255, 255, 0.15);
+}
+
+.memo-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  color: #f595ff;
+}
+
+.card-actions {
+  display: flex;
+  gap: 2rem;
+}
+
+.edit-button,
+.delete-button {
+  background: none;
+  border: none;
+  color: turquoise;
+  cursor: pointer;
+  font-size: 0.9em;
+  text-transform: lowercase;
+  padding: 0;
+  transition: color 0.3s;
+}
+
+.edit-button:hover,
+.delete-button:hover {
+  text-decoration: none;
+  color: magenta;
+}
+
+.delete-button:hover {
+  color: #ff6b6b;
+}
+
+.gallery-nav,
+.gallery-dots {
+  position: absolute;
+  z-index: 3;
+}
+
+.gallery-nav {
+  top: 50%;
+  transform: translateY(-50%);
+  background-color: rgba(0, 0, 0, 0);
+  color: rgb(208, 8, 235);
+  border: none;
+  border-radius: 50%;
+  width: 2.25rem;
+  height: 2.25rem;
+  font-size: 1.25rem;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  opacity: 0;
+  transition: transform 0.3s ease;
+}
+
+.gallery-nav:hover,
+.gallery-nav:active {
+  transform: translateY(-50%) scale(3);
+}
+
+.gallery-nav:focus {
+  outline: none;
+}
+
+.gallery-nav.visible {
+  opacity: 1;
+}
+
+.prev-btn {
+  left: 0.625rem;
+}
+
+.next-btn {
+  right: 0.625rem;
+}
+
+.gallery-dots {
+  bottom: 0.625rem;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 0.5rem;
+}
+
+.dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background-color: rgba(248, 24, 200, 0.6);
+  transition: background-color 0.3s;
+}
+
+.dot.active {
+  background-color: rgb(21, 209, 223);
+}
+
+/* ✅ better focus behavior for keyboard users */
+.memo-card:focus {
+  outline: none;
+}
+.memo-card:focus-visible {
+  outline: 2px solid rgba(0, 255, 255, 0.6);
+  outline-offset: 4px;
+}
+
+@media (max-width: 760px) {
   .memos-moments-view {
-    padding: 1rem;
+    padding: 0.5rem;
   }
-  
-  .loading-state,
-  .error-state,
-  .no-memos-state {
-    text-align: center;
-    padding: 3rem;
-    color: #aaa;
-  }
-  
-  .error-state {
-    color: #ff6b6b;
-  }
-  
-  .add-memo-section {
-    display: flex;
-    justify-content: center;
-    margin-bottom: 2rem;
-  }
-  
-  .add-memo-btn {
-    background-color: transparent;
-    border: 0.0625rem transparent;
-    color: magenta;
-    padding: 0;
-    border-radius: 50%;
-    width: 4rem;
-    height: 3.125rem;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    cursor: pointer;
-    transition: all 1s ease-in-out;
-  }
-  
-  .add-memo-btn .add-memo-icon {
-    width: 3.4rem;
-    height: 4rem;
-    fill: currentColor;
-  }
-  
-  .add-memo-btn:hover {
-    color: turquoise;
-  }
-  
+
   .memos-list {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 1.5rem;
-    max-width: 1200px;
-    margin: 0 auto;
-  }
-  
-  .memo-card {
-    position: relative;
-    min-height: 25rem;
-    border-radius: 1.25rem;
-    overflow: hidden;
-    box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.1), 0 8px 16px rgba(0, 0, 0, 0.3), 0 4px 8px rgba(0, 0, 0, 0.4);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    display: flex;
-    flex-direction: column;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-  }
-  
-  .memo-card:hover {
-    transform: translateY(-10px) scale(1.03);
-  }
-  
-  .memo-card:nth-child(odd):hover {
-    box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.2),
-                0 12px 24px rgba(0, 0, 0, 0.4),
-                0 8px 12px rgba(0, 0, 0, 0.5),
-                0 0 30px 10px rgba(255, 0, 255, 0.5);
-  }
-  
-  .memo-card:nth-child(even):hover {
-    box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.2),
-                0 12px 24px rgba(0, 0, 0, 0.4),
-                0 8px 12px rgba(0, 0, 0, 0.5),
-                0 0 30px 10px rgba(0, 255, 255, 0.5);
-  }
-  
-  .memo-highlight {
-    box-shadow:
-      0 0 16px rgba(255, 0, 255, 0.7),
-      0 0 22px rgba(0, 255, 255, 0.6);
-    transform: translateY(-2px) scale(1.01);
-    transition: box-shadow 0.2s ease, transform 0.2s ease;
-  }
-  
-  .gallery-container {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 1;
-  }
-  
-  .photo-gallery,
-  .photo-item {
-    height: 100%;
-  }
-  
-  .photo-gallery {
-    display: flex;
-    transition: transform 0.3s ease-in-out;
-  }
-  
-  .photo-item {
-    flex: 0 0 100%;
-  }
-  
-  .photo-item img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-    cursor: pointer;
-    transition: filter 0.3s ease;
-  }
-  
-  .photo-item .adult-content-blur {
-    filter: blur(1rem);
-  }
-  
-  .memo-content {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 2;
-    background: linear-gradient(to bottom, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.7) 30%, transparent 100%);
-    padding: 1rem;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    pointer-events: none;
-    opacity: 0;
-    transition: opacity 0.3s ease-in-out;
-  }
-  
-  /* ✅ hover + keyboard focus + mobile tap (focus-within) */
-  .memo-card:hover .memo-content,
-  .memo-card:focus .memo-content,
-  .memo-card:focus-within .memo-content {
-    opacity: 1;
-  }
-  
-  .memo-content > * {
-    pointer-events: auto;
-  }
-  
-  /* ✅ FIX: description was permanently invisible due to opacity:0 + missing keyframes */
-  .memo-description {
-    font-size: 1.8em;
-    line-height: 1.6;
-    color: magenta;
-    margin-bottom: 0.15rem;
-    font-family: 'Great Vibes', cursive;
-    text-shadow: 0 0 10px #ff00ff, 0 0 20px #00ffff;
-  
-    opacity: 0;
-    transform: translateY(-6px);
-    transition: opacity 0.25s ease, transform 0.25s ease;
-  }
-  
-  .memo-card:hover .memo-description,
-  .memo-card:focus .memo-description,
-  .memo-card:focus-within .memo-description {
-    opacity: 1;
-    transform: translateY(0);
-  }
-  
-  .memo-meta {
-    display: flex;
     gap: 1rem;
-    align-items: center;
-    flex-wrap: wrap;
-    margin-bottom: 0.5rem;
-    justify-content: space-evenly;
   }
-  
-  .meta-item {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-    background: rgba(0, 0, 0, 0.35);
-    padding: 0.35rem 0.65rem;
-    border-radius: 999px;
-    font-size: 0.8em;
-    color: #fff;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25), 0 0 10px rgba(255, 255, 255, 0.15);
+
+  .memo-card {
+    min-height: 22rem;
   }
-  
-  .meta-icon {
-    width: 1rem;
-    height: 1rem;
-    fill: currentColor;
-    opacity: 0.8;
+
+  .memo-content {
+    padding: 0.2rem 0.1rem 0.1rem;
   }
-  
-  .memo-hashtags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    margin-bottom: 0.6rem;
-    justify-content: space-evenly;
+
+  .memo-description {
+    font-size: 1em;
   }
-  
-  .hashtag {
-    background: rgba(0, 0, 0, 0.35);
-    color: #fff;
-    padding: 0.35rem 0.65rem;
-    border-radius: 999px;
-    font-size: 0.85em;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25), 0 0 10px rgba(255, 255, 255, 0.15);
-  }
-  
+
   .memo-footer {
     display: flex;
+    flex-direction: row;
     justify-content: space-between;
     align-items: center;
-    padding-top: 0.5rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-    color: #f595ff;
   }
-  
-  .card-actions {
-    display: flex;
-    gap: 2rem;
-  }
-  
-  .edit-button,
-  .delete-button {
-    background: none;
-    border: none;
-    color: turquoise;
-    cursor: pointer;
-    font-size: 0.9em;
-    text-transform: lowercase;
-    padding: 0;
-    transition: color 0.3s;
-  }
-  
-  .edit-button:hover,
-  .delete-button:hover {
-    text-decoration: none;
-    color: magenta;
-  }
-  
-  .delete-button:hover {
-    color: #ff6b6b;
-  }
-  
-  .gallery-nav,
-  .gallery-dots {
-    position: absolute;
-    z-index: 3;
-  }
-  
-  .gallery-nav {
-    top: 50%;
-    transform: translateY(-50%);
-    background-color: rgba(0, 0, 0, 0);
-    color: rgb(208, 8, 235);
-    border: none;
-    border-radius: 50%;
-    width: 2.25rem;
-    height: 2.25rem;
-    font-size: 1.25rem;
-    cursor: pointer;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    opacity: 0;
-    transition: transform 0.3s ease;
-  }
-  
-  .gallery-nav:hover,
-  .gallery-nav:active {
-    transform: translateY(-50%) scale(3);
-  }
-  
-  .gallery-nav:focus {
-    outline: none;
-  }
-  
-  .gallery-nav.visible {
-    opacity: 1;
-  }
-  
-  .prev-btn {
-    left: 0.625rem;
-  }
-  
-  .next-btn {
-    right: 0.625rem;
-  }
-  
-  .gallery-dots {
-    bottom: 0.625rem;
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    gap: 0.5rem;
-  }
-  
-  .dot {
-    width: 0.5rem;
-    height: 0.5rem;
-    border-radius: 50%;
-    background-color: rgba(248, 24, 200, 0.6);
-    transition: background-color 0.3s;
-  }
-  
-  .dot.active {
-    background-color: rgb(21, 209, 223);
-  }
-  
-  /* optional but helpful: visible focus outline for keyboard users */
-  .memo-card:focus {
-    outline: 2px solid rgba(0, 255, 255, 0.6);
-    outline-offset: 4px;
-  }
-  
-  @media (max-width: 760px) {
-    .memos-moments-view {
-      padding: 0.5rem;
-    }
-  
-    .memos-list {
-      gap: 1rem;
-    }
-  
-    .memo-card {
-      min-height: 22rem;
-    }
-  
-    .memo-content {
-      padding: 0.2rem 0.1rem 0.1rem;
-    }
-  
-    .memo-description {
-      font-size: 1em;
-    }
-  
-    .memo-footer {
-      display: flex;
-      flex-direction: row;
-      justify-content: space-between;
-      align-items: center;
-    }
-  }
-  </style>
-  
+}
+</style>
