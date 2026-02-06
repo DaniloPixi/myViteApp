@@ -575,6 +575,7 @@ onMounted(() => {
   if (event.data?.type === 'SW_DEBUG_PUSH_FLAGS') {
     alert('SW push flags:\n' + JSON.stringify(event.data.flags, null, 2));
   }
+  
 });
 
 
@@ -599,7 +600,18 @@ onMounted(() => {
       }
     });
   }
-
+  onMounted(() => {
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('message', (event) => {
+      if (event.data?.type === 'SW_DEBUG_PUSH_FLAGS') {
+        alert(
+          'SW push flags:\n' +
+          JSON.stringify(event.data.flags, null, 2)
+        );
+      }
+    });
+  }
+});
   // --- Deep-link handling via ?view=... & ...Id ---
   if (typeof window !== 'undefined') {
     applyDeepLinkFromUrlString(window.location.href);
