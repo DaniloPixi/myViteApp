@@ -180,7 +180,7 @@ async function sendPushNotification(title, body, link = '/', excludeUid, data = 
         notification: {
           // 🔥 use the new app icon for web push
           // dedicated notification icon – simple, transparent, good shape
-    icon: stringifiedData.icon || '/icons/notification-icon.png',
+    icon: stringifiedData.icon || '/icons/notification-icon2.png',
     badge: stringifiedData.badge || '/icons/notification-icon2.png',
         },
       },
