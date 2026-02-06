@@ -47,7 +47,7 @@ async function run() {
   await makeIcon(512, 'manifest-icon-512-maskable.png');
 
   // Notification icon (used in push notifications)
-  await makeNotificationIcon(96, 'notification-icon.png');
+  await makeNotificationIcon(96, 'notification-icon2.png');
 
   console.log('All icons generated into public/icons/');
 }
