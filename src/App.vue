@@ -571,6 +571,18 @@ onMounted(() => {
     'Notification' in window &&
     'serviceWorker' in navigator;
 
+    navigator.serviceWorker?.addEventListener('message', (event) => {
+  if (event.data?.type === 'SW_DEBUG_PUSH') {
+    // eslint-disable-next-line no-alert
+    alert('SW got push:\n' + JSON.stringify(event.data.payload, null, 2));
+  }
+  if (event.data?.type === 'SW_DEBUG_INFO') {
+    // eslint-disable-next-line no-alert
+    alert('SW info:\n' + event.data.note);
+  }
+});
+
+
   if (supportsNotifications.value) {
     notificationPermission.value = Notification.permission;
 

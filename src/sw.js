@@ -76,35 +76,51 @@ const DEFAULT_BADGE = '/badge-96.png';
 // --- Firebase Background Message Handler ---
 // IMPORTANT: This expects your backend to send DATA-ONLY (no payload.notification).
 messaging.onBackgroundMessage((payload) => {
-  console.log('[sw] onBackgroundMessage', payload);
+  // 1) Broadcast payload to open windows so you can SEE it in your app (no console required)
+  const broadcast = async (msg) => {
+    const clientsList = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    for (const client of clientsList) client.postMessage(msg);
+  };
 
+  // Send raw payload to the app for debugging
+  broadcast({ type: 'SW_DEBUG_PUSH', payload });
+
+  const hasNotification = !!payload?.notification; // <-- this is the key
   const data = payload?.data || {};
 
-  // Title/body now come from data (your API sends them there)
+  // 2) If FCM delivered a "notification" payload, Chrome may auto-display it.
+  // If we ALSO showNotification, you get duplicates.
+  if (hasNotification) {
+    // We avoid duplicates by NOT showing our own notification here.
+    // Your click routing still works via webpush.fcm_options.link (from backend),
+    // or the default Chrome behavior.
+    broadcast({ type: 'SW_DEBUG_INFO', note: 'payload.notification present -> skipping showNotification to prevent duplicates' });
+    return;
+  }
+
+  // 3) Data-only path: WE display the notification (single, controlled notification)
   const title = data.title || 'Notification';
   const body = data.body || '';
 
-  // Routing: keep whatever you send (type, memoId, view params, etc.)
-  const clickUrl = data.url || '/';
+  const clickUrl =
+    data.url ||
+    payload?.fcmOptions?.link ||
+    payload?.webpush?.fcm_options?.link ||
+    '/';
 
-  // Force same-origin paths (prevents Chrome bell fallback when it can't fetch)
-  const icon = sameOriginPath(data.icon, DEFAULT_ICON);
-  const badge = sameOriginPath(data.badge, DEFAULT_BADGE);
+  const icon = (typeof data.icon === 'string' && data.icon.startsWith('/')) ? data.icon : '/icons/manifest-icon-192.png';
+  const badge = (typeof data.badge === 'string' && data.badge.startsWith('/')) ? data.badge : '/badge-96.png';
 
   const options = {
     body,
     icon,
     badge,
-    data: {
-      url: clickUrl,
-      ...data,
-    },
+    data: { url: clickUrl, ...data },
   };
 
-  // Show OS-level notification (single source of truth)
   self.registration.showNotification(title, options);
 
-  // If it’s a questCompleted event, poke all windows (unchanged behavior)
+  // keep your questCompleted postMessage behavior unchanged
   if (data.type === 'questCompleted') {
     const msg = {
       type: 'questCompleted',
@@ -112,14 +128,10 @@ messaging.onBackgroundMessage((payload) => {
       text: data.text,
       userName: data.userName,
     };
-
-    self.clients
-      .matchAll({ type: 'window', includeUncontrolled: true })
-      .then((clients) => {
-        clients.forEach((client) => client.postMessage(msg));
-      });
+    broadcast(msg);
   }
 });
+
 
 // --- Notification Click Handler ---
 self.addEventListener('notificationclick', (event) => {
