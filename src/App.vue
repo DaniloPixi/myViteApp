@@ -130,10 +130,8 @@
 </template>
 
 <script setup>
-import { ref, watch, onUnmounted, onMounted, reactive, computed } from 'vue';
-import { useRegisterSW } from 'virtual:pwa-register/vue';
+import { ref, watch, onUnmounted, onMounted, reactive } from 'vue';
 import { auth, messaging } from './firebase';
-import { getFirestore, collection, query, orderBy, onSnapshot } from 'firebase/firestore';
 import { LogOut } from 'lucide-vue-next';
 // Import child components and views
 import Login from './views/Login.vue';
@@ -148,29 +146,21 @@ import CursorTrail from './components/CursorTrail.vue';
 import P5StarfieldBackground from './components/P5StarfieldBackground.vue';
 import DailyQuestWidget from './components/DailyQuestWidget.vue';
 import TimeCapsulesView from './views/TimeCapsulesView.vue';
+import { usePwaAutoUpdate } from './composables/usePwaAutoUpdate';
+import { useViewFilters } from './composables/useViewFilters';
+import { useCalendarData } from './composables/useCalendarData';
 
-// --- PWA Auto-Update Logic ---
-const { needRefresh, updateServiceWorker } = useRegisterSW();
-watch(needRefresh, (isUpdateAvailable) => {
-  if (isUpdateAvailable) {
-    updateServiceWorker();
-  }
-});
-// --- End of PWA Auto-Update Logic ---
+usePwaAutoUpdate();
 
 // --- Reactive State ---
 const user = ref(null);
 const isRegistering = ref(false);
 const notificationPermission = ref(null);
 const supportsNotifications = ref(false);
-const currentView = ref(localStorage.getItem('currentView') || 'home');
 const navColors = ref([]);
 
 // --- Centralized Data for Calendar ---
-const memos = ref([]);
-const plans = ref([]);
-let unsubscribeMemos = null;
-let unsubscribePlans = null;
+const { memos, plans, setupDataListeners, clearDataListeners } = useCalendarData();
 
 const focusMemoId = ref(null);
 const focusPlanId = ref(null);
@@ -184,44 +174,16 @@ const inAppNotification = reactive({
   body: ''
 });
 
-// --- Filter State ---
-const locationFilter = ref('');
-const hashtagFilter = ref('');
-const dateFilter = ref('');
-const timeFilter = ref('');
-const durationFilter = ref([]);
-const lockStatusFilter = ref('');
-
-
-
-// --- Enabled filters per view ---
-const enabledFilters = computed(() => {
-  if (currentView.value === 'memos') {
-    // Memos & Moments: location + hashtag + date
-    return ['location', 'hashtags', 'date'];
-  }
-  if (currentView.value === 'plans') {
-    // Plans: full set
-    return ['location', 'hashtags', 'date', 'time', 'duration'];
-  }
-  if (currentView.value === 'capsules') {
-    // Time Capsules: only date for now
-    return ['date','lockStatus'];
-  }
-  return [];
-});
-
-// --- Watch for view changes & reset filters ---
-watch(currentView, (newView) => {
-  localStorage.setItem('currentView', newView);
-  // Reset filters whenever the view changes to ensure a clean state
-  locationFilter.value = '';
-  hashtagFilter.value = '';
-  dateFilter.value = '';
-  timeFilter.value = '';
-  durationFilter.value = [];
-  lockStatusFilter.value = '';
-});
+const {
+  currentView,
+  locationFilter,
+  hashtagFilter,
+  dateFilter,
+  timeFilter,
+  durationFilter,
+  lockStatusFilter,
+  enabledFilters,
+} = useViewFilters();
 
 // --- Component Switching ---
 const handleSwitchForm = (formName) => {
@@ -234,56 +196,6 @@ const getNavStyle = (view, index) => {
     style.color = navColors.value[index];
   }
   return style;
-};
-
-// --- Firestore Data Subscription for Calendar ---
-const setupDataListeners = () => {
-  if (!auth.currentUser) return;
-  const db = getFirestore();
-
-  // Memos listener
-  const memosQuery = query(collection(db, 'memos'), orderBy('createdAt', 'desc'));
-  unsubscribeMemos = onSnapshot(
-    memosQuery,
-    (snapshot) => {
-      memos.value = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    },
-    (err) => {
-      console.error('Error fetching memos for calendar:', err);
-    }
-  );
-
-  // Plans listener
-  const plansQuery = query(collection(db, 'plans'), orderBy('date', 'desc'));
-  unsubscribePlans = onSnapshot(
-    plansQuery,
-    (snapshot) => {
-      plans.value = snapshot.docs.map(doc => {
-        const data = doc.data();
-        const date = new Date(data.date);
-        if (data.time) {
-          const timeParts = data.time.match(/(\d{2}):(\d{2})/);
-          if (timeParts) {
-            date.setHours(timeParts[1], timeParts[2]);
-          }
-        }
-        return {
-          id: doc.id,
-          ...data,
-          creationDate: doc.createTime ? doc.createTime.toDate() : new Date(),
-          fullDate: date,
-        };
-      });
-    },
-    (err) => {
-      console.error('Error fetching plans for calendar:', err);
-    }
-  );
-};
-
-const clearDataListeners = () => {
-  if (unsubscribeMemos) unsubscribeMemos();
-  if (unsubscribePlans) unsubscribePlans();
 };
 
 // --- Core Notification Logic ---
@@ -556,12 +468,26 @@ watch(
 
 
 // --- Foreground Message Handling ---
-messaging.onMessage((payload) => {
+const unsubscribeForegroundMessage = messaging.onMessage((payload) => {
   console.log('Foreground push message received:', payload);
   // FCM gives us { notification, data } just like the SW sees
   showInAppNotificationFromPayload(payload);
 });
 
+const handleServiceWorkerMessage = (event) => {
+  const msg = event?.data;
+  if (!msg || !msg.type) return;
+
+  if (msg.type === 'SW_DEBUG_PUSH_FLAGS') {
+    alert('SW push flags:\n' + JSON.stringify(msg.flags, null, 2));
+    return;
+  }
+
+  if (msg.type === 'questCompleted') {
+    // Reuse the same helper so behavior matches FCM foreground
+    showInAppNotificationFromPayload({ data: msg });
+  }
+};
 
 // --- Lifecycle Hooks ---
 onMounted(() => {
@@ -570,15 +496,6 @@ onMounted(() => {
     typeof window !== 'undefined' &&
     'Notification' in window &&
     'serviceWorker' in navigator;
-
-    navigator.serviceWorker?.addEventListener('message', (event) => {
-  if (event.data?.type === 'SW_DEBUG_PUSH_FLAGS') {
-    alert('SW push flags:\n' + JSON.stringify(event.data.flags, null, 2));
-  }
-  
-});
-
-
 
   if (supportsNotifications.value) {
     notificationPermission.value = Notification.permission;
@@ -589,29 +506,9 @@ onMounted(() => {
       registerDeviceForNotifications();
     }
 
-    // Listen to messages posted from the service worker (e.g. questCompleted)
-    navigator.serviceWorker.addEventListener('message', (event) => {
-      const msg = event.data;
-      if (!msg || !msg.type) return;
+    navigator.serviceWorker.addEventListener('message', handleServiceWorkerMessage);
+  }
 
-      if (msg.type === 'questCompleted') {
-        // Reuse the same helper so behavior matches FCM foreground
-        showInAppNotificationFromPayload({ data: msg });
-      }
-    });
-  }
-  onMounted(() => {
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.addEventListener('message', (event) => {
-      if (event.data?.type === 'SW_DEBUG_PUSH_FLAGS') {
-        alert(
-          'SW push flags:\n' +
-          JSON.stringify(event.data.flags, null, 2)
-        );
-      }
-    });
-  }
-});
   // --- Deep-link handling via ?view=... & ...Id ---
   if (typeof window !== 'undefined') {
     applyDeepLinkFromUrlString(window.location.href);
@@ -688,6 +585,15 @@ onUnmounted(() => {
   if (unsubscribeAuth) {
     unsubscribeAuth();
   }
+
+  if (typeof unsubscribeForegroundMessage === 'function') {
+    unsubscribeForegroundMessage();
+  }
+
+  if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+    navigator.serviceWorker.removeEventListener('message', handleServiceWorkerMessage);
+  }
+
   clearDataListeners(); // Clean up listeners when component is destroyed
 });
 </script>

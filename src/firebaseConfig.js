@@ -2,7 +2,7 @@
 export const firebaseConfig = {
   apiKey: "AIzaSyAGxR--Jx9ELN6IZ5hb1sCD67vreCJqm-k",
   authDomain: "gruandus.firebaseapp.com",
-  databaseURL: "https://gruandus-default-rtdb.firebaseio.com/", // <-- Added this line
+  databaseURL: "https://gruandus-default-rtdb.firebaseio.com/",
   projectId: "gruandus",
   storageBucket: "gruandus.firebasestorage.app",
   messagingSenderId: "104287336044",
