@@ -468,12 +468,26 @@ watch(
 
 
 // --- Foreground Message Handling ---
-messaging.onMessage((payload) => {
+const unsubscribeForegroundMessage = messaging.onMessage((payload) => {
   console.log('Foreground push message received:', payload);
   // FCM gives us { notification, data } just like the SW sees
   showInAppNotificationFromPayload(payload);
 });
 
+const handleServiceWorkerMessage = (event) => {
+  const msg = event?.data;
+  if (!msg || !msg.type) return;
+
+  if (msg.type === 'SW_DEBUG_PUSH_FLAGS') {
+    alert('SW push flags:\n' + JSON.stringify(msg.flags, null, 2));
+    return;
+  }
+
+  if (msg.type === 'questCompleted') {
+    // Reuse the same helper so behavior matches FCM foreground
+    showInAppNotificationFromPayload({ data: msg });
+  }
+};
 
 // --- Lifecycle Hooks ---
 onMounted(() => {
@@ -482,15 +496,6 @@ onMounted(() => {
     typeof window !== 'undefined' &&
     'Notification' in window &&
     'serviceWorker' in navigator;
-
-    navigator.serviceWorker?.addEventListener('message', (event) => {
-  if (event.data?.type === 'SW_DEBUG_PUSH_FLAGS') {
-    alert('SW push flags:\n' + JSON.stringify(event.data.flags, null, 2));
-  }
-  
-});
-
-
 
   if (supportsNotifications.value) {
     notificationPermission.value = Notification.permission;
@@ -501,29 +506,9 @@ onMounted(() => {
       registerDeviceForNotifications();
     }
 
-    // Listen to messages posted from the service worker (e.g. questCompleted)
-    navigator.serviceWorker.addEventListener('message', (event) => {
-      const msg = event.data;
-      if (!msg || !msg.type) return;
+    navigator.serviceWorker.addEventListener('message', handleServiceWorkerMessage);
+  }
 
-      if (msg.type === 'questCompleted') {
-        // Reuse the same helper so behavior matches FCM foreground
-        showInAppNotificationFromPayload({ data: msg });
-      }
-    });
-  }
-  onMounted(() => {
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.addEventListener('message', (event) => {
-      if (event.data?.type === 'SW_DEBUG_PUSH_FLAGS') {
-        alert(
-          'SW push flags:\n' +
-          JSON.stringify(event.data.flags, null, 2)
-        );
-      }
-    });
-  }
-});
   // --- Deep-link handling via ?view=... & ...Id ---
   if (typeof window !== 'undefined') {
     applyDeepLinkFromUrlString(window.location.href);
@@ -600,6 +585,15 @@ onUnmounted(() => {
   if (unsubscribeAuth) {
     unsubscribeAuth();
   }
+
+  if (typeof unsubscribeForegroundMessage === 'function') {
+    unsubscribeForegroundMessage();
+  }
+
+  if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+    navigator.serviceWorker.removeEventListener('message', handleServiceWorkerMessage);
+  }
+
   clearDataListeners(); // Clean up listeners when component is destroyed
 });
 </script>
