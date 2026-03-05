@@ -772,8 +772,6 @@ onUnmounted(() => {
 .view-nav a {
   position: relative;
   z-index: 3;
-}
-.view-nav a {
   margin: 0 1.5rem;
   cursor: pointer;
   color: #aaa;
