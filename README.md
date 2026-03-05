@@ -70,7 +70,7 @@ This respects your `netlify.toml` redirects so `/api/*` maps to `netlify/functio
 
 ### Frontend Firebase config
 
-Client config currently lives in `src/firebaseConfig.js`. For production hardening, move these values to environment variables at build/deploy time.
+Frontend Firebase config is defined in `src/firebaseConfig.js`.
 
 ### Function-side Firebase Admin credentials
 
@@ -111,13 +111,8 @@ npm run preview
 npm run generate:pwa-icons
 ```
 
-## Suggested next steps
+## Next practical improvements
 
-1. Add `.env.example` files (root + `netlify/functions`) with documented variable names.
-2. Move client Firebase config out of source and inject via envs.
-3. Add linting + formatting scripts (`eslint`, `prettier`) and CI checks.
-4. Add smoke tests for API routes and one frontend happy-path flow.
-
----
-
-If you want, I can do the next step now: create `.env.example` files and wire your app to read them safely.
+1. Add linting + formatting scripts (`eslint`, `prettier`) and a pre-deploy check.
+2. Add smoke tests for API routes and one frontend happy-path flow.
+3. Add a simple backup/export routine for Firestore data.
