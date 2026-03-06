@@ -602,11 +602,14 @@ watch(
 
 .plan-title {
   font-family: 'Great Vibes', cursive;
-  word-wrap: break-word;
-  font-size: clamp(1.5rem, 1.2vw, 1.2rem);
+  font-size: 1.5rem;
   margin: 0;
   font-weight: 700;
   color: var(--bubble-text-color);
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  hyphens: auto;
 }
 
 .hover-content p {
@@ -626,6 +629,10 @@ watch(
   font-family: 'Great Vibes', cursive;
   font-size: 2.5em;
   font-weight: normal;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  hyphens: auto;
 }
 
 .plan-detail { margin: 0.5rem 0; color: #ddd; }
