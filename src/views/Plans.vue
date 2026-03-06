@@ -601,6 +601,9 @@ watch(
 }
 
 .plan-title {
+  font-family: 'Innocent', cursive;
+  word-wrap: break-word;
+  font-size: clamp(1.5rem, 1.2vw, 1.2rem);
   font-family: 'Great Vibes', cursive;
   font-size: 1.5rem;
   margin: 0;
