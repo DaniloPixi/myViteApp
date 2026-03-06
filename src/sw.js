@@ -69,6 +69,83 @@ function sameOriginPath(input, fallbackPath) {
   }
 }
 
+
+function defaultActionForType(type) {
+  if (type === 'planCreated' || type === 'planUpdated' || type === 'planDeleted') {
+    return { action: 'open-plan', title: 'Open plan' };
+  }
+
+  if (type === 'memoCreated' || type === 'memoUpdated' || type === 'memoDeleted') {
+    return { action: 'open-memos', title: 'Open moments' };
+  }
+
+  if (type === 'capsuleCreated' || type === 'capsuleOpened') {
+    return { action: 'open-capsules', title: 'Open capsules' };
+  }
+
+  if (type === 'questCompleted') {
+    return { action: 'open-home', title: 'Open home' };
+  }
+
+  return null;
+}
+
+function buildNotificationActions(data = {}) {
+  const actions = [];
+
+  // Optional backend-provided custom actions (data-only payload safe)
+  if (data.action1Id && data.action1Title) {
+    actions.push({ action: data.action1Id, title: data.action1Title });
+  }
+  if (data.action2Id && data.action2Title) {
+    actions.push({ action: data.action2Id, title: data.action2Title });
+  }
+
+  // If no explicit actions were provided, infer one from notification type
+  if (actions.length === 0) {
+    const inferred = defaultActionForType(data.type);
+    if (inferred) actions.push(inferred);
+  }
+
+  // Most browsers display up to 2 actions well.
+  return actions.slice(0, 2);
+}
+
+function resolveActionUrl(action, data = {}) {
+  if (!action) {
+    return data.url || '/';
+  }
+
+  // Optional backend-defined action URL hooks (if present)
+  if (action === data.action1Id && data.action1Url) {
+    return data.action1Url;
+  }
+  if (action === data.action2Id && data.action2Url) {
+    return data.action2Url;
+  }
+
+  if (action === 'open-plan') {
+    if (data.planId) return `/?view=plans&planId=${encodeURIComponent(data.planId)}`;
+    return '/?view=plans';
+  }
+
+  if (action === 'open-memos') {
+    if (data.memoId) return `/?view=memos&memoId=${encodeURIComponent(data.memoId)}`;
+    return '/?view=memos';
+  }
+
+  if (action === 'open-capsules') {
+    if (data.capsuleId) return `/?view=capsules&capsuleId=${encodeURIComponent(data.capsuleId)}`;
+    return '/?view=capsules';
+  }
+
+  if (action === 'open-home') {
+    return '/?view=home';
+  }
+
+  return data.url || '/';
+}
+
 // Defaults (must exist in /public)
 const DEFAULT_ICON = '/icons/manifest-icon-192.png';
 const DEFAULT_BADGE = '/badge-96.png';
@@ -129,10 +206,13 @@ messaging.onBackgroundMessage((payload) => {
     ? data.badge
     : '/badge-96.png';
 
+  const actions = buildNotificationActions(data);
+
   self.registration.showNotification(title, {
     body,
     icon,
     badge,
+    actions,
     data: { url: clickUrl, ...data },
   });
 
@@ -153,8 +233,9 @@ messaging.onBackgroundMessage((payload) => {
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
 
-  const urlFromNotif = event.notification?.data?.url;
-  const urlToOpen = normalizeUrl(urlFromNotif);
+  const data = event.notification?.data || {};
+  const targetUrl = resolveActionUrl(event.action, data);
+  const urlToOpen = normalizeUrl(targetUrl);
 
   event.waitUntil(
     self.clients
