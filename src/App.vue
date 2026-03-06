@@ -149,6 +149,7 @@ import TimeCapsulesView from './views/TimeCapsulesView.vue';
 import { usePwaAutoUpdate } from './composables/usePwaAutoUpdate';
 import { useViewFilters } from './composables/useViewFilters';
 import { useCalendarData } from './composables/useCalendarData';
+import { forceReloadCalendarQuests } from './composables/useDailyQuests';
 
 usePwaAutoUpdate();
 
@@ -479,11 +480,15 @@ const handleServiceWorkerMessage = (event) => {
   if (!msg || !msg.type) return;
 
   if (msg.type === 'SW_DEBUG_PUSH_FLAGS') {
-    alert('SW push flags:\n' + JSON.stringify(msg.flags, null, 2));
+    if (import.meta.env.DEV) {
+      console.debug('SW push flags:', msg.flags);
+    }
     return;
   }
 
   if (msg.type === 'questCompleted') {
+    // Keep calendar quest UI in sync with SW-originated events
+    forceReloadCalendarQuests();
     // Reuse the same helper so behavior matches FCM foreground
     showInAppNotificationFromPayload({ data: msg });
   }
