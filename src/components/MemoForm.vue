@@ -8,7 +8,12 @@
         <!-- Description -->
         <div class="form-group">
           <label for="description">Description</label>
-          <textarea id="description" v-model="formData.description" required></textarea>
+          <textarea
+            id="description"
+            v-model="formData.description"
+            class="description-input"
+            required
+          ></textarea>
         </div>
 
         <!-- Location & Date -->
@@ -333,6 +338,11 @@ input, textarea {
 textarea {
   min-height: 100px;
   resize: vertical;
+}
+
+.description-input {
+  font-size: clamp(1rem, 0.9rem + 0.45vw, 1.25rem);
+  line-height: 1.45;
 }
 
 input:focus, textarea:focus {
