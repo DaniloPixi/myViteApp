@@ -71,11 +71,11 @@ function sameOriginPath(input, fallbackPath) {
 
 
 function defaultActionForType(type) {
-  if (type === 'planCreated' || type === 'planUpdated' || type === 'planDeleted') {
+  if (type === 'planCreated' || type === 'planUpdated' || type === 'planDeleted' || type === 'planAnniversary') {
     return { action: 'open-plan', title: 'Open plan' };
   }
 
-  if (type === 'memoCreated' || type === 'memoUpdated' || type === 'memoDeleted') {
+  if (type === 'memoCreated' || type === 'memoUpdated' || type === 'memoDeleted' || type === 'memoAnniversary') {
     return { action: 'open-memos', title: 'Open moments' };
   }
 
