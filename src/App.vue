@@ -48,7 +48,18 @@
         :enabled-filters="enabledFilters"
       />
       <header class="page-header" v-if="currentView === 'home'">
-        <h1 v-if="user" class="bounce-in">Welcome, {{ user.displayName || user.email }}</h1>
+        <h1 v-if="user" class="bounce-in welcome-line">
+  <span>Welcome, {{ user.displayName || user.email }}</span>
+
+  <span
+    class="presence-chip"
+    :class="`presence-${partnerPresenceStatus}`"
+    :title="`Partner is ${partnerPresenceStatus}`"
+    aria-label="Partner status"
+  >
+    <span class="presence-star">✦</span>
+  </span>
+</h1>
         <h1 v-else class="bounce-in">Auth Portal</h1>
       </header>
     </div>
@@ -142,7 +153,7 @@
 
 <script setup>
 import { ref, watch, onUnmounted, onMounted, reactive, computed } from 'vue';
-import { auth, messaging } from './firebase';
+import { auth, messaging,db } from './firebase';
 import { LogOut } from 'lucide-vue-next';
 // Import child components and views
 import Login from './views/Login.vue';
@@ -173,7 +184,8 @@ const isRegistering = ref(false);
 const notificationPermission = ref(null);
 const supportsNotifications = ref(false);
 const navColors = ref([]);
-
+const partnerPresenceStatus = ref('offline');
+let unsubscribePartnerPresence = null;
 // --- Centralized Data for Calendar ---
 const { memos, plans, setupDataListeners, clearDataListeners } = useCalendarData();
 
@@ -266,7 +278,8 @@ async function registerDeviceForNotifications() {
     } catch (err) {
       console.warn('Failed to bind messaging to custom service worker:', err);
     }
-
+    const partnerPresenceStatus = ref('offline'); // online | away | offline
+    let unsubscribePartnerPresence = null;
     const currentToken = await messaging.getToken({
       vapidKey: 'BPACu3jz1Y3_bB4VPwO96LkPua-bJKVXBOioaf75Gc7xQQ-aqZ04a0qBSbxuX6ZW6KcPB1Lcv68zGP5qrM2q9dU',
       // critical: bind the token to *this* SW registration
@@ -377,10 +390,12 @@ const unsubscribeAuth = auth.onAuthStateChanged((currentUser) => {
   if (currentUser) {
     registerDeviceForNotifications();
     setupDataListeners(); // Fetch data for calendar
+    setPartnerPresenceSubscription(currentUser.uid);
   } else {
     clearDataListeners(); // Clean up listeners on logout
     localStorage.removeItem('currentView');
     currentView.value = 'home';
+    clearPartnerPresenceSubscription();
   }
 });
 
@@ -602,7 +617,39 @@ const handleServiceWorkerMessage = (event) => {
     showInAppNotificationFromPayload({ data: msg });
   }
 };
+function setPartnerPresenceSubscription(currentUid) {
+  if (typeof unsubscribePartnerPresence === 'function') {
+    unsubscribePartnerPresence();
+    unsubscribePartnerPresence = null;
+  }
 
+  unsubscribePartnerPresence = db.collection('userPresence').onSnapshot(
+    (snapshot) => {
+      // app has 2 users; pick the other user's doc
+      const otherDoc = snapshot.docs.find((doc) => doc.id !== currentUid);
+
+      if (!otherDoc) {
+        partnerPresenceStatus.value = 'offline';
+        return;
+      }
+
+      const status = otherDoc.data()?.status;
+      partnerPresenceStatus.value =
+        status === 'online' || status === 'away' ? status : 'offline';
+    },
+    () => {
+      partnerPresenceStatus.value = 'offline';
+    }
+  );
+}
+
+function clearPartnerPresenceSubscription() {
+  if (typeof unsubscribePartnerPresence === 'function') {
+    unsubscribePartnerPresence();
+    unsubscribePartnerPresence = null;
+  }
+  partnerPresenceStatus.value = 'offline';
+}
 // --- Lifecycle Hooks ---
 onMounted(() => {
   isMobileDevice.value =
@@ -705,6 +752,7 @@ function handleInAppNotificationClick() {
 onUnmounted(() => {
   if (unsubscribeAuth) {
     unsubscribeAuth();
+    clearPartnerPresenceSubscription();
   }
 
   if (typeof unsubscribeForegroundMessage === 'function') {
@@ -854,7 +902,47 @@ onUnmounted(() => {
   navCenterSlide 7.5s ease-in-out infinite alternate,
   navCenterHue 11s ease-in-out infinite alternate;
 }
+.welcome-line {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+}
 
+/* transparent glass chip */
+.presence-chip {
+  width: 1.4rem;
+  height: 1.4rem;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(8, 8, 12, 0.26);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* star */
+.presence-star {
+  font-size: 0.78rem;
+  line-height: 1;
+}
+
+/* status colors - subtle, not cartoon */
+.presence-online .presence-star {
+  color: #76ffe1;
+  text-shadow: 0 0 8px rgba(64, 255, 224, 0.65);
+}
+
+.presence-away .presence-star {
+  color: #ffd57a;
+  text-shadow: 0 0 8px rgba(255, 200, 80, 0.55);
+}
+
+.presence-offline .presence-star {
+  color: rgba(220, 230, 255, 0.45);
+  text-shadow: none;
+}
 /* keep links above everything */
 
 @keyframes navCenterSlide {
