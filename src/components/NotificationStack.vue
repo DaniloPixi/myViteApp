@@ -81,7 +81,6 @@ const emit = defineEmits(['toggle', 'dismiss', 'open']);
 
 const touchStartXById = new Map();
 const touchDeltaById = new Map();
-const suppressClickById = new Map();
 const itemStyles = reactive({});
 
 const formatTimestamp = (timestamp) => {
@@ -119,14 +118,6 @@ const onTouchEnd = (id, event) => {
   const endX = event.changedTouches?.[0]?.clientX ?? startX;
   const deltaX = endX - startX;
   const swipeThreshold = 70;
-  const clickSuppressionThreshold = 8;
-
-  if (Math.abs(deltaX) > clickSuppressionThreshold) {
-    suppressClickById.set(id, true);
-    setTimeout(() => {
-      suppressClickById.delete(id);
-    }, 350);
-  }
 
   if (Math.abs(deltaX) >= swipeThreshold) {
     emit('dismiss', id);
@@ -138,8 +129,8 @@ const onTouchEnd = (id, event) => {
 };
 
 const openNotification = (id) => {
-  if (props.isMobile && suppressClickById.get(id)) {
-    suppressClickById.delete(id);
+  const deltaX = touchDeltaById.get(id) || 0;
+  if (props.isMobile && Math.abs(deltaX) > 8) {
     return;
   }
 
