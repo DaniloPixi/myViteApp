@@ -1,7 +1,8 @@
-import { watch } from 'vue';
+import { onUnmounted, watch } from 'vue';
 import { useRegisterSW } from 'virtual:pwa-register/vue';
 
 const RELOAD_DELAY_MS = 4000;
+const UPDATE_CHECK_INTERVAL_MS = 60_000;
 
 function showUpdatingBanner(delayMs) {
   if (typeof document === 'undefined') return;
@@ -35,11 +36,22 @@ function showUpdatingBanner(delayMs) {
 export function usePwaAutoUpdate() {
   if (typeof window === 'undefined' || typeof navigator === 'undefined') return;
 
-  const { needRefresh, updateServiceWorker } = useRegisterSW();
+  let registrationUpdateInterval = null;
+
+  const { needRefresh, updateServiceWorker } = useRegisterSW({
+    onRegisteredSW(_, registration) {
+      if (!registration || registrationUpdateInterval) return;
+
+      registrationUpdateInterval = window.setInterval(() => {
+        registration.update();
+      }, UPDATE_CHECK_INTERVAL_MS);
+    },
+  });
+
   let hasRequestedUpdate = false;
   let isReloading = false;
 
-  navigator.serviceWorker?.addEventListener('controllerchange', () => {
+  const handleControllerChange = () => {
     if (isReloading) return;
     isReloading = true;
 
@@ -48,12 +60,28 @@ export function usePwaAutoUpdate() {
     window.setTimeout(() => {
       window.location.reload();
     }, RELOAD_DELAY_MS);
-  });
+  };
+
+  navigator.serviceWorker?.addEventListener('controllerchange', handleControllerChange);
 
   watch(needRefresh, async (isUpdateAvailable) => {
     if (!isUpdateAvailable || hasRequestedUpdate) return;
     hasRequestedUpdate = true;
 
-    await updateServiceWorker();
+    try {
+      await updateServiceWorker();
+    } catch (error) {
+      console.error('Failed to apply service worker update:', error);
+      hasRequestedUpdate = false;
+    }
+  });
+
+  onUnmounted(() => {
+    navigator.serviceWorker?.removeEventListener('controllerchange', handleControllerChange);
+
+    if (registrationUpdateInterval) {
+      window.clearInterval(registrationUpdateInterval);
+      registrationUpdateInterval = null;
+    }
   });
 }
