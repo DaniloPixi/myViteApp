@@ -3,10 +3,21 @@
     <CursorTrail />
     <!-- In-App Notification Banner -->
     <InAppNotification
-    :title="inAppNotification.title"
-  :body="inAppNotification.body"
-  v-model:visible="inAppNotification.visible"
-  @click="handleInAppNotificationClick"
+      :title="inAppNotification.title"
+      :body="inAppNotification.body"
+      v-model:visible="inAppNotification.visible"
+      @click="handleInAppNotificationClick"
+    />
+
+    <NotificationStack
+      :show-launcher="shouldShowNotificationStackLauncher"
+      :unread-count="unreadStackNotifications.length"
+      :notifications="unreadStackNotifications"
+      :visible="isNotificationStackVisible"
+      :is-mobile="isMobileDevice"
+      @toggle="toggleNotificationStack"
+      @dismiss="dismissStackNotification"
+      @open="openStackNotification"
     />
 
     <NotificationStack
@@ -38,15 +49,15 @@
 
     <div class="sticky-header">
       <Sidebar
-    v-if="currentView === 'plans' || currentView === 'memos' || currentView === 'capsules'"
-    v-model:location="locationFilter"
-    v-model:hashtags="hashtagFilter"
-    v-model:date="dateFilter"
-    v-model:time="timeFilter"
-    v-model:duration="durationFilter"
-    v-model:lockStatus="lockStatusFilter"
-    :enabled-filters="enabledFilters"
-  />
+        v-if="currentView === 'plans' || currentView === 'memos' || currentView === 'capsules'"
+        v-model:location="locationFilter"
+        v-model:hashtags="hashtagFilter"
+        v-model:date="dateFilter"
+        v-model:time="timeFilter"
+        v-model:duration="durationFilter"
+        v-model:lockStatus="lockStatusFilter"
+        :enabled-filters="enabledFilters"
+      />
       <header class="page-header" v-if="currentView === 'home'">
         <h1 v-if="user" class="bounce-in">Welcome, {{ user.displayName || user.email }}</h1>
         <h1 v-else class="bounce-in">Auth Portal</h1>
@@ -98,29 +109,29 @@
                 </div>
 
                 <MemosAndMoments
-  v-if="currentView === 'memos'"
-  :location-filter="locationFilter"
-  :hashtag-filter="hashtagFilter"
-  :date-filter="dateFilter"
-  :focus-memo-id="focusMemoId"
-/>
+                  v-if="currentView === 'memos'"
+                  :location-filter="locationFilter"
+                  :hashtag-filter="hashtagFilter"
+                  :date-filter="dateFilter"
+                  :focus-memo-id="focusMemoId"
+                />
 
-<Plans
-  v-if="currentView === 'plans'"
-  :user="user"
-  :location-filter="locationFilter"
-  :hashtag-filter="hashtagFilter"
-  :date-filter="dateFilter"
-  :time-filter="timeFilter"
-  :duration-filter="durationFilter"
-  :focus-plan-id="focusPlanId"
-/>
+                <Plans
+                  v-if="currentView === 'plans'"
+                  :user="user"
+                  :location-filter="locationFilter"
+                  :hashtag-filter="hashtagFilter"
+                  :date-filter="dateFilter"
+                  :time-filter="timeFilter"
+                  :duration-filter="durationFilter"
+                  :focus-plan-id="focusPlanId"
+                />
 
                 <TimeCapsulesView
-                v-if="currentView === 'capsules'"
-  :date-filter="dateFilter"
-  :lock-status-filter="lockStatusFilter"
-  :focus-capsule-id="focusCapsuleId"
+                  v-if="currentView === 'capsules'"
+                  :date-filter="dateFilter"
+                  :lock-status-filter="lockStatusFilter"
+                  :focus-capsule-id="focusCapsuleId"
                 />
               </div>
             </transition>
