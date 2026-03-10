@@ -1,6 +1,19 @@
 <template>
   <P5StarfieldBackground>
     <CursorTrail />
+    <div
+  v-if="user"
+  class="presence-floating-wrap"
+  :title="`Partner is ${partnerPresenceStatus}`"
+  aria-label="Partner presence"
+>
+  <span
+    class="presence-floating-star"
+    :class="`presence-${partnerPresenceStatus}`"
+  >
+    ✦
+  </span>
+</div>
     <!-- In-App Notification Banner -->
     <InAppNotification
       :title="inAppNotification.title"
@@ -50,15 +63,6 @@
       <header class="page-header" v-if="currentView === 'home'">
         <h1 v-if="user" class="bounce-in welcome-line">
   <span>Welcome, {{ user.displayName || user.email }}</span>
-
-  <span
-    class="presence-chip"
-    :class="`presence-${partnerPresenceStatus}`"
-    :title="`Partner is ${partnerPresenceStatus}`"
-    aria-label="Partner status"
-  >
-    <span class="presence-star">✦</span>
-  </span>
 </h1>
         <h1 v-else class="bounce-in">Auth Portal</h1>
       </header>
@@ -982,7 +986,70 @@ onUnmounted(() => {
   100% { box-shadow: 0 22px 32px -6px rgba(  0, 255, 255, 0.34); } /* cyan */
 }
 
+/* Floating partner presence star (left side, glassy) */
+.presence-floating-wrap {
+  position: fixed;
+  left: 1rem;
+  top: 5.2rem; /* aligns roughly with welcome/header zone */
+  z-index: 1300;
+  width: 2.15rem;
+  height: 2.15rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 22% 20%, rgba(0, 255, 255, 0.12), transparent 62%),
+    radial-gradient(circle at 78% 82%, rgba(255, 0, 255, 0.12), transparent 62%),
+    rgba(10, 10, 16, 0.14);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* no cartoon/plastic ring */
+.presence-floating-star {
+  font-size: 1.28rem;
+  line-height: 1;
+  color: rgba(225, 235, 255, 0.45);
+  transition: color 0.25s ease, text-shadow 0.25s ease, transform 0.25s ease;
+  transform: translateY(-0.5px);
+}
+
+/* online = cyan/magenta low-opacity glow */
+.presence-online {
+  color: rgba(120, 255, 235, 0.9);
+  text-shadow:
+    0 0 7px rgba(0, 255, 255, 0.38),
+    0 0 12px rgba(255, 0, 255, 0.22);
+}
+
+/* away = softer warm blend */
+.presence-away {
+  color: rgba(255, 220, 155, 0.82);
+  text-shadow:
+    0 0 6px rgba(255, 0, 255, 0.22),
+    0 0 8px rgba(0, 255, 255, 0.16);
+}
+
+/* offline = dim glass */
+.presence-offline {
+  color: rgba(215, 225, 245, 0.35);
+  text-shadow: none;
+}
+
+@media (max-width: 768px) {
+  .presence-floating-wrap {
+    left: 0.7rem;
+    top: 4.6rem;
+    width: 1.95rem;
+    height: 1.95rem;
+  }
+
+  .presence-floating-star {
+    font-size: 1.16rem;
+  }
+}
 .view-nav a {
   position: relative;
   z-index: 3;
