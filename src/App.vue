@@ -9,6 +9,17 @@
   @click="handleInAppNotificationClick"
     />
 
+    <NotificationStack
+      :show-launcher="shouldShowNotificationStackLauncher"
+      :unread-count="unreadStackNotifications.length"
+      :notifications="unreadStackNotifications"
+      :visible="isNotificationStackVisible"
+      :is-mobile="isMobileDevice"
+      @toggle="toggleNotificationStack"
+      @dismiss="dismissStackNotification"
+      @open="openStackNotification"
+    />
+
     <!-- Fixed Notification Controls -->
     <div v-if="user && currentView === 'home' && supportsNotifications" class="notification-control-fixed">
       <button
@@ -130,7 +141,7 @@
 </template>
 
 <script setup>
-import { ref, watch, onUnmounted, onMounted, reactive } from 'vue';
+import { ref, watch, onUnmounted, onMounted, reactive, computed } from 'vue';
 import { auth, messaging } from './firebase';
 import { LogOut } from 'lucide-vue-next';
 // Import child components and views
@@ -142,6 +153,7 @@ import CombinedCalendar from './components/CombinedCalendar.vue';
 import Sidebar from './components/Sidebar.vue';
 import ScrollToTopButton from './components/ScrollToTopButton.vue';
 import InAppNotification from './components/InAppNotification.vue';
+import NotificationStack from './components/NotificationStack.vue';
 import CursorTrail from './components/CursorTrail.vue';
 import P5StarfieldBackground from './components/P5StarfieldBackground.vue';
 import DailyQuestWidget from './components/DailyQuestWidget.vue';
@@ -173,6 +185,23 @@ const inAppNotification = reactive({
   visible: false,
   title: '',
   body: ''
+});
+const notificationStack = ref([]);
+const isNotificationStackVisible = ref(false);
+const hasTabBeenUnfocused = ref(false);
+const isMobileDevice = ref(false);
+
+const unreadStackNotifications = computed(() =>
+  notificationStack.value
+    .filter((notification) => notification.status === 'unread')
+    .sort((a, b) => b.createdAt - a.createdAt)
+);
+
+const shouldShowNotificationStackLauncher = computed(() => {
+  const reachedThreshold = unreadStackNotifications.value.length >= 3;
+  if (!reachedThreshold) return false;
+  if (isMobileDevice.value) return true;
+  return hasTabBeenUnfocused.value;
 });
 
 const {
@@ -271,8 +300,62 @@ async function enableNotifications() {
   }
 }
 
+function addToNotificationStack(title, body, data) {
+  notificationStack.value.push({
+    id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    title,
+    body,
+    data,
+    createdAt: Date.now(),
+    status: 'unread',
+  });
+}
+
+function dismissStackNotification(notificationId) {
+  const target = notificationStack.value.find((notification) => notification.id === notificationId);
+  if (!target) return;
+
+  target.status = 'dismissed';
+
+  if (unreadStackNotifications.value.length < 3) {
+    isNotificationStackVisible.value = false;
+  }
+}
+
+function openStackNotification(notificationId) {
+  const target = notificationStack.value.find((notification) => notification.id === notificationId);
+  if (!target) return;
+
+  target.status = 'opened';
+
+  const urlString = target.data?.url || target.data?.link;
+  if (urlString) {
+    applyDeepLinkFromUrlString(urlString);
+  }
+
+  if (unreadStackNotifications.value.length < 3) {
+    isNotificationStackVisible.value = false;
+  }
+}
+
+function toggleNotificationStack() {
+  if (!shouldShowNotificationStackLauncher.value) return;
+  isNotificationStackVisible.value = !isNotificationStackVisible.value;
+}
+
+function setTabUnfocused() {
+  if (document.visibilityState === 'hidden') {
+    hasTabBeenUnfocused.value = true;
+  }
+}
+
+function setWindowUnfocused() {
+  hasTabBeenUnfocused.value = true;
+}
+
 function enqueueNotification(title, body, data) {
   notificationQueue.value.push({ title, body, data });
+  addToNotificationStack(title, body, data);
   maybeShowNextNotification();
 }
 
@@ -485,6 +568,12 @@ watch(
   }
 );
 
+watch(shouldShowNotificationStackLauncher, (visible) => {
+  if (!visible) {
+    isNotificationStackVisible.value = false;
+  }
+});
+
 
 // --- Foreground Message Handling ---
 const unsubscribeForegroundMessage = messaging.onMessage((payload) => {
@@ -514,6 +603,13 @@ const handleServiceWorkerMessage = (event) => {
 
 // --- Lifecycle Hooks ---
 onMounted(() => {
+  isMobileDevice.value =
+    window.matchMedia('(pointer: coarse)').matches ||
+    window.matchMedia('(max-width: 768px)').matches;
+
+  window.addEventListener('blur', setWindowUnfocused);
+  document.addEventListener('visibilitychange', setTabUnfocused);
+
   // --- Notification support + SW message bridge ---
   supportsNotifications.value =
     typeof window !== 'undefined' &&
@@ -615,6 +711,11 @@ onUnmounted(() => {
 
   if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
     navigator.serviceWorker.removeEventListener('message', handleServiceWorkerMessage);
+  }
+
+  if (typeof window !== 'undefined') {
+    window.removeEventListener('blur', setWindowUnfocused);
+    document.removeEventListener('visibilitychange', setTabUnfocused);
   }
 
   clearDataListeners(); // Clean up listeners when component is destroyed
