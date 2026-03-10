@@ -1,36 +1,71 @@
 import { onUnmounted, watch } from 'vue';
 import { useRegisterSW } from 'virtual:pwa-register/vue';
 
-const RELOAD_DELAY_MS = 4000;
+const RELOAD_DELAY_MS = 3000;
 const UPDATE_CHECK_INTERVAL_MS = 60_000;
 
-function showUpdatingBanner(delayMs) {
+function showBlockingUpdateModal(delayMs) {
   if (typeof document === 'undefined') return;
 
-  const existing = document.getElementById('pwa-update-banner');
+  const existing = document.getElementById('pwa-update-blocking-modal');
   if (existing) return;
 
-  const banner = document.createElement('div');
-  banner.id = 'pwa-update-banner';
-  banner.textContent = `A new version is ready. Updating in ${Math.round(delayMs / 1000)}s…`;
+  const overlay = document.createElement('div');
+  overlay.id = 'pwa-update-blocking-modal';
 
-  Object.assign(banner.style, {
+  const countdownSeconds = Math.max(1, Math.round(delayMs / 1000));
+
+  overlay.innerHTML = `
+    <div class="pwa-update-modal">
+      <div class="pwa-update-title">Updating app…</div>
+      <div class="pwa-update-body">Please wait ${countdownSeconds}s</div>
+    </div>
+  `;
+
+  Object.assign(overlay.style, {
     position: 'fixed',
-    left: '50%',
-    bottom: '20px',
-    transform: 'translateX(-50%)',
-    zIndex: '9999',
-    padding: '0.6rem 0.9rem',
-    borderRadius: '8px',
-    background: 'rgba(15, 15, 15, 0.92)',
-    color: '#fff',
-    border: '1px solid rgba(255,255,255,0.2)',
-    fontFamily: 'Montserrat, sans-serif',
-    fontSize: '0.9rem',
-    boxShadow: '0 10px 25px rgba(0,0,0,0.35)',
+    inset: '0',
+    zIndex: '99999',
+    background: 'rgba(0,0,0,0.82)',
+    backdropFilter: 'blur(4px)',
+    WebkitBackdropFilter: 'blur(4px)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    pointerEvents: 'all',
   });
 
-  document.body.appendChild(banner);
+  const modal = overlay.querySelector('.pwa-update-modal');
+  Object.assign(modal.style, {
+    width: 'min(92vw, 420px)',
+    borderRadius: '16px',
+    padding: '1rem 1.2rem',
+    textAlign: 'center',
+    border: '1px solid rgba(255,255,255,0.25)',
+    background:
+      'radial-gradient(circle at 20% 20%, rgba(0,255,255,0.18), transparent 55%), radial-gradient(circle at 80% 80%, rgba(255,0,255,0.18), transparent 55%), rgba(10,10,16,0.9)',
+    boxShadow: '0 0 24px rgba(255,0,255,0.35), 0 0 24px rgba(0,255,255,0.25)',
+    color: '#fff',
+    fontFamily: 'Montserrat, sans-serif',
+  });
+
+  const title = overlay.querySelector('.pwa-update-title');
+  Object.assign(title.style, {
+    fontSize: '1.05rem',
+    fontWeight: '700',
+    marginBottom: '0.35rem',
+    letterSpacing: '0.02em',
+  });
+
+  const body = overlay.querySelector('.pwa-update-body');
+  Object.assign(body.style, {
+    fontSize: '0.92rem',
+    opacity: '0.9',
+  });
+
+  document.body.appendChild(overlay);
+
+  return overlay;
 }
 
 export function usePwaAutoUpdate() {
@@ -55,7 +90,7 @@ export function usePwaAutoUpdate() {
     if (isReloading) return;
     isReloading = true;
 
-    showUpdatingBanner(RELOAD_DELAY_MS);
+    showBlockingUpdateModal(RELOAD_DELAY_MS);
 
     window.setTimeout(() => {
       window.location.reload();
