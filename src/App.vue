@@ -162,8 +162,10 @@ import { usePwaAutoUpdate } from './composables/usePwaAutoUpdate';
 import { useViewFilters } from './composables/useViewFilters';
 import { useCalendarData } from './composables/useCalendarData';
 import { forceReloadCalendarQuests } from './composables/useDailyQuests';
+import { usePresence } from './composables/usePresence';
 
 usePwaAutoUpdate();
+usePresence();
 
 // --- Reactive State ---
 const user = ref(null);

@@ -3,7 +3,7 @@ import firebase from 'firebase/compat/app';
 import 'firebase/compat/auth';
 import 'firebase/compat/messaging';
 import 'firebase/compat/firestore'; // Use Firestore
-
+import 'firebase/compat/database';
 import { firebaseConfig } from './firebaseConfig';
 
 // Initialize Firebase
@@ -17,5 +17,5 @@ if (!firebase.apps.length) {
 const auth = firebase.auth();
 const messaging = firebase.messaging();
 const db = firebase.firestore(); // Initialize Firestore
-
-export { firebase, auth, messaging, db };
+const rtdb = firebase.database();
+export { firebase, auth, messaging, db, rtdb };
