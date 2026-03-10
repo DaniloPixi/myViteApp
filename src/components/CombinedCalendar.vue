@@ -6,7 +6,7 @@
       :attributes="attributes"
       view="monthly"
       title-position="left"
-      :is-expanded="true"
+    
       class="custom-calendar"
     >
       <template #day-content="{ day, attributes }">
@@ -583,5 +583,35 @@ function questStatusFor(customData) {
   font-style: italic;
   opacity: 0.9;
 }
+/* Compact calendar vertical spacing */
+.custom-calendar .vc-pane-layout,
+.custom-calendar .vc-weeks {
+  padding-bottom: 0 !important;
+}
 
+.custom-calendar .vc-week {
+  margin-bottom: 0 !important;
+}
+
+.custom-calendar .vc-day-content {
+  min-height: 34px !important;
+}
+/* Remove phantom bottom strip / hidden weekdays spacing */
+.custom-calendar .vc-weekdays {
+  margin: 0 !important;
+  padding: 0 !important;
+  min-height: 0 !important;
+  line-height: 1 !important;
+}
+
+.custom-calendar .vc-weeks {
+  margin-bottom: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+.custom-calendar .vc-pane-layout,
+.custom-calendar .vc-pane {
+  margin-bottom: 0 !important;
+  padding-bottom: 0 !important;
+}
 </style>
