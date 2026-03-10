@@ -379,6 +379,12 @@ function showInAppNotificationFromPayload(payloadLike) {
       title = '✏️ Plan tweaked';
     } else if (type === 'planDeleted') {
       title = '❌ Plan cancelled';
+    } else if (type === 'planAnniversary') {
+      const periodLabel = data.periodLabel || 'On this day';
+      title = `🕰️ ${periodLabel}`;
+    } else if (type === 'memoAnniversary') {
+      const periodLabel = data.periodLabel || 'On this day';
+      title = `🕰️ ${periodLabel}`;
     } else if (type === 'capsuleCreated') {
       // 🔥 NEW
       title = '⏳ New time capsule';
@@ -420,6 +426,18 @@ function showInAppNotificationFromPayload(payloadLike) {
         text && when
           ? `“${text}” · ${when}`
           : text || (when ? `Plan for ${when}` : 'Open Plans to see what changed.');
+    } else if (type === 'planAnniversary') {
+      const text = data.text || '';
+      const periodLabel = data.periodLabel || 'sometime back';
+      body = text
+        ? `“${text}” was ${periodLabel.toLowerCase()}.`
+        : `One of your plans was from ${periodLabel.toLowerCase()}.`;
+    } else if (type === 'memoAnniversary') {
+      const description = data.description || '';
+      const periodLabel = data.periodLabel || 'sometime back';
+      body = description
+        ? `“${description}” was ${periodLabel.toLowerCase()}.`
+        : `One of your moments was from ${periodLabel.toLowerCase()}.`;
     } else if (type === 'capsuleCreated') {
       // 🔥 NEW
       const fromName = data.fromName || 'Someone';
