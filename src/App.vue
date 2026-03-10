@@ -20,6 +20,17 @@
       @open="openStackNotification"
     />
 
+    <NotificationStack
+      :show-launcher="shouldShowNotificationStackLauncher"
+      :unread-count="unreadStackNotifications.length"
+      :notifications="unreadStackNotifications"
+      :visible="isNotificationStackVisible"
+      :is-mobile="isMobileDevice"
+      @toggle="toggleNotificationStack"
+      @dismiss="dismissStackNotification"
+      @open="openStackNotification"
+    />
+
     <!-- Fixed Notification Controls -->
     <div v-if="user && currentView === 'home' && supportsNotifications" class="notification-control-fixed">
       <button
