@@ -55,7 +55,7 @@ function sameOriginPath(input, fallbackPath) {
   if (!input) return fallbackPath;
 
   try {
-    // If it's already a relative path like "/badge-96.png?v=1"
+    // If it's already a relative path like "/badge-96.svg?v=1"
     if (typeof input === 'string' && input.startsWith('/')) return input;
 
     // If it's an absolute URL, keep only its path+search IF same origin
@@ -203,12 +203,16 @@ messaging.onBackgroundMessage((payload) => {
 
   const actions = buildNotificationActions(data);
 
-  self.registration.showNotification(title, {
+  const notificationOptions = {
     body,
     icon,
     actions,
     data: { url: clickUrl, ...data },
-  });
+  };
+
+  if (badge) notificationOptions.badge = badge;
+
+  self.registration.showNotification(title, notificationOptions);
 
   // keep your questCompleted postMessage behavior
   if (data.type === 'questCompleted') {
