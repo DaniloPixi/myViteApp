@@ -200,7 +200,6 @@ const recipientTokens = isDevish
         title: String(title),
         body: String(body),
         icon: String(icon),
-        badge: String(badge),
         url: String(url),
       },
 
