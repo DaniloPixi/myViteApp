@@ -495,7 +495,12 @@ function showInAppNotificationFromPayload(payloadLike) {
     } else if (type === 'capsuleOpened') {
       // 🔥 NEW
       title = '✨ Time capsule opened';
-    } else {
+    } 
+    else if (type === 'planReminder') {
+      title = data.reminderCode === '24h' ? '🗓️ Plan tomorrow' : '⏳ Plan soon';
+    } else if (type === 'planTimeUp') {
+      title = '⌛ Plan time is up';}
+    else {
       title = 'Notification';
     }
   }
@@ -569,7 +574,28 @@ function showInAppNotificationFromPayload(payloadLike) {
       body = capsuleTitle
         ? `${opener} opened "${capsuleTitle}".`
         : `${opener} opened one of your time capsules.`;
-    } else {
+    }
+    else if (type === 'planReminder') {
+      const text = data.text || 'A plan';
+      const dueAt = data.dueAt ? new Date(data.dueAt) : null;
+      const dueLabel = dueAt && !Number.isNaN(dueAt.getTime())
+        ? dueAt.toLocaleString(undefined, {
+            year: 'numeric',
+            month: 'short',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+          })
+        : '';
+      const timingLabel = data.reminderCode === '24h' ? 'tomorrow' : 'soon';
+      body = dueLabel
+        ? `“${text}” is ${timingLabel} (${dueLabel}).`
+        : `“${text}” is ${timingLabel}.`;
+    } else if (type === 'planTimeUp') {
+      const text = data.text || 'Your plan';
+      body = `“${text}” is due now.`;
+    }
+    else {
       body = '';
     }
   }
