@@ -557,7 +557,7 @@ button:disabled {
 
 @media (max-width: 700px) {
   .modal-content {
-    width: min(420px, calc(100vw - 1.2rem));
+    width: min(420px, calc(100vw - 1.7rem));
     padding: 1.4rem 1.2rem 0.9rem;
     border-radius: 16px;
   }
