@@ -148,7 +148,6 @@ function resolveActionUrl(action, data = {}) {
 
 // Defaults (must exist in /public)
 const DEFAULT_ICON = '/icons/manifest-icon-192.png';
-const DEFAULT_BADGE = '/badge-96.png';
 
 // --- Firebase Background Message Handler ---
 // IMPORTANT: This expects your backend to send DATA-ONLY (no payload.notification).
@@ -202,16 +201,11 @@ messaging.onBackgroundMessage((payload) => {
     ? data.icon
     : '/icons/manifest-icon-192.png';
 
-  const badge = (typeof data.badge === 'string' && data.badge.startsWith('/'))
-    ? data.badge
-    : '/badge-96.png';
-
   const actions = buildNotificationActions(data);
 
   self.registration.showNotification(title, {
     body,
     icon,
-    badge,
     actions,
     data: { url: clickUrl, ...data },
   });
