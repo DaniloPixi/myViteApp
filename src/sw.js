@@ -204,17 +204,20 @@ messaging.onBackgroundMessage((payload) => {
 
   const badge = (typeof data.badge === 'string' && data.badge.startsWith('/'))
     ? data.badge
-    : '/badge-96.png';
+    : '';
 
   const actions = buildNotificationActions(data);
 
-  self.registration.showNotification(title, {
+  const notificationOptions = {
     body,
     icon,
-    badge,
     actions,
     data: { url: clickUrl, ...data },
-  });
+  };
+
+  if (badge) notificationOptions.badge = badge;
+
+  self.registration.showNotification(title, notificationOptions);
 
   // keep your questCompleted postMessage behavior
   if (data.type === 'questCompleted') {
