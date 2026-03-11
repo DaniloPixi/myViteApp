@@ -602,10 +602,8 @@ watch(
 
 .plan-title {
   font-family: 'Innocent', cursive;
-  word-wrap: break-word;
-  font-size: clamp(1.5rem, 1.2vw, 1.2rem);
-  font-family: 'Great Vibes', cursive;
-  font-size: 1.5rem;
+  font-size: clamp(0.72rem, 1.45vw, 1.35rem);
+  line-height: 1.1;
   margin: 0;
   font-weight: 700;
   color: var(--bubble-text-color);
@@ -613,6 +611,7 @@ watch(
   overflow-wrap: anywhere;
   word-break: break-word;
   hyphens: auto;
+  text-wrap: pretty;
 }
 
 .hover-content p {

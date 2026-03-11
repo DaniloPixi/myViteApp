@@ -749,11 +749,11 @@ onUnmounted(() => {
 }
 
 .memo-description {
-  font-size: 1.8em;
+  font-size: 1.4em;
   line-height: 1.6;
   color: magenta;
   margin-bottom: 0.15rem;
-  font-family: "Great Vibes", cursive;
+  font-family: "Innocent";
 
   /* ✅ UPDATED: more readable on bright/busy images */
   text-shadow:
