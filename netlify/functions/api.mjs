@@ -129,10 +129,11 @@ const extractPublicId = (url) => {
  * - Chrome bell fallback caused by auto-render paths
  *
  * IMPORTANT:
- * - Put a real monochrome transparent PNG at /badge-96.png
+ * - Use a real monochrome transparent badge asset (e.g. /badge-96.png)
  * - If you update the badge, bump BADGE_VER to bust caches on Android
  */
-const BADGE_VER = '2'; // bump to '2' if Android keeps showing an old cached badge/icon
+const ASSET_VER = '5'; // bump when Android should refresh cached push assets
+const DEFAULT_MONO_BADGE_DATA_URL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAYAAADimHc4AAAACXBIWXMAAAsTAAALEwEAmpwYAAACkUlEQVR4nO3cvWsUURTG4WPETwQ/sBFEyyApNKiVlVaCiI2Ngq2dWIk2gfwDitEo2Iu1IjZ+JCBGFFELi0Q7CyuFiLEIGPOTS6YSMYlm55xz531gYdllZ++Zd2bYmXtmzUREREREREREREQkGKAfuAg8BiaB781jsnmtvNfvPc7qAAeAJyzdBHDIe9zpAWuAm8A8y1c+M1qW4V1HSsA2YJz/NwZs9a4n45Y/xsp5Cqz1risNFg47K+26d10pAAf/8Zi/mLLM/d71hcfKHnp+98i7vtCAPfSezhP+EsClFgK40OpWlQkLZ7O99tC7zrCADy0EMOVdZ1jATAsBzHjXGRYt8a4zLBSAAugsYHtbe0D5Lu96o114Owt8bjGA6WbyZp11GXAEeI+fKeCwdQ2wqtkC5/BXxjAM9FkXAFuA+8Rzr4zNagZsBl4R19syE2cVr/yXxPe6uilMYAPwnDyeAeutFsAt8rlhNQBOktcpywzYDXwlr2lgl2UF3CG/25YRsA/4SX7zKbspSgcC9Ri3hM20tRm0LEoXGvW5ahmUHsyWLy235UuK/lLgBPU6btGVXZV6XbbogBfUa8IiK1N8wCz1mg09jVlOWKjfoEUFHKN+Ry0q4Az1O21RAeep3zmLChiifkMWVdPeUbthi0oBOFMAzhSAMwXgTAE4UwDOFIAzBeBMAThTAM4UgDNghPqNWERlogL4Qf3mwnVHAAPJu6CX6xuw1yIAdgAf6Z5PwE7vlb8xyX1fvfIG2OS18vuAuz0rLY8HwGqPALrwiyfuL6MlD60jTAH4UgDOFIAzBdC1AJzuvBld5C9uynvXUtzJkhULlz2uAO+av7mcaZ6X1wa8xyciIiIiIiIiIiIi9ge/AB3pnn2Z4lgHAAAAAElFTkSuQmCC';
 
 async function sendPushNotification(title, body, link = '/', excludeUid, data = {}) {
   if (!db) {
@@ -188,8 +189,8 @@ const recipientTokens = isDevish
     );
 
     // ✅ Force same-origin stable assets + cache busting
-    const icon = stringifiedData.icon || `/icons/manifest-icon-192.png?v=${BADGE_VER}`;
-    const badge = stringifiedData.badge || `/badge-96.png?v=${BADGE_VER}`;
+    const icon = stringifiedData.icon || `/icons/manifest-icon-192.png?v=${ASSET_VER}`;
+    const badge = stringifiedData.badge || DEFAULT_MONO_BADGE_DATA_URL;
     const url = stringifiedData.url || link || '/';
 
     // ✅ DATA-ONLY for web: DO NOT include any `notification` object anywhere.

@@ -149,6 +149,7 @@ function resolveActionUrl(action, data = {}) {
 // Defaults (must exist in /public)
 const DEFAULT_ICON = '/icons/manifest-icon-192.png';
 const DEFAULT_BADGE = '/badge-96.png';
+const DEFAULT_MONO_BADGE_DATA_URL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAYAAADimHc4AAAACXBIWXMAAAsTAAALEwEAmpwYAAACkUlEQVR4nO3cvWsUURTG4WPETwQ/sBFEyyApNKiVlVaCiI2Ngq2dWIk2gfwDitEo2Iu1IjZ+JCBGFFELi0Q7CyuFiLEIGPOTS6YSMYlm55xz531gYdllZ++Zd2bYmXtmzUREREREREREREQkGKAfuAg8BiaB781jsnmtvNfvPc7qAAeAJyzdBHDIe9zpAWuAm8A8y1c+M1qW4V1HSsA2YJz/NwZs9a4n45Y/xsp5Cqz1risNFg47K+26d10pAAf/8Zi/mLLM/d71hcfKHnp+98i7vtCAPfSezhP+EsClFgK40OpWlQkLZ7O99tC7zrCADy0EMOVdZ1jATAsBzHjXGRYt8a4zLBSAAugsYHtbe0D5Lu96o114Owt8bjGA6WbyZp11GXAEeI+fKeCwdQ2wqtkC5/BXxjAM9FkXAFuA+8Rzr4zNagZsBl4R19syE2cVr/yXxPe6uilMYAPwnDyeAeutFsAt8rlhNQBOktcpywzYDXwlr2lgl2UF3CG/25YRsA/4SX7zKbspSgcC9Ri3hM20tRm0LEoXGvW5ahmUHsyWLy235UuK/lLgBPU6btGVXZV6XbbogBfUa8IiK1N8wCz1mg09jVlOWKjfoEUFHKN+Ry0q4Az1O21RAeep3zmLChiifkMWVdPeUbthi0oBOFMAzhSAMwXgTAE4UwDOFIAzBeBMAThTAM4UgDNghPqNWERlogL4Qf3mwnVHAAPJu6CX6xuw1yIAdgAf6Z5PwE7vlb8xyX1fvfIG2OS18vuAuz0rLY8HwGqPALrwiyfuL6MlD60jTAH4UgDOFIAzBdC1AJzuvBld5C9uynvXUtzJkhULlz2uAO+av7mcaZ6X1wa8xyciIiIiIiIiIiIi9ge/AB3pnn2Z4lgHAAAAAElFTkSuQmCC';
 
 // --- Firebase Background Message Handler ---
 // IMPORTANT: This expects your backend to send DATA-ONLY (no payload.notification).
@@ -202,9 +203,11 @@ messaging.onBackgroundMessage((payload) => {
     ? data.icon
     : '/icons/manifest-icon-192.png';
 
-  const badge = (typeof data.badge === 'string' && data.badge.startsWith('/'))
+  const isBadgePath = typeof data.badge === 'string' && data.badge.startsWith('/');
+  const isBadgeDataUrl = typeof data.badge === 'string' && data.badge.startsWith('data:image/png;base64,');
+  const badge = isBadgePath || isBadgeDataUrl
     ? data.badge
-    : '/badge-96.png';
+    : DEFAULT_MONO_BADGE_DATA_URL;
 
   const actions = buildNotificationActions(data);
 
