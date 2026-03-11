@@ -122,7 +122,6 @@ async function sendPushToTokens(tokens, title, body, payloadData) {
       title: String(title),
       body: String(body),
       icon: '/icons/manifest-icon-192.png?v=4',
-      badge: '/badge-96.svg?v=4',
     },
     webpush: {
       fcm_options: { link: String(payloadData.url || '/') },

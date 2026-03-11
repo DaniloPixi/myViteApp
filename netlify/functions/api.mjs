@@ -189,7 +189,7 @@ const recipientTokens = isDevish
 
     // ✅ Force same-origin stable assets + cache busting
     const icon = stringifiedData.icon || `/icons/manifest-icon-192.png?v=${ASSET_VER}`;
-    const badge = stringifiedData.badge || `/badge-96.svg?v=${ASSET_VER}`;
+    const badge = stringifiedData.badge || '';
     const url = stringifiedData.url || link || '/';
 
     // ✅ DATA-ONLY for web: DO NOT include any `notification` object anywhere.
@@ -199,7 +199,6 @@ const recipientTokens = isDevish
         title: String(title),
         body: String(body),
         icon: String(icon),
-        badge: String(badge),
         url: String(url),
       },
 
