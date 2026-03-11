@@ -72,9 +72,15 @@ onUnmounted(() => {
   position: fixed;
   bottom: 25px;
   right: 25px;
-  background-color: #b8429b50;
-  color: magenta;
-  border: 1px solid magenta;
+  background:
+    radial-gradient(circle at 22% 20%, rgba(0, 255, 255, 0.12), transparent 62%),
+    radial-gradient(circle at 78% 82%, rgba(255, 0, 255, 0.12), transparent 62%),
+    rgba(10, 10, 16, 0.14);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: rgba(120, 255, 235, 0.88);
+  opacity: 0.92;
+  border: none;
   border-radius: 50%;
   width: 50px;
   height: 50px;
@@ -84,21 +90,24 @@ onUnmounted(() => {
   justify-content: center;
   cursor: pointer;
   z-index: 1000;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-  transition: background-color 0.3s, transform 0.2s ease-out;
+  text-shadow:
+    0 0 7px rgba(0, 255, 255, 0.38),
+    0 0 12px rgba(255, 0, 255, 0.22);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.25);
+  transition: transform 0.24s ease-out, box-shadow 0.24s ease-out, color 0.24s ease-out, opacity 0.24s ease-out;
 }
 
 .scroll-to-top-button:hover {
-  background-color: #0d0e0d00;
-  outline:none;
-  transform: translateY(-3px);
+  transform: translateY(-3px) scale(1.06);
+  color: rgba(214, 21, 172, 0.98);
+  opacity: 1;
+  box-shadow: 0 14px 26px rgba(0, 0, 0, 0.32);
 }
 
-.fade-enter-active, .fade-leave-active {
-  transition: opacity 0.4s ease;
-}
-
-.fade-enter-from, .fade-leave-to {
-  opacity: 0;
+.scroll-to-top-button:focus,
+.scroll-to-top-button:focus-visible,
+.scroll-to-top-button:active {
+  outline: none;
+  border: none;
 }
 </style>
