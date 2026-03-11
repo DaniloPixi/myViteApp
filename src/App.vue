@@ -1053,26 +1053,67 @@ onUnmounted(() => {
 .view-nav a {
   position: relative;
   z-index: 3;
-  margin: 0 1.5rem;
+  margin: 0 0.65rem;
+  padding: 0.35rem 0.95rem;
+  border-radius: 999px;
   cursor: pointer;
+  outline:none;
+  border:none !important;
   color: #aaa;
   font-family: 'Great Vibes', cursive;
-  font-size: 1.8rem;
+  font-size: 1.65rem;
   font-weight: 400;
-  transition: color 0.3s, transform 0.2s ease-in-out, text-shadow 0.3s;
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   will-change: transform;
+
+  /* Glass + neon gradients (same visual family as presence/scroll button) */
+  background:
+    radial-gradient(circle at 22% 20%, rgba(0, 255, 255, 0.17), transparent 62%),
+    radial-gradient(circle at 78% 82%, rgba(255, 0, 255, 0.17), transparent 62%),
+    rgba(10, 10, 16, 0.14);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  text-shadow: 0 0 4px rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 8px 18px rgba(0, 0, 0, 0.24),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+
+  transition:
+    color 0.25s ease,
+    transform 0.22s ease,
+    text-shadow 0.25s ease,
+    box-shadow 0.25s ease,
+    border-color 0.25s ease,
+    background-color 0.25s ease;
 }
 
 .view-nav a:hover,
 .view-nav a:active {
   color: var(--active-color);
-  transform: scale(1.25);
+  transform: translateY(-2px) scale(1.06);
+  border-color: color-mix(in srgb, var(--active-color) 45%, white 10%);
+  text-shadow:
+    0 0 6px color-mix(in srgb, var(--active-color) 75%, white 10%),
+    0 0 14px color-mix(in srgb, var(--active-color) 35%, magenta 20%);
+  box-shadow:
+    0 12px 24px rgba(0, 0, 0, 0.30),
+    0 0 18px color-mix(in srgb, var(--active-color) 24%, transparent);
 }
+
 
 .view-nav a.active {
   color: var(--active-color);
-  text-shadow: 0 0 5px var(--active-color), 0 0 15px var(--active-color);
+  border-color: color-mix(in srgb, var(--active-color) 40%, white 12%);
+  text-shadow:
+    0 0 5px var(--active-color),
+    0 0 15px var(--active-color);
+  box-shadow:
+    0 10px 22px rgba(0, 0, 0, 0.28),
+    0 0 20px color-mix(in srgb, var(--active-color) 30%, transparent);
 }
 
 .notification-control-fixed {
@@ -1150,9 +1191,9 @@ onUnmounted(() => {
 
 @media (max-width: 768px) {
   .view-nav a {
-    font-size: 1.5rem;
-    /* Adjust for smaller screens */
-    margin: 0 1rem;
+    margin: 0 0.35rem;
+    padding: 0.25rem 0.7rem;
+    font-size: 1.4rem;
   }
 }
 </style>
