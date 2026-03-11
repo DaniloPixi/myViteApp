@@ -602,7 +602,7 @@ watch(
 
 .plan-title {
   font-family: 'Innocent', cursive;
-  font-size: clamp(0.72rem, 1.45vw, 1.35rem);
+  font-size: clamp(1rem, 1.45vw, 1.35rem);
   line-height: 1.1;
   margin: 0;
   font-weight: 600;
