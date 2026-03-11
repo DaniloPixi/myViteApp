@@ -129,7 +129,7 @@ const extractPublicId = (url) => {
  * - Chrome bell fallback caused by auto-render paths
  *
  * IMPORTANT:
- * - Put a real monochrome transparent PNG at /badge-96.png
+ * - Use a real monochrome transparent badge asset (e.g. /badge-96.svg)
  * - If you update the badge, bump BADGE_VER to bust caches on Android
  */
 const ASSET_VER = '4'; // bump when Android should refresh cached push assets
