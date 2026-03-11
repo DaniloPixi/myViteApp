@@ -197,7 +197,7 @@ h3::after {
 .plan-form {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.2rem;
 }
 
 .form-group {
