@@ -336,38 +336,61 @@ watch(
 
 .dq-footer {
   display: flex;
-  justify-content: flex-end;
+  justify-content: center;
 }
 
 .dq-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 190px;
   border-radius: 999px;
-  border: 1px solid magenta;
-  background: rgba(0, 0, 0, 0.7);
-  color: magenta;
-  padding: 6px 16px;
-  font-size: 0.9rem;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background:
+    radial-gradient(circle at 22% 20%, rgba(0, 255, 255, 0.16), transparent 62%),
+    radial-gradient(circle at 78% 82%, rgba(255, 0, 255, 0.16), transparent 62%),
+    rgba(10, 10, 16, 0.18);
+  backdrop-filter: blur(9px);
+  -webkit-backdrop-filter: blur(9px);
+  color: rgba(255, 170, 246, 0.98);
+  padding: 8px 18px;
+  font-size: 0.92rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
   cursor: pointer;
+  text-shadow: 0 0 6px rgba(255, 120, 245, 0.32);
   box-shadow:
-    inset 0 0 8px rgba(255, 0, 255, 0.6),
-    0 0 8px rgba(255, 0, 255, 0.5);
-  transition: all 0.18s ease;
+    0 10px 20px rgba(0, 0, 0, 0.26),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  transition:
+    color 0.25s ease,
+    transform 0.22s ease,
+    text-shadow 0.25s ease,
+    box-shadow 0.25s ease,
+    border-color 0.25s ease;
 }
 
 .dq-btn:hover:not(:disabled) {
+  color: rgba(255, 115, 232, 1);
+  border-color: rgba(255, 120, 246, 0.58);
+  text-shadow:
+    0 0 8px rgba(255, 120, 245, 0.6),
+    0 0 14px rgba(0, 255, 255, 0.28);
   box-shadow:
-    inset 0 0 10px rgba(255, 0, 255, 0.9),
-    0 0 12px rgba(0, 255, 255, 0.6);
-  transform: translateY(-1px);
+    0 14px 26px rgba(0, 0, 0, 0.32),
+    0 0 18px rgba(255, 0, 255, 0.28);
+  transform: translateY(-2px) scale(1.03);
 }
 
 .dq-btn:disabled {
-  opacity: 0.65;
+  opacity: 0.74;
   cursor: default;
-  border-color: rgba(0, 255, 255, 0.6);
-  color: rgba(0, 255, 255, 0.9);
+  border-color: rgba(0, 255, 255, 0.34);
+  color: rgba(175, 255, 245, 0.9);
+  text-shadow: none;
   box-shadow:
-    inset 0 0 6px rgba(0, 255, 255, 0.7),
-    0 0 10px rgba(0, 255, 255, 0.5);
+    0 8px 16px rgba(0, 0, 0, 0.2),
+    0 0 10px rgba(0, 255, 255, 0.18);
 }
 
 .daily-quest-completed {
