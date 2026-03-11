@@ -129,10 +129,10 @@ const extractPublicId = (url) => {
  * - Chrome bell fallback caused by auto-render paths
  *
  * IMPORTANT:
- * - Put a real monochrome transparent PNG at /badge-96.png
+ * - Use a real monochrome transparent badge asset (e.g. /badge-96.svg)
  * - If you update the badge, bump BADGE_VER to bust caches on Android
  */
-const BADGE_VER = '2'; // bump to '2' if Android keeps showing an old cached badge/icon
+const ASSET_VER = '4'; // bump when Android should refresh cached push assets
 
 async function sendPushNotification(title, body, link = '/', excludeUid, data = {}) {
   if (!db) {
@@ -188,8 +188,8 @@ const recipientTokens = isDevish
     );
 
     // ✅ Force same-origin stable assets + cache busting
-    const icon = stringifiedData.icon || `/icons/manifest-icon-192.png?v=${BADGE_VER}`;
-    const badge = stringifiedData.badge || `/badge-96.png?v=${BADGE_VER}`;
+    const icon = stringifiedData.icon || `/icons/manifest-icon-192.png?v=${ASSET_VER}`;
+    const badge = stringifiedData.badge || `/badge-96.svg?v=${ASSET_VER}`;
     const url = stringifiedData.url || link || '/';
 
     // ✅ DATA-ONLY for web: DO NOT include any `notification` object anywhere.

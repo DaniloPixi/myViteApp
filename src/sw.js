@@ -55,7 +55,7 @@ function sameOriginPath(input, fallbackPath) {
   if (!input) return fallbackPath;
 
   try {
-    // If it's already a relative path like "/badge-96.png?v=1"
+    // If it's already a relative path like "/badge-96.svg?v=1"
     if (typeof input === 'string' && input.startsWith('/')) return input;
 
     // If it's an absolute URL, keep only its path+search IF same origin
@@ -148,7 +148,7 @@ function resolveActionUrl(action, data = {}) {
 
 // Defaults (must exist in /public)
 const DEFAULT_ICON = '/icons/manifest-icon-192.png';
-const DEFAULT_BADGE = '/badge-96.png';
+const DEFAULT_BADGE = '/badge-96.svg';
 
 // --- Firebase Background Message Handler ---
 // IMPORTANT: This expects your backend to send DATA-ONLY (no payload.notification).
@@ -204,7 +204,7 @@ messaging.onBackgroundMessage((payload) => {
 
   const badge = (typeof data.badge === 'string' && data.badge.startsWith('/'))
     ? data.badge
-    : '/badge-96.png';
+    : DEFAULT_BADGE;
 
   const actions = buildNotificationActions(data);
 
