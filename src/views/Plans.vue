@@ -605,7 +605,7 @@ watch(
   font-size: clamp(0.72rem, 1.45vw, 1.35rem);
   line-height: 1.1;
   margin: 0;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--bubble-text-color);
   max-width: 100%;
   overflow-wrap: anywhere;
