@@ -266,10 +266,7 @@ const submitForm = async () => {
 
 .modal-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  inset: 0;
   background-color: rgba(0, 0, 0, 0.85);
   backdrop-filter: blur(10px);
   display: flex;
@@ -279,27 +276,66 @@ const submitForm = async () => {
 }
 
 .modal-content {
-  background: #000;
-  padding: 2rem;
-  border-radius: 12px;
-  border: 1px solid magenta;
-  box-shadow: 0 0 25px rgba(255, 0, 255, 0.4);
-  max-width: 600px;
-  width: 90%;
-  max-height: 90vh;
-  overflow-y: auto;
+  position: relative;
+  box-sizing: border-box;
+  width: min(780px, calc(100vw - 2rem));
+  max-height: calc(100vh - 2rem);
+
+  padding: 2rem 2.2rem 1.2rem;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+
+  background:
+    radial-gradient(circle at 10% 0%, rgba(255, 0, 255, 0.22), transparent 60%),
+    radial-gradient(circle at 90% 100%, rgba(0, 255, 255, 0.22), transparent 55%),
+    radial-gradient(circle at 50% 20%, rgba(255, 255, 255, 0.06), transparent 65%),
+    radial-gradient(circle at 50% 50%, rgba(6, 0, 20, 0.96) 0%, rgba(1, 0, 10, 0.98) 55%, rgba(0, 0, 0, 1) 100%);
+
+  box-shadow:
+    inset 0 2px 4px rgba(0, 0, 0, 0.4),
+    inset 0 0 10px rgba(255, 0, 255, 0.5),
+    -60px 0 80px -40px rgba(255, 0, 255, 0.5),
+    60px 0 80px -40px rgba(0, 255, 255, 0.5);
+
+  overflow-x: hidden;
+  overflow-y: hidden;
+
+  animation: memo-modal-glow 4.5s ease-in-out infinite;
 }
 
 h3 {
   font-family: 'Great Vibes', cursive;
-  color: magenta;
+  color: #ff4fe9;
   text-align: center;
   margin-top: 0;
-  margin-bottom: 2rem;
-  font-size: 3em;
-  text-shadow: 0 0 10px magenta;
+  margin-bottom: 1.35rem;
+  font-size: clamp(2rem, 4.5vw, 3rem);
+  text-shadow:
+    0 0 10px #ff00ff,
+    0 0 18px #00ffff;
 }
-
+h3::after {
+  content: '';
+  display: block;
+  height: 1px;
+  width: 92%;
+  margin: 0.6rem auto 0;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    rgba(0, 255, 255, 0) 0%,
+    rgba(0, 255, 255, 0.35) 15%,
+    rgba(0, 255, 255, 0.7) 30%,
+    rgba(255, 0, 255, 0.7) 70%,
+    rgba(255, 0, 255, 0.35) 85%,
+    rgba(255, 0, 255, 0) 100%
+  );
+  background-size: 200% 100%;
+  box-shadow:
+    0 0 8px rgba(0, 255, 255, 0.5),
+    0 0 12px rgba(255, 0, 255, 0.5);
+  animation: memo-strip-flow 5s linear infinite;
+}
 .plan-form {
   display: flex;
   flex-direction: column;
@@ -494,5 +530,36 @@ button:disabled {
   color: black;
   border-color: #ff6b6b;
 }
+@keyframes memo-modal-glow {
+  0%, 100% {
+    border-color: rgba(255, 0, 255, 0.32);
+    box-shadow:
+      inset 0 2px 4px rgba(0, 0, 0, 0.4),
+      inset 0 0 10px rgba(255, 0, 255, 0.5),
+      -60px 0 80px -40px rgba(255, 0, 255, 0.5),
+      60px 0 80px -40px rgba(0, 255, 255, 0.5);
+  }
+  50% {
+    border-color: rgba(0, 255, 255, 0.45);
+    box-shadow:
+      inset 0 2px 4px rgba(0, 0, 0, 0.4),
+      inset 0 0 10px rgba(0, 255, 255, 0.5),
+      -70px 0 100px -45px rgba(0, 255, 255, 0.7),
+      70px 0 100px -45px rgba(255, 0, 255, 0.7);
+  }
+}
 
+@keyframes memo-strip-flow {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@media (max-width: 700px) {
+  .modal-content {
+    width: min(420px, calc(100vw - 1.2rem));
+    padding: 1.4rem 1.2rem 0.9rem;
+    border-radius: 16px;
+  }
+}
 </style>
