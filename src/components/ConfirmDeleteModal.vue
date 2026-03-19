@@ -1,13 +1,15 @@
 <template>
   <div class="modal-overlay" @click.self="$emit('close')">
     <div class="modal-content">
-      <h3 class="cursive-title">{{ randomMessage }}</h3>
+      <h3 class="modal-title">{{ randomMessage }}</h3>
+
       <div class="modal-actions">
-        <button @click="$emit('confirm')" class="confirm-button">
+        <button @click="$emit('confirm')" class="confirm-button" type="button">
           <Check :size="20" />
           <span>Confirm</span>
         </button>
-        <button @click="$emit('close')" class="cancel-button">
+
+        <button @click="$emit('close')" class="cancel-button" type="button">
           <X :size="20" />
           <span>Cancel</span>
         </button>
@@ -24,8 +26,8 @@ defineEmits(['confirm', 'close']);
 
 const messages = [
   "We don't need this anymore?",
-  "Trash it?",
-  "Straight to MA48?",
+  'Trash it?',
+  'Straight to MA48?',
 ];
 
 const randomMessage = ref('');
@@ -38,76 +40,118 @@ onMounted(() => {
 <style scoped>
 .modal-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.85);
+  inset: 0;
   display: flex;
-  justify-content: center;
   align-items: center;
+  justify-content: center;
+  padding: var(--ds-space-4);
+  background: rgba(0, 0, 0, 0.82);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   z-index: 1000;
 }
 
 .modal-content {
-  background: #03030369;
-  padding: 2.5rem;
-  border-radius: 15px;
-  box-shadow: 0 0 27px rgba(235, 3, 184, 0.973), 0 0 35px rgba(44, 226, 208, 0.822);
-  max-width: 420px;
-  width: 90%;
+  width: min(var(--ds-container-xs), calc(100vw - 2rem));
+  padding: var(--ds-space-6);
+  border-radius: var(--ds-radius-lg);
+  border: 1px solid rgba(255, 107, 107, 0.28);
+  background: var(--ds-gradient-panel);
+  box-shadow: var(--ds-shadow-soft), var(--ds-shadow-glow);
   text-align: center;
-  border: 1px solid #555;
 }
 
-.cursive-title {
-  font-family: 'Great Vibes', cursive;
-  font-size: 2.5rem;
-  color: #eba101;
-  margin-top: 0;
-  margin-bottom: 2.5rem;
-  font-weight: 500;
+.modal-title {
+  margin: 0 0 var(--ds-space-6);
+  font-family: var(--ds-font-display);
+  font-size: clamp(2rem, 4vw, 2.75rem);
+  line-height: 1.05;
+  font-weight: 400;
+  color: var(--ds-color-accent-gold);
+  text-shadow:
+    0 0 8px rgba(255, 210, 127, 0.24),
+    0 0 12px rgba(255, 79, 233, 0.18);
 }
 
 .modal-actions {
   display: flex;
   justify-content: center;
-  gap: 1.5rem;
+  gap: var(--ds-space-4);
+  flex-wrap: wrap;
 }
 
-button {
-  padding: 0.8em 1.6em;
-  border-radius: 50px;
-  font-size: 1em;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  display: flex;
+.modal-actions button {
+  min-width: 9.5rem;
+  min-height: 2.75rem;
+  padding: 0.7rem 1.2rem;
+  border-radius: var(--ds-radius-pill);
+  border: 1px solid transparent;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  background: transparent;
+  gap: 0.45rem;
+  font: inherit;
+  font-size: var(--ds-text-md);
+  font-weight: 600;
+  cursor: pointer;
+  background: var(--ds-gradient-glass);
+  box-shadow: var(--ds-shadow-soft);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition:
+    color var(--ds-transition-base),
+    transform var(--ds-transition-fast),
+    box-shadow var(--ds-transition-base),
+    border-color var(--ds-transition-base),
+    opacity var(--ds-transition-base);
+}
+
+.modal-actions button:hover {
+  transform: translateY(-1px);
 }
 
 .confirm-button {
-  border: 2px solid rgb(253, 8, 200);
-  color: rgb(253, 8, 200);
+  color: color-mix(in srgb, var(--ds-color-accent-magenta) 82%, white 10%);
+  border-color: rgba(255, 79, 233, 0.38);
 }
 
 .confirm-button:hover {
-  background-color: rgba(253, 8, 200, 0.1);
-  box-shadow: 0 0 15px rgba(253, 8, 200, 0.7);
-  transform: translateY(-2px);
+  box-shadow:
+    var(--ds-shadow-soft),
+    0 0 18px rgba(255, 79, 233, 0.28);
+  border-color: rgba(255, 79, 233, 0.58);
 }
 
 .cancel-button {
-  border: 2px solid turquoise;
-  color: turquoise;
+  color: color-mix(in srgb, var(--ds-color-accent-cyan) 80%, white 10%);
+  border-color: rgba(0, 247, 255, 0.38);
 }
 
 .cancel-button:hover {
-  background-color: rgba(64, 224, 208, 0.1);
-  box-shadow: 0 0 15px rgba(64, 224, 208, 0.7);
-  transform: translateY(-2px);
+  box-shadow:
+    var(--ds-shadow-soft),
+    0 0 18px rgba(0, 247, 255, 0.24);
+  border-color: rgba(0, 247, 255, 0.58);
+}
+
+@media (max-width: 480px) {
+  .modal-content {
+    width: min(var(--ds-container-xs), calc(100vw - 1.25rem));
+    padding: var(--ds-space-5) var(--ds-space-4);
+  }
+
+  .modal-title {
+    margin-bottom: var(--ds-space-5);
+    font-size: clamp(1.8rem, 10vw, 2.35rem);
+  }
+
+  .modal-actions {
+    gap: var(--ds-space-3);
+  }
+
+  .modal-actions button {
+    width: 100%;
+    min-width: 0;
+  }
 }
 </style>

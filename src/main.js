@@ -6,6 +6,7 @@ import './style.css';  // Import global styles
 
 // Import V-Calendar styles & plugin
 import 'v-calendar/style.css';
+import './styles/design-system-default.css';
 import VCalendar from 'v-calendar';
 const app = createApp(App);
 
