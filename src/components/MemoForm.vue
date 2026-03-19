@@ -61,11 +61,22 @@
 
         <!-- Action Buttons -->
         <div class="modal-actions">
-          <button type="submit" class="confirm-button" :disabled="isUploading || isSubmitting">
-            {{ isSubmitting ? 'Saving...' : 'Save Memo' }}
-          </button>
-          <button type="button" @click="$emit('close')" class="cancel-button">Cancel</button>
-        </div>
+  <button
+    type="submit"
+    class="modal-action-button modal-action-button--confirm"
+    :disabled="isUploading || isSubmitting"
+  >
+    {{ isSubmitting ? 'Saving...' : 'Save Memo' }}
+  </button>
+
+  <button
+    type="button"
+    class="modal-action-button modal-action-button--cancel"
+    @click="$emit('close')"
+  >
+    Cancel
+  </button>
+</div>
       </form>
     </div>
   </div>
@@ -74,7 +85,6 @@
 <script setup>
 import { ref, computed, watch } from 'vue';
 import { auth } from '../firebase';
-
 const props = defineProps({
   memo: { type: Object, default: null },
   cloudinaryCloudName: { type: String, required: true },
@@ -389,39 +399,77 @@ input:focus, textarea:focus {
 .modal-actions {
   display: flex;
   justify-content: center;
-  gap: 1rem;
-  margin-top: 1.5rem;
+  gap: var(--ds-space-4);
+  margin-top: var(--ds-space-5);
+  flex-wrap: wrap;
 }
 
-.modal-actions button {
-  padding: 0.7em 1.4em;
-  border-radius: 30px;
-  border: 1px solid;
-  font-size: 1.5em;
+.modal-action-button {
+  min-width: 10rem;
+  min-height: 2.85rem;
+  padding: 0.75rem 1.35rem;
+  border-radius: var(--ds-radius-pill);
+  border: 1px solid transparent;
+  background: var(--ds-gradient-glass);
+  color: var(--ds-color-text);
+  font-family: var(--ds-font-display);
+  font-size: clamp(1.15rem, 1rem + 0.7vw, 1.55rem);
+  line-height: 1;
   cursor: pointer;
-  font-family: 'Great Vibes', cursive;
-  background-color: black;
-  transition: box-shadow 0.3s ease, color 0.3s ease;
+  box-shadow: var(--ds-shadow-soft);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition:
+    color var(--ds-transition-base),
+    transform var(--ds-transition-fast),
+    box-shadow var(--ds-transition-base),
+    border-color var(--ds-transition-base),
+    opacity var(--ds-transition-base);
 }
 
-.confirm-button {
-  color: magenta;
-  border-color: magenta;
-  box-shadow: inset 0 0 8px rgba(255, 0, 255, 0.5), 0 0 8px rgba(255, 0, 255, 0.5);
+.modal-action-button:hover:not(:disabled) {
+  transform: translateY(-1px);
 }
 
-.confirm-button:hover {
-  box-shadow: inset 0 0 12px rgba(255, 0, 255, 0.8), 0 0 12px rgba(255, 0, 255, 0.8);
+.modal-action-button--confirm {
+  color: color-mix(in srgb, var(--ds-color-accent-magenta) 82%, white 10%);
+  border-color: rgba(255, 79, 233, 0.36);
 }
 
-.cancel-button {
-  color: turquoise;
-  border-color: turquoise;
-  box-shadow: inset 0 0 8px rgba(64, 224, 208, 0.5), 0 0 8px rgba(64, 224, 208, 0.5);
+.modal-action-button--confirm:hover:not(:disabled) {
+  box-shadow:
+    var(--ds-shadow-soft),
+    0 0 18px rgba(255, 79, 233, 0.28);
+  border-color: rgba(255, 79, 233, 0.58);
 }
 
-.cancel-button:hover {
-    box-shadow: inset 0 0 12px rgba(64, 224, 208, 0.8), 0 0 12px rgba(64, 224, 208, 0.8);
+.modal-action-button--cancel {
+  color: color-mix(in srgb, var(--ds-color-accent-cyan) 80%, white 10%);
+  border-color: rgba(0, 247, 255, 0.38);
+}
+
+.modal-action-button--cancel:hover:not(:disabled) {
+  box-shadow:
+    var(--ds-shadow-soft),
+    0 0 18px rgba(0, 247, 255, 0.24);
+  border-color: rgba(0, 247, 255, 0.58);
+}
+
+.modal-action-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+@media (max-width: 480px) {
+  .modal-actions {
+    gap: var(--ds-space-3);
+  }
+
+  .modal-action-button {
+    width: 100%;
+    min-width: 0;
+  }
 }
 
 .error-message {

@@ -9,14 +9,14 @@
               v-if="showLocation"
               class="filter-group location-group"
             >
-              <input
-                id="location-filter"
-                class="filter-input"
-                type="text"
-                :value="location"
-                @input="$emit('update:location', $event.target.value)"
-                placeholder="Location..."
-              />
+            <input
+  id="location-filter"
+  class="filter-input"
+  type="text"
+  :value="location"
+  @input="$emit('update:location', $event.target.value)"
+  placeholder="Location..."
+/>
             </div>
 
             <div
@@ -46,13 +46,13 @@
             >
               <div class="input-with-clear">
                 <input
-                  id="date-filter"
-                  class="filter-input filter-input--compact"
-                  type="date"
-                  :value="date"
-                  @input="$emit('update:date', $event.target.value)"
-                  placeholder="Date..."
-                />
+  id="date-filter"
+  class="filter-input filter-input--compact"
+  type="date"
+  :value="date"
+  @input="$emit('update:date', $event.target.value)"
+  placeholder="Date..."
+/>
                 <button
                   v-if="date"
                   type="button"
