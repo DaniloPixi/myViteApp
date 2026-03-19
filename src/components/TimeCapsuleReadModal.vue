@@ -261,8 +261,8 @@
   display: block;
   width: 100%;
   height: 120px;
-  object-fit: cover;
-  background: rgba(0, 0, 0, 0.65);
+  object-fit: contain;
+  background: var(--ds-gradient-glass)
 }
 
 @media (max-width: 700px) {
