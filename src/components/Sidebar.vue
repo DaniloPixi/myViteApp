@@ -473,17 +473,26 @@ const setLockStatus = (value) => {
 
 @media (max-width: 768px) {
   .filter-row {
-    flex-direction: column;
+    flex-direction: row;
+    flex-wrap: wrap;
     align-items: stretch;
+    gap: var(--ds-space-3);
   }
 
   .filter-group {
-    flex-basis: auto !important;
-    width: 100%;
+    flex: 1 1 calc(50% - var(--ds-space-3));
+    min-width: 140px;
+    width: auto;
+  }
+
+  .hashtags-group,
+  .duration-group,
+  .lock-status-group {
+    flex-basis: 100%;
   }
 
   .filter-content.expanded {
-    max-height: 38rem;
+    max-height: 42rem;
   }
 
   .chip-group {
@@ -492,8 +501,13 @@ const setLockStatus = (value) => {
 }
 
 @media (max-width: 480px) {
-  .collapsible-filters-container {
-    margin-bottom: var(--ds-space-5);
+  .filter-row {
+    gap: var(--ds-space-2);
+  }
+
+  .filter-group {
+    flex: 1 1 100%;
+    min-width: 0;
   }
 
   .filter-content {
@@ -503,10 +517,6 @@ const setLockStatus = (value) => {
   .filter-content.expanded {
     padding-top: var(--ds-space-4);
     padding-bottom: var(--ds-space-4);
-  }
-
-  .filter-chip {
-    width: 100%;
   }
 }
 </style>
