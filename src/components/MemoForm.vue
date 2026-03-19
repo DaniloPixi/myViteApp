@@ -2,7 +2,7 @@
 <template>
   <div class="modal-overlay" @click.self="$emit('close')">
     <div class="modal-content">
-      <h3>{{ isEditing ? 'Edit Memo' : 'Create New Memo' }}</h3>
+      <h3 class="modal-title">{{ isEditing ? 'Edit Memo' : 'Create New Memo' }}</h3>
       <form @submit.prevent="submitForm" class="plan-form">
 
         <!-- Description -->
@@ -313,24 +313,26 @@ const submitForm = async () => {
   animation: memo-modal-glow 4.5s ease-in-out infinite;
 }
 
-h3 {
-  font-family: 'Great Vibes', cursive;
-  color: #ff4fe9;
+.modal-title {
+  margin: 0 0 var(--ds-space-5);
   text-align: center;
-  margin-top: 0;
-  margin-bottom: 1.35rem;
+  font-family: var(--ds-font-display);
   font-size: clamp(2rem, 4.5vw, 3rem);
+  line-height: 1.05;
+  font-weight: 400;
+  color: var(--ds-color-accent-magenta);
   text-shadow:
-    0 0 10px #ff00ff,
-    0 0 18px #00ffff;
+    0 0 10px rgba(255, 0, 255, 0.55),
+    0 0 18px rgba(0, 255, 255, 0.38);
 }
-h3::after {
+
+.modal-title::after {
   content: '';
   display: block;
-  height: 1px;
   width: 92%;
+  height: 1px;
   margin: 0.6rem auto 0;
-  border-radius: 999px;
+  border-radius: var(--ds-radius-pill);
   background: linear-gradient(
     90deg,
     rgba(0, 255, 255, 0) 0%,
@@ -345,6 +347,17 @@ h3::after {
     0 0 8px rgba(0, 255, 255, 0.5),
     0 0 12px rgba(255, 0, 255, 0.5);
   animation: memo-strip-flow 5s linear infinite;
+}
+
+@media (max-width: 480px) {
+  .modal-title {
+    margin-bottom: var(--ds-space-4);
+    line-height: 1.08;
+  }
+
+  .modal-title::after {
+    width: 100%;
+  }
 }
 .plan-form {
   display: flex;
