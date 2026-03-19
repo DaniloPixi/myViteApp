@@ -1,85 +1,133 @@
 
 <template>
-  <div class="modal-overlay" @click.self="$emit('close')">
-    <div class="modal-content">
-      <h3 class="modal-title">{{ isEditing ? 'Edit Memo' : 'Create New Memo' }}</h3>
-      <form @submit.prevent="submitForm" class="plan-form">
+<div class="modal-overlay" @click.self="$emit('close')">
+  <div class="modal-content">
+    <h3 class="modal-title">{{ isEditing ? 'Edit Memo' : 'Create New Memo' }}</h3>
 
-        <!-- Description -->
+    <form @submit.prevent="submitForm" class="plan-form">
+      <!-- Description -->
+      <div class="form-group">
+        <label for="description">Description</label>
+        <textarea
+          id="description"
+          v-model="formData.description"
+          class="form-input description-input"
+          required
+        ></textarea>
+      </div>
+
+      <!-- Location & Date -->
+      <div class="form-row">
         <div class="form-group">
-          <label for="description">Description</label>
-          <textarea
-            id="description"
-            v-model="formData.description"
-            class="description-input"
+          <label for="location">Location</label>
+          <input
+            id="location"
+            v-model="formData.location"
+            class="form-input"
+            type="text"
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="date">Date</label>
+          <input
+            id="date"
+            v-model="formData.date"
+            class="form-input"
+            type="date"
             required
-          ></textarea>
+          />
         </div>
+      </div>
 
-        <!-- Location & Date -->
-        <div class="form-row">
-          <div class="form-group">
-            <label for="location">Location</label>
-            <input type="text" id="location" v-model="formData.location" />
-          </div>
-          <div class="form-group">
-            <label for="date">Date</label>
-            <input type="date" id="date" v-model="formData.date" required />
-          </div>
+      <!-- Hashtags -->
+      <div class="form-group">
+        <div class="hashtag-selection-container">
+          <button
+            v-for="tag in availableHashtags"
+            :key="tag"
+            @click.prevent="toggleHashtag(tag)"
+            :class="{ selected: formData.hashtags.includes(tag) }"
+          >
+            #{{ tag }}
+          </button>
         </div>
+      </div>
 
-        <!-- Hashtags -->
-        <div class="form-group">
-          <div class="hashtag-selection-container">
-            <button v-for="tag in availableHashtags" :key="tag" @click.prevent="toggleHashtag(tag)" :class="{ selected: formData.hashtags.includes(tag) }">
-              #{{ tag }}
-            </button>
-          </div>
+      <!-- Media Uploader -->
+      <div class="form-group">
+        <input
+          id="file-upload"
+          type="file"
+          @change="handleFileChange"
+          multiple
+          accept="image/*,video/*"
+          :disabled="isUploading"
+          class="file-input-hidden"
+        />
+        <label
+          for="file-upload"
+          class="file-upload-label"
+          :class="{ disabled: isUploading }"
+        >
+          + Add Media
+        </label>
+        <div v-if="isUploading" class="upload-status">
+          Uploading... {{ uploadProgress }}%
         </div>
+      </div>
 
-        <!-- Media Uploader -->
-        <div class="form-group">
-          <input type="file" id="file-upload" @change="handleFileChange" multiple accept="image/*,video/*" :disabled="isUploading" class="file-input-hidden" />
-          <label for="file-upload" class="file-upload-label" :class="{ 'disabled': isUploading }">
-            + Add Media
-          </label>
-          <div v-if="isUploading" class="upload-status">Uploading... {{ uploadProgress }}%</div>
+      <!-- Media Previews -->
+      <div v-if="mediaPreviews.length > 0" class="media-previews">
+        <div v-for="(preview, index) in mediaPreviews" :key="index" class="preview-item">
+          <img
+            v-if="preview.resource_type === 'image'"
+            :src="preview.url"
+            :class="{ 'adult-preview-blur': preview.isAdult }"
+          />
+          <video
+            v-else-if="preview.resource_type === 'video'"
+            :src="preview.url"
+            muted
+            loop
+            playsinline
+            class="video-preview"
+          ></video>
+          <button @click.prevent="removeMedia(index)" class="remove-media-btn">X</button>
+          <button
+            @click.prevent="toggleAdultFlag(index)"
+            class="adult-flag"
+            :class="{ 'adult-flag-selected': preview.isAdult }"
+          >
+            18+
+          </button>
         </div>
+      </div>
 
-        <!-- Media Previews -->
-        <div class="media-previews" v-if="mediaPreviews.length > 0">
-          <div v-for="(preview, index) in mediaPreviews" :key="index" class="preview-item">
-            <img v-if="preview.resource_type === 'image'" :src="preview.url" :class="{'adult-preview-blur': preview.isAdult}" />
-            <video v-else-if="preview.resource_type === 'video'" :src="preview.url" muted loop playsinline class="video-preview"></video>
-            <button @click.prevent="removeMedia(index)" class="remove-media-btn">X</button>
-            <button @click.prevent="toggleAdultFlag(index)" class="adult-flag" :class="{'adult-flag-selected': preview.isAdult}">18+</button>
-          </div>
-        </div>
+      <!-- Error Display -->
+      <div v-if="error" class="error-message">{{ error }}</div>
 
-        <!-- Error Display -->
-        <div v-if="error" class="error-message">{{ error }}</div>
+      <!-- Action Buttons -->
+      <div class="modal-actions">
+        <button
+          type="submit"
+          class="modal-action-button modal-action-button--confirm"
+          :disabled="isUploading || isSubmitting"
+        >
+          {{ isSubmitting ? 'Saving...' : 'Save Memo' }}
+        </button>
 
-        <!-- Action Buttons -->
-        <div class="modal-actions">
-  <button
-    type="submit"
-    class="modal-action-button modal-action-button--confirm"
-    :disabled="isUploading || isSubmitting"
-  >
-    {{ isSubmitting ? 'Saving...' : 'Save Memo' }}
-  </button>
-
-  <button
-    type="button"
-    class="modal-action-button modal-action-button--cancel"
-    @click="$emit('close')"
-  >
-    Cancel
-  </button>
-</div>
-      </form>
-    </div>
+        <button
+          type="button"
+          class="modal-action-button modal-action-button--cancel"
+          @click="$emit('close')"
+        >
+          Cancel
+        </button>
+      </div>
+    </form>
   </div>
+</div>
 </template>
 
 <script setup>
@@ -382,19 +430,33 @@ const submitForm = async () => {
   color: turquoise;
 }
 
-input, textarea {
-  box-sizing: border-box;
+.form-input {
   width: 100%;
-  padding: 0.8em 1em;
-  border-radius: 8px;
+  box-sizing: border-box;
+  padding: 0.8rem 1rem;
+  border-radius: var(--ds-radius-sm);
   border: 1px solid transparent;
-  background-color: #000;
-  color: turquoise;
-  font-size: 1em;
-  box-shadow: inset 0 0 5px rgba(64, 224, 208, 0.5), 0 0 5px rgba(64, 224, 208, 0.5);
-  transition: box-shadow 0.3s ease;
+  background: rgba(0, 0, 0, 0.8);
+  color: var(--ds-color-accent-cyan);
+  font: inherit;
+  font-size: var(--ds-text-md);
+  box-shadow:
+    inset 0 0 5px rgba(64, 224, 208, 0.45),
+    0 0 5px rgba(64, 224, 208, 0.28);
+  transition:
+    box-shadow var(--ds-transition-base),
+    border-color var(--ds-transition-base);
 }
-textarea {
+
+.form-input:focus {
+  outline: none;
+  border-color: rgba(0, 247, 255, 0.42);
+  box-shadow:
+    inset 0 0 8px rgba(64, 224, 208, 0.72),
+    0 0 9px rgba(64, 224, 208, 0.4);
+}
+
+textarea.form-input {
   min-height: 100px;
   resize: vertical;
 }
@@ -402,11 +464,6 @@ textarea {
 .description-input {
   font-size: clamp(1rem, 0.9rem + 0.45vw, 1.25rem);
   line-height: 1.45;
-}
-
-input:focus, textarea:focus {
-    outline: none;
-    box-shadow: inset 0 0 8px rgba(64, 224, 208, 0.8), 0 0 8px rgba(64, 224, 208, 0.8);
 }
 
 .modal-actions {
@@ -489,11 +546,6 @@ input:focus, textarea:focus {
   color: #ff6b6b;
   text-align: center;
   margin-top: 1rem;
-}
-
-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
 }
 
 .hashtag-selection-container {
@@ -621,6 +673,25 @@ button:disabled {
     width: min(420px, calc(100vw - 1.7rem));
     padding: 1.4rem 1.2rem 0.9rem;
     border-radius: 16px;
+  }
+}
+@media (max-width: 480px) {
+  .modal-title {
+    margin-bottom: var(--ds-space-4);
+    line-height: 1.08;
+  }
+
+  .modal-title::after {
+    width: 100%;
+  }
+
+  .modal-actions {
+    gap: var(--ds-space-3);
+  }
+
+  .modal-action-button {
+    width: 100%;
+    min-width: 0;
   }
 }
 </style>
