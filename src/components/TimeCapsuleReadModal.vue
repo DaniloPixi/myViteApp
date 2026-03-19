@@ -334,25 +334,56 @@
 /* Buttons */
 
 .tc-btn {
-  border-radius: 999px;
-  padding: 0.3rem 0.95rem;
-  font-size: 0.8rem;
-  cursor: pointer;
+  min-height: 2.35rem;
+  padding: 0.55rem 1rem;
+  border-radius: var(--ds-radius-pill);
   border: 1px solid transparent;
-  background: transparent;
-  color: #f5f5ff;
-  transition: all 0.15s ease;
+  background: var(--ds-gradient-glass);
+  color: var(--ds-color-text);
+  font: inherit;
+  font-size: var(--ds-text-sm);
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: var(--ds-shadow-soft);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition:
+    color var(--ds-transition-base),
+    transform var(--ds-transition-fast),
+    box-shadow var(--ds-transition-base),
+    border-color var(--ds-transition-base),
+    background-color var(--ds-transition-base),
+    opacity var(--ds-transition-base);
+}
+
+.tc-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.tc-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
 }
 
 .tc-btn-ghost {
-  border-color: rgba(255, 255, 255, 0.35);
-  background: rgba(0, 0, 0, 0.65);
+  border-color: rgba(255, 255, 255, 0.24);
+  background: rgba(0, 0, 0, 0.5);
+  color: var(--ds-color-text);
 }
 
-.tc-btn-ghost:hover {
-  border-color: rgba(0, 255, 255, 0.9);
-  box-shadow: 0 0 10px rgba(0, 255, 255, 0.6);
-  transform: translateY(-0.5px);
+.tc-btn-ghost:hover:not(:disabled) {
+  border-color: rgba(0, 247, 255, 0.58);
+  box-shadow:
+    var(--ds-shadow-soft),
+    0 0 16px rgba(0, 247, 255, 0.2);
+}
+
+@media (max-width: 480px) {
+  .tc-btn {
+    width: 100%;
+    justify-content: center;
+  }
 }
 
 /* Scrollbar styling inside message */
