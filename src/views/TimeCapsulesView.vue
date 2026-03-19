@@ -7,8 +7,8 @@
         </p>
 
         <button class="tc-new-btn" @click="openCreate">
-          New time capsule ✨
-        </button>
+  New time capsule 🔮
+</button>
       </div>
     </header>
 
@@ -654,23 +654,41 @@ watch(
 }
 
 .tc-new-btn {
-  background: linear-gradient(45deg, #0f0f0f, #f3099270, #360101);
-  color: rgb(95, 213, 243);
-  padding: 0.45rem 1.7rem;
-  border: none;
-  border-radius: 999px;
-  font-family: 'Great Vibes', cursive;
-  font-weight: normal;
-  font-size: 1.7rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: min(100%, 420px);
+  padding: 1rem 1.25rem;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at top left, rgba(0, 255, 255, 0.14), transparent 58%),
+    radial-gradient(circle at bottom right, rgba(255, 0, 255, 0.16), transparent 55%),
+    rgba(6, 6, 12, 0.72);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  color: turquoise;
+  text-align: center;
+  font-family: 'Innocent', cursive;
+  font-size: clamp(1rem, 2.2vw, 1.35rem);
+  font-weight: 600;
+  line-height: 1.1;
   cursor: pointer;
-  transition: box-shadow 0.25s ease, background 0.25s ease;
-  box-shadow: 0 4px 15px rgba(240, 6, 134, 0.26);
-  white-space: nowrap;
+  box-shadow:
+    0 0 20px rgba(255, 0, 255, 0.18),
+    0 0 28px rgba(0, 255, 255, 0.14);
+  transition: transform 0.24s ease, box-shadow 0.24s ease, border-color 0.24s ease, color 0.24s ease;
 }
 
-.tc-new-btn:hover {
-  box-shadow: 0 7px 24px rgba(248, 87, 166, 0.55);
-  background: linear-gradient(45deg, #141414, #f3099270, #4a0202);
+.tc-new-btn:hover,
+.tc-new-btn:focus-visible {
+  transform: translateY(-3px);
+  border-color: rgba(0, 255, 255, 0.5);
+  box-shadow:
+    0 0 24px rgba(255, 0, 255, 0.28),
+    0 0 36px rgba(0, 255, 255, 0.2);
+  color: magenta;
+  outline: none;
 }
 
 /* States & list */
@@ -994,7 +1012,6 @@ watch(
   .tc-new-btn {
     width: 100%;
     max-width: 260px;
-    font-size: 1.6rem;
   }
 
   .tc-card {

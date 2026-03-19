@@ -606,7 +606,7 @@ watch(
 }
 
 .plan-title {
-  font-family: 'Innocent', cursive;
+  font-family: 'Innocent';
   font-size: clamp(1rem, 1.45vw, 1.35rem);
   line-height: 1.1;
   margin: 0;
@@ -633,7 +633,7 @@ watch(
 .expanded-content h3 {
   margin: 0 0 1rem;
   color: var(--bubble-text-color, turquoise);
-  font-family: 'Great Vibes', cursive;
+  font-family: 'Innocent';
   font-size: 2.5em;
   font-weight: normal;
   max-width: 100%;
