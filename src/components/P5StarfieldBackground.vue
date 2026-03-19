@@ -28,7 +28,7 @@ const Z_OFF = 0.0005;
 const props = defineProps({
   particleCount: {
     type: Number,
-    default: 200,
+    default: 300,
   },
   rangeY: {
     type: Number,

@@ -3,10 +3,15 @@
 
     <!-- Create Plan Button -->
     <section class="create-plan-button-section">
-      <button @click="openCreateModal" class="add-plan-button">
-        {{ createButtonTitle }}
-      </button>
-    </section>
+  <button
+    @click="openCreateModal"
+    class="add-plan-button"
+    type="button"
+    aria-label="Create a new adventure"
+  >
+    <span class="add-plan-button__title">{{ createButtonTitle }}</span>
+  </button>
+</section>
 
     <!-- Plan Display List -->
     <section class="plan-list-section">
@@ -640,25 +645,52 @@ watch(
 .plan-detail { margin: 0.5rem 0; color: #ddd; }
 .plan-detail strong { color: #aaa; }
 
-.create-plan-button-section { text-align: center; margin-bottom: 2.5rem; }
-
-.add-plan-button {
-  background: linear-gradient(45deg, #0f0f0f, #f3099270,#360101);
-  color: rgb(95, 213, 243);
-  padding: 0.8rem 2.5rem;
-  border: none;
-  border-radius: 50px;
-  font-family: 'Great Vibes', cursive;
-  font-weight: normal;
-  font-size: 2em;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(240, 6, 134, 0.26);
+.create-plan-button-section {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 2.5rem;
 }
 
-.add-plan-button:hover {
+.add-plan-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: min(100%, 420px);
+  padding: 1rem 1.25rem;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at top left, rgba(0, 255, 255, 0.14), transparent 58%),
+    radial-gradient(circle at bottom right, rgba(255, 0, 255, 0.16), transparent 55%),
+    rgba(6, 6, 12, 0.72);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  color: turquoise;
+  text-align: center;
+  cursor: pointer;
+  box-shadow:
+    0 0 20px rgba(255, 0, 255, 0.18),
+    0 0 28px rgba(0, 255, 255, 0.14);
+  transition: transform 0.24s ease, box-shadow 0.24s ease, border-color 0.24s ease, color 0.24s ease;
+}
+
+.add-plan-button:hover,
+.add-plan-button:focus-visible {
   transform: translateY(-3px);
-  box-shadow: 0 7px 20px rgba(f8, 87, 166, 0.5);
+  border-color: rgba(0, 255, 255, 0.5);
+  box-shadow:
+    0 0 24px rgba(255, 0, 255, 0.28),
+    0 0 36px rgba(0, 255, 255, 0.2);
+  color: magenta;
+  outline: none;
+}
+
+.add-plan-button__title {
+  font-family: 'Innocent', cursive;
+  font-size: clamp(1rem, 2.2vw, 1.35rem);
+  font-weight: 600;
+  line-height: 1.1;
+  color: currentColor;
 }
 
 
