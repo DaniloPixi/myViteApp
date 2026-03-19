@@ -328,28 +328,52 @@ function questStatusFor(customData) {
 
 /* --- Calendar Styles (Unchanged) --- */
 .custom-calendar.vc-container { 
-  --vc-bg: #000;  
-  --vc-font-family: 'Arial', sans-serif; 
-  --vc-title-color: magenta; 
-  --vc-weekday-color: turquoise; 
-  --vc-nav-color: rgb(202, 103, 10); 
+  --vc-bg: #000;
+  --vc-font-family: var(--ds-font-body);
+  --vc-title-color: var(--ds-color-accent-magenta);
+  --vc-weekday-color: var(--ds-color-accent-cyan);
+  --vc-nav-color: var(--ds-color-accent-gold);
   --vc-border-width: 0;
-  border:none !important;
-  border-radius: 20px; 
-  /* Initial state shadow matches the 0% keyframe */
-  box-shadow: inset 0 2px 4px rgba(0,0,0,0.4),
-              inset 0 0 10px rgba(255, 0, 255, 0.5),
-              -50px 0px 60px -40px rgba(255, 0, 255, 0.5),
-              50px 0px 60px -40px rgba(0, 255, 255, 0.5);
+  border: none !important;
+  border-radius: var(--ds-radius-xl);
+  box-shadow:
+    inset 0 2px 4px rgba(0, 0, 0, 0.4),
+    inset 0 0 10px rgba(255, 0, 255, 0.5),
+    -50px 0 60px -40px rgba(255, 0, 255, 0.5),
+    50px 0 60px -40px rgba(0, 255, 255, 0.5);
   width: 100%;
   outline: none !important;
   animation: pulse-calendar-glow 8s infinite ease-in-out;
 }
 
-.custom-calendar .vc-header .vc-title { font-family: 'Great Vibes', cursive;padding-top:0.4rem; font-size: 2em;background-color: rgba(0, 0, 0, 0);color:rgb(236, 5, 148); text-shadow: 0 0 10px magenta; }
-.custom-calendar .vc-weekday { font-weight: 600; }
-.custom-day-content { width: 100%; height: 100%; cursor: pointer; }
-.day-label { color: #dbb406; font-family: 'Great Vibes', cursive; font-style: italic; font-size: 1.2em; }
+.custom-calendar .vc-header .vc-title {
+  padding-top: 0.4rem;
+  font-family: var(--ds-font-display);
+  font-size: clamp(1.7rem, 3vw, 2rem);
+  background-color: transparent;
+  color: var(--ds-color-accent-magenta);
+  text-shadow: 0 0 10px rgba(255, 0, 255, 0.55);
+}
+
+.custom-calendar .vc-weekday {
+  font-family: var(--ds-font-body);
+  font-weight: 600;
+  font-size: var(--ds-text-sm);
+}
+
+.custom-day-content {
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+  font-family: var(--ds-font-body);
+}
+
+.day-label {
+  color: var(--ds-color-accent-gold);
+  font-family: var(--ds-font-display);
+  font-style: italic;
+  font-size: 1.4em;
+}
 .custom-calendar .vc-dots { display:none }
 .custom-calendar .vc-dot.memo-dot { background: magenta !important; }
 .custom-calendar .vc-dot.plan-dot { background: turquoise !important; }
@@ -374,8 +398,28 @@ function questStatusFor(customData) {
 
 /* --- Modal Base Styles (No Transitions Here) --- */
 .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(0, 0, 0, 0.7); backdrop-filter: blur(2px); display: flex; justify-content: center; align-items: center; z-index: 1000; }
-.modal-content { background: #00000050; border: 1px solid magenta; border-radius: 12px; padding: 20px 25px; width: 90%; max-width: 500px; box-shadow: 0 0 25px rgba(255, 0, 255, 0.5); position: relative; font-family: 'Arial', sans-serif; }
-.close-button { position: absolute; top: -0.8rem; right: -1rem; background: transparent; border: none; color: rgb(7, 208, 243); font-size: 24px; cursor: pointer; }
+.modal-content {
+  background: #00000050;
+  border: 1px solid rgba(255, 79, 233, 0.65);
+  border-radius: var(--ds-radius-md);
+  padding: 20px 25px;
+  width: 90%;
+  max-width: 500px;
+  box-shadow: 0 0 25px rgba(255, 0, 255, 0.5);
+  position: relative;
+  font-family: var(--ds-font-body);
+  color: var(--ds-color-text);
+}
+.close-button {
+  position: absolute;
+  top: -0.8rem;
+  right: -1rem;
+  background: transparent;
+  border: none;
+  color: var(--ds-color-accent-cyan);
+  font-size: 24px;
+  cursor: pointer;
+}
 .modal-content p { margin: 8px 0; }
 .modal-content .event-title { font-weight: bold; }
 .modal-content .memo-text { color: magenta; }
