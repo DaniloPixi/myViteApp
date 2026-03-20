@@ -100,10 +100,9 @@
             <span v-if="isUploading">Uploading…</span>
             <span v-else>➕ Add photos / videos</span>
           </button>
-
-          <span v-if="uploadError" class="tc-upload-error">
-            {{ uploadError }}
-          </span>
+          <p v-if="uploadError" class="tc-upload-error ds-alert ds-alert--danger ds-alert--compact">
+  {{ uploadError }}
+</p>
         </div>
 
         <div v-if="photos.length" class="tc-form-photos">
@@ -135,7 +134,7 @@
         </div>
       </div>
 
-      <p v-if="submitError" class="tc-form-error ds-error-text">
+      <p v-if="submitError" class="tc-form-error ds-alert ds-alert--danger ds-alert--compact">
   {{ submitError }}
 </p>
     </div>
@@ -388,9 +387,9 @@
   min-width: 9rem;
 }
 
-.tc-upload-error {
-  font-size: 0.78rem;
-  color: #ff6b9a;
+.tc-upload-error,
+.tc-form-error {
+  margin: 0.2rem 0 0;
 }
 
 /* Photo preview */
@@ -439,10 +438,6 @@
   box-shadow: 0 0 0.35rem rgba(0, 0, 0, 0.8);
 }
 
-/* Error */
-.tc-form-error {
-  margin: 0.2rem 0 0;
-}
 
 /* Buttons */
 .tc-btn {

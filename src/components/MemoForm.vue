@@ -110,7 +110,9 @@
       </div>
 
       <!-- Error Display -->
-      <div v-if="error" class="error-message ds-error-text">{{ error }}</div>
+      <div v-if="error" class="error-message ds-alert ds-alert--danger ds-alert--compact">
+  {{ error }}
+</div>
 
       <!-- Action Buttons -->
       <div class="modal-actions ds-modal-actions">

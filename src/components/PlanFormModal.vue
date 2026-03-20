@@ -81,7 +81,9 @@
     Cancel
   </button>
 </div>
-<p v-if="submitError" class="error-message ds-error-text">{{ submitError }}</p>
+<p v-if="submitError" class="error-message ds-alert ds-alert--danger ds-alert--compact">
+  {{ submitError }}
+</p>
       </form>
     </div>
   </div>
