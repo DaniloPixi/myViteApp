@@ -25,7 +25,7 @@
         <h2
           v-if="$slots.title"
           :id="titleId || null"
-          class="tc-modal-title"
+          class="tc-modal-title ds-modal-title"
         >
           <slot name="title" />
         </h2>
@@ -247,13 +247,8 @@ function onClose() {
 /* TITLE – Great Vibes, neon magenta, not gold */
 .tc-modal-title {
   margin: 0;
-  font-family: 'Great Vibes', cursive;
   font-size: 2.4rem;
   font-weight: 500;
-  color: #ff4fe9;
-  text-shadow:
-    0 0 10px #ff00ff,
-    0 0 18px #00ffff;
 }
 
 /* Subtitle – you hide this in the form modal with :deep() */

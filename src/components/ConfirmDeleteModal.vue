@@ -1,7 +1,9 @@
 <template>
   <div class="modal-overlay" @click.self="$emit('close')">
     <div class="modal-content">
-      <h3 class="modal-title">{{ randomMessage }}</h3>
+      <h3 class="modal-title ds-modal-title ds-modal-title--gold">
+  {{ randomMessage }}
+</h3>
 
       <div class="modal-actions ds-modal-actions">
   <button
@@ -71,14 +73,6 @@ onMounted(() => {
 
 .modal-title {
   margin: 0 0 var(--ds-space-6);
-  font-family: var(--ds-font-display);
-  font-size: clamp(2rem, 4vw, 2.75rem);
-  line-height: 1.05;
-  font-weight: 400;
-  color: var(--ds-color-accent-gold);
-  text-shadow:
-    0 0 8px rgba(255, 210, 127, 0.24),
-    0 0 12px rgba(255, 79, 233, 0.18);
 }
 @media (max-width: 480px) {
   .modal-content {
@@ -86,9 +80,10 @@ onMounted(() => {
     padding: var(--ds-space-5) var(--ds-space-4);
   }
 
+  @media (max-width: 480px) {
   .modal-title {
     margin-bottom: var(--ds-space-5);
-    font-size: clamp(1.8rem, 10vw, 2.35rem);
   }
+}
 }
 </style>

@@ -2,7 +2,10 @@
 <template>
 <div class="modal-overlay" @click.self="$emit('close')">
   <div class="modal-content ds-modal-surface">
-    <h3 class="modal-title">{{ isEditing ? 'Edit Memo' : 'Create New Memo' }}</h3>
+    <h3 class="modal-title ds-modal-title">
+  {{ isEditing ? 'Edit Memo' : 'Create New Memo' }}
+</h3>
+<div class="ds-divider-glow modal-title-divider"></div>
 
     <form @submit.prevent="submitForm" class="plan-form">
       <!-- Description -->
@@ -342,49 +345,23 @@ const submitForm = async () => {
 }
 
 .modal-title {
-  margin: 0 0 var(--ds-space-5);
+  margin: 0;
   text-align: center;
-  font-family: var(--ds-font-display);
-  font-size: clamp(2rem, 4.5vw, 3rem);
-  line-height: 1.05;
-  font-weight: 400;
-  color: var(--ds-color-accent-magenta);
-  text-shadow:
-    0 0 10px rgba(255, 0, 255, 0.55),
-    0 0 18px rgba(0, 255, 255, 0.38);
 }
 
-.modal-title::after {
-  content: '';
-  display: block;
+.modal-title-divider {
   width: 92%;
-  height: 1px;
-  margin: 0.6rem auto 0;
-  border-radius: var(--ds-radius-pill);
-  background: linear-gradient(
-    90deg,
-    rgba(0, 255, 255, 0) 0%,
-    rgba(0, 255, 255, 0.35) 15%,
-    rgba(0, 255, 255, 0.7) 30%,
-    rgba(255, 0, 255, 0.7) 70%,
-    rgba(255, 0, 255, 0.35) 85%,
-    rgba(255, 0, 255, 0) 100%
-  );
-  background-size: 200% 100%;
-  box-shadow:
-    0 0 8px rgba(0, 255, 255, 0.5),
-    0 0 12px rgba(255, 0, 255, 0.5);
-  animation: memo-strip-flow 5s linear infinite;
+  margin: 0.6rem auto var(--ds-space-5);
 }
 
 @media (max-width: 480px) {
   .modal-title {
-    margin-bottom: var(--ds-space-4);
     line-height: 1.08;
   }
 
-  .modal-title::after {
+  .modal-title-divider {
     width: 100%;
+    margin-bottom: var(--ds-space-4);
   }
 }
 .plan-form {

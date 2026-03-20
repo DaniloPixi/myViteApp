@@ -97,7 +97,12 @@ body {
     0 0 8px rgba(255, 0, 255, 0.35),
     0 0 12px rgba(0, 255, 255, 0.18);
 }
-
+.ds-modal-title--gold {
+  color: var(--ds-color-accent-gold);
+  text-shadow:
+    0 0 8px rgba(255, 210, 127, 0.24),
+    0 0 12px rgba(255, 79, 233, 0.18);
+}
 .ds-page-title {
   font-size: var(--ds-text-display);
   line-height: 1;

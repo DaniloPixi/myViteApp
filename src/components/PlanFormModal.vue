@@ -1,7 +1,8 @@
 <template>
   <div class="modal-overlay" @click.self="$emit('close')">
     <div class="modal-content ds-modal-surface">
-      <h3>{{ formTitle }}</h3>
+      <h3 class="modal-title ds-modal-title">{{ formTitle }}</h3>
+<div class="ds-divider-glow modal-title-divider"></div>
       <form @submit.prevent="submitForm" class="plan-form">
         <!-- Text, Date, Location fields remain the same -->
         <div class="form-group">
@@ -177,39 +178,19 @@ const submitForm = () => {
   overflow-y: hidden;
   animation: plan-modal-glow 4.5s ease-in-out infinite;
 }
-
-h3 {
-  font-family: 'Great Vibes', cursive;
-  color: #ff4fe9;
+.modal-title {
+  margin: 0;
   text-align: center;
-  margin-top: 0;
-  margin-bottom: 1.35rem;
-  font-size: clamp(2rem, 4.5vw, 3rem);
-  text-shadow:
-    0 0 10px #ff00ff,
-    0 0 18px #00ffff;
 }
-h3::after {
-  content: '';
-  display: block;
-  height: 1px;
+
+.modal-title-divider {
   width: 92%;
-  margin: 0.6rem auto 0;
-  border-radius: 999px;
-  background: linear-gradient(
-    90deg,
-    rgba(0, 255, 255, 0) 0%,
-    rgba(0, 255, 255, 0.35) 15%,
-    rgba(0, 255, 255, 0.7) 30%,
-    rgba(255, 0, 255, 0.7) 70%,
-    rgba(255, 0, 255, 0.35) 85%,
-    rgba(255, 0, 255, 0) 100%
-  );
-  background-size: 200% 100%;
-  box-shadow:
-    0 0 8px rgba(0, 255, 255, 0.5),
-    0 0 12px rgba(255, 0, 255, 0.5);
-  animation: plan-strip-flow 5s linear infinite;
+  margin: 0.6rem auto 1.35rem;
+}
+@media (max-width: 480px) {
+  .modal-title-divider {
+    width: 100%;
+  }
 }
 .plan-form {
   display: flex;
