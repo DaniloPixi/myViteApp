@@ -12,10 +12,13 @@
       </div>
     </header>
 
-    <div v-if="loading" class="tc-status">Loading capsules...</div>
-    <div v-else-if="error" class="tc-status tc-status-error">
-      Failed to load time capsules.
-    </div>
+    <div v-if="loading" class="tc-status ds-state">
+  <p class="ds-state-copy">Loading capsules...</p>
+</div>
+
+<div v-else-if="error" class="tc-status tc-status-error ds-state ds-state--error">
+  <p class="ds-state-copy">Failed to load time capsules.</p>
+</div>
 
     <div v-else class="tc-list">
       <div v-if="displayCapsules.length === 0" class="tc-empty">
@@ -692,16 +695,6 @@ watch(
 }
 
 /* States & list */
-
-.tc-status {
-  text-align: center;
-  font-size: 0.9rem;
-  opacity: 0.8;
-}
-
-.tc-status-error {
-  color: #ff6b6b;
-}
 
 .tc-empty {
   text-align: center;

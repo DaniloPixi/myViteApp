@@ -1,8 +1,12 @@
 <template>
   <div class="memos-moments-view ">
     <!-- Loading and Error States -->
-    <div v-if="loading" class="loading-state">Loading Memos...</div>
-    <div v-if="error" class="error-state">{{ error }}</div>
+    <div v-if="loading" class="loading-state ds-state">
+  <p class="ds-state-copy">Loading Memos...</p>
+</div>
+<div v-if="error" class="error-state ds-state ds-state--error">
+  <p class="ds-state-copy">{{ error }}</p>
+</div>
 
     <!-- Main Content -->
     <div v-if="!loading && !error">
@@ -115,15 +119,15 @@
       </div>
 
       <!-- No Memos State -->
-      <div v-else class="no-memos-state">
-        <div v-if="memos.length === 0">
-          <h2>No Memos Yet</h2>
-          <p>Be the first to share a moment!</p>
-        </div>
-        <div v-else>
-          <h2>No memos match your current filters.</h2>
-        </div>
-      </div>
+      <div v-else class="no-memos-state ds-state">
+  <div v-if="!memos.length">
+    <h2 class="ds-state-title">No Memos Yet</h2>
+    <p class="ds-state-copy">Be the first to share a moment!</p>
+  </div>
+  <div v-else>
+    <h2 class="ds-state-title">No memos match your current filters.</h2>
+  </div>
+</div>
     </div>
 
     <!-- Modals -->
@@ -546,18 +550,6 @@ onUnmounted(() => {
 <style scoped>
 .memos-moments-view {
   padding: 1rem;
-}
-
-.loading-state,
-.error-state,
-.no-memos-state {
-  text-align: center;
-  padding: 3rem;
-  color: #aaa;
-}
-
-.error-state {
-  color: #ff6b6b;
 }
 
 .add-memo-section {

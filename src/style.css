@@ -34,7 +34,18 @@ body {
   padding: 1rem;
   text-align: center;
 }
+html,
+body {
+  scrollbar-width: none;      /* Firefox */
+  -ms-overflow-style: none;   /* IE / old Edge */
+}
 
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}
 /* --- General Reusable Styles --- */
 a {
   font-weight: 500;

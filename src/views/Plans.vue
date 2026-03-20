@@ -16,10 +16,21 @@
     <!-- Plan Display List -->
     <section class="plan-list-section">
       <h1>Our Upcoming Plans</h1>
-      <div v-if="isLoading" class="loading-state"><p>Loading plans...</p></div>
-      <div v-else-if="fetchError" class="error-message"><p>{{ fetchError }}</p></div>
-      <div v-else-if="!plans.length" class="empty-state"><p>No plans yet. Let's create one!</p></div>
-      <div v-else-if="!filteredPlans.length" class="empty-state"><p>No plans match your current filters.</p></div>
+      <div v-if="isLoading" class="loading-state ds-state">
+  <p class="ds-state-copy">Loading plans...</p>
+</div>
+
+<div v-else-if="fetchError" class="error-message ds-state ds-state--error">
+  <p class="ds-state-copy">{{ fetchError }}</p>
+</div>
+
+<div v-else-if="!plans.length" class="empty-state ds-state">
+  <p class="ds-state-copy">No plans yet. Let's create one!</p>
+</div>
+
+<div v-else-if="!filteredPlans.length" class="empty-state ds-state">
+  <p class="ds-state-copy">No plans match your current filters.</p>
+</div>
       <div v-else class="plan-cards-container" @mousemove="handleMousemove">
         <div 
           v-for="(plan, index) in filteredPlans"
@@ -707,7 +718,4 @@ watch(
   border: 1px solid #f700c1;
   box-shadow: 0 0 8px rgba(247, 0, 193, 0.7);
 }
-
-.error-message, .loading-state, .empty-state { text-align: center; margin-top: 1rem; color: #aaa; }
-.error-message { color: #ff6b6b; }
 </style>
