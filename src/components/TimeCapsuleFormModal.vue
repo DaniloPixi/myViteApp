@@ -55,24 +55,27 @@
   class="ds-input tc-input--centered"
  />
 
-        <div class="tc-recipient-toggle">
-          <button
-            type="button"
-            class="tc-chip"
-            :class="recipient === 'me' ? 'tc-chip-active' : ''"
-            @click="recipient = 'me'"
-          >
-            Me
-          </button>
-          <button
-            type="button"
-            class="tc-chip"
-            :class="recipient === 'partner' ? 'tc-chip-active' : ''"
-            @click="recipient = 'partner'"
-          >
-            {{ partnerName || 'Partner' }}
-          </button>
-        </div>
+ <div class="ds-segmented-control">
+  <button
+    type="button"
+    class="ds-segmented-control__item"
+    :class="{ 'is-selected': recipient === 'me' }"
+    :aria-pressed="recipient === 'me'"
+    @click="recipient = 'me'"
+  >
+    Me
+  </button>
+
+  <button
+    type="button"
+    class="ds-segmented-control__item"
+    :class="{ 'is-selected': recipient === 'partner' }"
+    :aria-pressed="recipient === 'partner'"
+    @click="recipient = 'partner'"
+  >
+    {{ partnerName || 'Partner' }}
+  </button>
+</div>
       </div>
 
       <!-- Media upload + preview (centered) -->
@@ -375,37 +378,7 @@
 }
 
 /* Recipient toggle */
-.tc-recipient-toggle {
-  display: inline-flex;
-  justify-content: center;
-  gap: 0.4rem;
-  margin-top: 0.4rem;
-  padding: 0.12rem;
-  border-radius: 999rem;
-  background: rgba(0, 0, 0, 0.7);
-  border: 0.0625rem solid rgba(255, 255, 255, 0.25);
-}
 
-.tc-chip {
-  border: none;
-  background: transparent;
-  color: #e2e2ff;
-  padding: 0.22rem 0.8rem;
-  font-size: 0.8rem;
-  border-radius: 999rem;
-  cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease,
-    box-shadow 0.15s ease, transform 0.12s ease;
-}
-
-.tc-chip-active {
-  background: radial-gradient(circle at 0% 0%, #00ffff55, #ff00ff55);
-  color: #0a0a0a;
-  box-shadow:
-    0 0 0.5rem rgba(0, 255, 255, 0.8),
-    0 0 0.6rem rgba(255, 0, 255, 0.7);
-  transform: translateY(-0.06rem);
-}
 
 /* Upload row */
 .tc-upload-row {
