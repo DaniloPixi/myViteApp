@@ -1,5 +1,5 @@
 <template>
-  <div class="modal-overlay" @click.self="$emit('close')">
+  <div class="modal-overlay ds-modal-overlay" @click.self="$emit('close')">
     <div class="modal-content ds-modal-surface">
       <h3 class="modal-title ds-modal-title">{{ formTitle }}</h3>
 <div class="ds-divider-glow modal-title-divider"></div>
@@ -160,17 +160,6 @@ const submitForm = () => {
 
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap');
-
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background-color: rgba(0, 0, 0, 0.85);
-  backdrop-filter: blur(10px);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
 
 .modal-content {
   position: relative;

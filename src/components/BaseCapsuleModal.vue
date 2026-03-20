@@ -1,5 +1,5 @@
 <template>
-  <div class="modal-overlay" @click.self="onClose">
+  <div class="modal-overlay ds-modal-overlay" @click.self="onClose">
     <div
       class="modal-content tc-modal-shell"
       role="dialog"
@@ -76,16 +76,6 @@ function onClose() {
 @import url('https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap');
 
 /* Overlay */
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background-color: rgba(0, 0, 0, 0.85);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
-
 /*
   Shell = actual panel.
   Uses class "modal-content" so your global warp animation still hits it.

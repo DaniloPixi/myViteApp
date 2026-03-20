@@ -1,5 +1,5 @@
 <template>
-  <div class="modal-overlay" @click.self="$emit('close')">
+  <div class="modal-overlay ds-modal-overlay" @click.self="$emit('close')">
     <div class="modal-content">
       <h3 class="modal-title ds-modal-title ds-modal-title--gold">
   {{ randomMessage }}
@@ -48,18 +48,6 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--ds-space-4);
-  background: rgba(0, 0, 0, 0.82);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  z-index: 1000;
-}
 
 .modal-content {
   width: min(var(--ds-container-xs), calc(100vw - 2rem));
