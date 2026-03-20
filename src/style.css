@@ -159,20 +159,3 @@ input[type="password"] {
   line-height: 1;
 }
 
-.hashtag-selection-container {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-.hashtag-selection-container button {
-  padding: 0.5em 1em;
-  border-radius: 20px;
-  border: 1px solid #444;
-  background-color: #333;
-  color: #fff;
-  cursor: pointer;
-}
-.hashtag-selection-container button.selected {
-  background-color: #42b883;
-  border-color: #42b883;
-}

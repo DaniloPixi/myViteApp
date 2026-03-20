@@ -51,11 +51,17 @@
         </div>
         <div class="form-group">
           <label>Hashtags</label>
-          <div class="hashtag-selection-container">
-            <button v-for="tag in availableHashtags" :key="tag" @click.prevent="toggleHashtag(tag)" :class="{ selected: formData.hashtags.includes(tag) }">
-              #{{ tag }}
-            </button>
-          </div>
+          <div class="ds-inline-cluster-tight">
+  <button
+    v-for="tag in availableHashtags"
+    :key="tag"
+    class="ds-chip"
+    :class="{ 'is-selected': formData.hashtags.includes(tag) }"
+    @click.prevent="toggleHashtag(tag)"
+  >
+    #{{ tag }}
+  </button>
+</div>
         </div>
         <div class="modal-actions ds-modal-actions">
   <button
@@ -261,27 +267,6 @@ button:disabled {
   cursor: not-allowed;
 }
 
-.hashtag-selection-container {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-.hashtag-selection-container button {
-  background-color: #000;
-  color: turquoise;
-  border: 1px solid turquoise;
-  border-radius: 15px;
-  padding: 0.5em 1em;
-  cursor: pointer;
-  transition: background-color 0.3s, box-shadow 0.3s;
-}
-
-.hashtag-selection-container button.selected {
-  background-color: turquoise;
-  color: #000;
-  box-shadow: 0 0 10px turquoise;
-}
 @keyframes plan-modal-glow {
   0%, 100% {
     border-color: rgba(255, 0, 255, 0.32);
