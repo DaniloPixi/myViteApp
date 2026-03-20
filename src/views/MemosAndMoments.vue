@@ -1,5 +1,5 @@
 <template>
-  <div class="memos-moments-view">
+  <div class="memos-moments-view ">
     <!-- Loading and Error States -->
     <div v-if="loading" class="loading-state">Loading Memos...</div>
     <div v-if="error" class="error-state">{{ error }}</div>

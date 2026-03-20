@@ -84,7 +84,16 @@ body {
 body {
   background-color: var(--ds-color-bg);
 }
+.ds-scrollbar-none {
+  scrollbar-width: none;      /* Firefox */
+  -ms-overflow-style: none;   /* IE / old Edge */
+}
 
+.ds-scrollbar-none::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}
 .ds-page-title,
 .ds-modal-title,
 .ds-script-title {
@@ -135,7 +144,29 @@ body {
   text-transform: uppercase;
   color: var(--ds-color-accent-cyan);
 }
+/* -------------------------------------------------------------------------- */
+/* Labels and errors                                                           */
+/* -------------------------------------------------------------------------- */
 
+.ds-label {
+  display: block;
+  margin-bottom: var(--ds-space-2);
+  color: var(--ds-color-accent-cyan);
+}
+
+.ds-label--meta {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  opacity: 0.9;
+}
+
+.ds-error-text {
+  margin-top: var(--ds-space-4);
+  color: var(--ds-color-danger);
+  font-size: var(--ds-text-sm);
+  text-align: center;
+}
 .ds-card,
 .ds-panel,
 .ds-modal-surface {
@@ -145,6 +176,13 @@ body {
   box-shadow: var(--ds-shadow-soft), var(--ds-shadow-glow);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
+}
+.ds-modal-surface--xs {
+  width: min(var(--ds-container-xs), calc(100vw - 2rem));
+}
+
+.ds-modal-surface--sm {
+  width: min(var(--ds-container-sm), calc(100vw - 2rem));
 }
 /* -------------------------------------------------------------------------- */
 /* Modal overlay                                                               */
@@ -167,7 +205,7 @@ body {
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
 
-  overflow-y: auto;
+  overflow: hidden;
   z-index: 1000;
 }
 
@@ -185,10 +223,12 @@ body {
 }
 
 .ds-modal-surface {
+  box-sizing: border-box;
   width: min(var(--ds-container-md), calc(100vw - 2rem));
   max-height: calc(100vh - 2rem);
   padding: var(--ds-space-6) var(--ds-space-6) var(--ds-space-5);
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: hidden;
 }
 
 .ds-stack-sm,
@@ -615,6 +655,14 @@ body {
     width: min(var(--ds-container-sm), calc(100vw - 1.25rem));
     padding: var(--ds-space-5) var(--ds-space-4) var(--ds-space-4);
     border-radius: var(--ds-radius-lg);
+  }
+
+  .ds-modal-surface--xs {
+    width: min(var(--ds-container-xs), calc(100vw - 1.25rem));
+  }
+
+  .ds-modal-surface--sm {
+    width: min(var(--ds-container-sm), calc(100vw - 1.25rem));
   }
 
   .ds-btn {

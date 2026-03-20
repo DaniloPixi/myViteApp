@@ -1,11 +1,11 @@
 <template>
   <div class="modal-overlay ds-modal-overlay" @click.self="onClose">
     <div
-      class="modal-content tc-modal-shell"
-      role="dialog"
-      :aria-labelledby="titleId || undefined"
-      aria-modal="true"
-    >
+  class="modal-content tc-modal-shell ds-modal-surface"
+  role="dialog"
+  :aria-labelledby="titleId || undefined"
+  aria-modal="true"
+>
       <!-- Close icon -->
       <button
         v-if="showCloseIcon"
@@ -18,9 +18,9 @@
 
       <!-- HEADER -->
       <header class="tc-modal-header">
-        <div v-if="$slots.label" class="tc-modal-label">
-          <slot name="label" />
-        </div>
+        <div v-if="$slots.label" class="tc-modal-label ds-label ds-label--meta">
+  <slot name="label" />
+</div>
 
         <h2
           v-if="$slots.title"
@@ -82,52 +82,6 @@ function onClose() {
 */
 .tc-modal-shell {
   position: relative;
-  max-width: 780px;
-  width: 96%;
-  max-height: 90vh;
-
-  padding: 2rem 2.2rem 1.2rem;
-  border-radius: 18px;
-
-  border: 1px solid rgba(255, 255, 255, 0.22);
-
-  /* keep your nice background, just recopying it here */
-  background:
-    radial-gradient(
-      circle at 10% 0%,
-      rgba(255, 0, 255, 0.22),
-      transparent 60%
-    ),
-    radial-gradient(
-      circle at 90% 100%,
-      rgba(0, 255, 255, 0.22),
-      transparent 55%
-    ),
-    radial-gradient(
-      circle at 50% 20%,
-      rgba(255, 255, 255, 0.06),
-      transparent 65%
-    ),
-    radial-gradient(
-      circle at 50% 50%,
-      rgba(6, 0, 20, 0.96) 0%,
-      rgba(1, 0, 10, 0.98) 55%,
-      rgba(0, 0, 0, 1) 100%
-    );
-
-  /* BASE glow – similar to calendar’s 0% frame */
-  box-shadow:
-    inset 0 2px 4px rgba(0, 0, 0, 0.4),
-    inset 0 0 10px rgba(255, 0, 255, 0.5),
-    -60px 0 80px -40px rgba(255, 0, 255, 0.5),
-    60px 0 80px -40px rgba(0, 255, 255, 0.5);
-
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-
-  /* calendar-style breathing glow */
-  animation: tc-modal-glow 4.5s ease-in-out infinite;
 }
 
 
@@ -226,11 +180,6 @@ function onClose() {
 
 /* Small uppercase label above title */
 .tc-modal-label {
-  font-size: 0.8rem;
-  text-transform: uppercase;
-  letter-spacing: 0.16em;
-  color: turquoise;
-  opacity: 0.9;
   margin-bottom: 0.15rem;
 }
 

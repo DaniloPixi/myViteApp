@@ -11,7 +11,7 @@
     <form @submit.prevent="submitForm" class="plan-form">
       <!-- Description -->
       <div class="form-group">
-        <label for="description">Description</label>
+        <label class="ds-label" for="description">Description</label>
         <textarea
   id="description"
   v-model="formData.description"
@@ -23,7 +23,7 @@
       <!-- Location & Date -->
       <div class="form-row">
         <div class="form-group">
-          <label for="location">Location</label>
+          <label class="ds-label" for="location">Location</label>
           <input
   id="location"
   v-model="formData.location"
@@ -33,7 +33,7 @@
         </div>
 
         <div class="form-group">
-          <label for="date">Date</label>
+          <label class="ds-label" for="date">Date</label>
           <input
   id="date"
   v-model="formData.date"
@@ -110,7 +110,7 @@
       </div>
 
       <!-- Error Display -->
-      <div v-if="error" class="error-message">{{ error }}</div>
+      <div v-if="error" class="error-message ds-error-text">{{ error }}</div>
 
       <!-- Action Buttons -->
       <div class="modal-actions ds-modal-actions">
@@ -370,21 +370,9 @@ const submitForm = async () => {
 .form-group {
   width: 100%;
 }
-
-.form-group label {
-  display: block;
-  margin-bottom: 0.5rem;
-  color: turquoise;
-}
 .description-input {
   font-size: clamp(1rem, 0.9rem + 0.45vw, 1.25rem);
   line-height: 1.45;
-}
-
-.error-message {
-  color: #ff6b6b;
-  text-align: center;
-  margin-top: 1rem;
 }
 .file-input-hidden { display: none; }
 .file-upload-label {

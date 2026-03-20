@@ -18,10 +18,10 @@
 
 
     <!-- BODY -->
-    <div class="tc-form-body">
+    <div class="tc-form-body ds-scrollbar-none">
       <!-- Title -->
       <div class="tc-form-field">
-        <label class="tc-form-label" for="tc-title">Title</label>
+        <label class="tc-form-label ds-label ds-label--meta" for="tc-title">Title</label>
         <input
   id="tc-title"
   v-model="title"
@@ -33,7 +33,7 @@
 
       <!-- Message -->
       <div class="tc-form-field">
-        <label class="tc-form-label" for="tc-message">Message</label>
+        <label class="tc-form-label ds-label ds-label--meta" for="tc-message">Message</label>
         <textarea
   id="tc-message"
   v-model="message"
@@ -45,7 +45,7 @@
 
       <!-- Unlock + recipient (centered block) -->
       <div class="tc-form-field tc-form-field--unlock">
-        <label class="tc-form-label" for="tc-unlock">
+        <label class="tc-form-label ds-label ds-label--meta" for="tc-unlock">
           Unlock date &amp; time
         </label>
         <input
@@ -80,7 +80,7 @@
 
       <!-- Media upload + preview (centered) -->
       <div class="tc-form-field tc-form-field--media">
-        <label class="tc-form-label">Photos / videos</label>
+        <label class="tc-form-label ds-label ds-label--meta">Photos / videos</label>
 
         <div class="tc-upload-row">
           <input
@@ -135,9 +135,9 @@
         </div>
       </div>
 
-      <p v-if="submitError" class="tc-form-error">
-        {{ submitError }}
-      </p>
+      <p v-if="submitError" class="tc-form-error ds-error-text">
+  {{ submitError }}
+</p>
     </div>
 
     <!-- FOOTER -->
@@ -368,15 +368,6 @@
   text-align: center;
 }
 
-/* Labels */
-.tc-form-label {
-  font-size: 0.78rem;
-  text-transform: uppercase;
-  letter-spacing: 0.16em;
-  color: #7ef7ff;
-  opacity: 0.9;
-}
-
 /* Recipient toggle */
 
 
@@ -451,8 +442,6 @@
 /* Error */
 .tc-form-error {
   margin: 0.2rem 0 0;
-  font-size: 0.8rem;
-  color: #ff6b9a;
 }
 
 /* Buttons */

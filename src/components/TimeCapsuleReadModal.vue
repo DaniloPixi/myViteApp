@@ -20,7 +20,7 @@
     </template>
 
     <!-- BODY -->
-    <div class="tc-read-message-wrap">
+    <div class="tc-read-message-wrap ds-scrollbar-none">
       <p class="tc-read-message">
         {{ capsule.message || 'No message text.' }}
       </p>
@@ -404,21 +404,6 @@
     width: 100%;
     justify-content: center;
   }
-}
-
-/* Scrollbar styling inside message */
-
-.tc-read-message-wrap::-webkit-scrollbar {
-  width: 6px;
-}
-
-.tc-read-message-wrap::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.tc-read-message-wrap::-webkit-scrollbar-thumb {
-  background: linear-gradient(to bottom, magenta, cyan);
-  border-radius: 999px;
 }
 
 @media (max-width: 700px) {

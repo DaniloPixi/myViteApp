@@ -6,7 +6,7 @@
       <form @submit.prevent="submitForm" class="plan-form">
         <!-- Text, Date, Location fields remain the same -->
         <div class="form-group">
-          <label for="plan-text">What's the plan?</label>
+          <label class="ds-label" for="plan-text">What's the plan?</label>
           <input
   type="text"
   id="plan-text"
@@ -16,7 +16,7 @@
 >
         </div>
         <div class="form-group">
-          <label for="plan-date">Date</label>
+          <label class="ds-label" for="plan-date">Date</label>
           <input
   type="date"
   id="plan-date"
@@ -29,7 +29,7 @@
 
         <!-- UPDATED Time and Duration Group -->
         <div class="form-group">
-          <label>Time & Duration</label>
+          <label class="ds-label" >Time & Duration</label>
           <div class="time-duration-group">
             <StyledTimeInput v-model="specificTime" />
             <div class="duration-buttons">
@@ -41,7 +41,7 @@
         </div>
 
         <div class="form-group">
-          <label for="plan-location">Location</label>
+          <label class="ds-label" for="plan-location">Location</label>
           <input
   type="text"
   id="plan-location"
@@ -51,7 +51,7 @@
 >
         </div>
         <div class="form-group">
-          <label>Hashtags</label>
+          <label class="ds-label">Hashtags</label>
           <div class="ds-inline-cluster-tight">
   <button
     v-for="tag in availableHashtags"
@@ -81,7 +81,7 @@
     Cancel
   </button>
 </div>
-        <p v-if="submitError" class="error-message">{{ submitError }}</p>
+<p v-if="submitError" class="error-message ds-error-text">{{ submitError }}</p>
       </form>
     </div>
   </div>
@@ -191,12 +191,6 @@ const submitForm = () => {
   width: 100%;
 }
 
-.form-group label {
-  display: block;
-  margin-bottom: 0.5rem;
-  color: turquoise;
-}
-
 .time-duration-group {
   display: flex;
   align-items: stretch;
@@ -225,11 +219,6 @@ const submitForm = () => {
   background-color: turquoise;
   color: #000;
   box-shadow: 0 0 10px turquoise;
-}
-.error-message {
-  color: #ff6b6b;
-  text-align: center;
-  margin-top: 1rem;
 }
 
 button:disabled {
