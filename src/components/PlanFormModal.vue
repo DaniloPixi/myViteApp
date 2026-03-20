@@ -1,6 +1,6 @@
 <template>
   <div class="modal-overlay" @click.self="$emit('close')">
-    <div class="modal-content">
+    <div class="modal-content ds-modal-surface">
       <h3>{{ formTitle }}</h3>
       <form @submit.prevent="submitForm" class="plan-form">
         <!-- Text, Date, Location fields remain the same -->
@@ -38,10 +38,23 @@
             </button>
           </div>
         </div>
-        <div class="modal-actions">
-          <button type="submit" class="confirm-button" :disabled="isSubmitting">{{ isSubmitting ? 'Saving...' : 'Save' }}</button>
-          <button type="button" @click="$emit('close')" class="cancel-button">Cancel</button>
-        </div>
+        <div class="modal-actions ds-modal-actions">
+  <button
+    type="submit"
+    class="ds-modal-action-btn ds-modal-action-btn--confirm"
+    :disabled="isSubmitting"
+  >
+    {{ isSubmitting ? 'Saving...' : 'Save' }}
+  </button>
+
+  <button
+    type="button"
+    @click="$emit('close')"
+    class="ds-modal-action-btn ds-modal-action-btn--cancel"
+  >
+    Cancel
+  </button>
+</div>
         <p v-if="submitError" class="error-message">{{ submitError }}</p>
       </form>
     </div>
@@ -135,29 +148,8 @@ const submitForm = () => {
 
 .modal-content {
   position: relative;
-  box-sizing: border-box;
-  width: min(780px, calc(100vw - 2rem));
-  max-height: calc(100vh - 2rem);
-
-  padding: 2rem 2.2rem 1.2rem;
-  border-radius: 18px;
-  border: 1px solid rgba(255, 255, 255, 0.22);
-
-  background:
-    radial-gradient(circle at 10% 0%, rgba(255, 0, 255, 0.22), transparent 60%),
-    radial-gradient(circle at 90% 100%, rgba(0, 255, 255, 0.22), transparent 55%),
-    radial-gradient(circle at 50% 20%, rgba(255, 255, 255, 0.06), transparent 65%),
-    radial-gradient(circle at 50% 50%, rgba(6, 0, 20, 0.96) 0%, rgba(1, 0, 10, 0.98) 55%, rgba(0, 0, 0, 1) 100%);
-
-  box-shadow:
-    inset 0 2px 4px rgba(0, 0, 0, 0.4),
-    inset 0 0 10px rgba(255, 0, 255, 0.5),
-    -60px 0 80px -40px rgba(255, 0, 255, 0.5),
-    60px 0 80px -40px rgba(0, 255, 255, 0.5);
-
   overflow-x: hidden;
   overflow-y: hidden;
-
   animation: plan-modal-glow 4.5s ease-in-out infinite;
 }
 
@@ -257,45 +249,6 @@ input:focus {
   color: #000;
   box-shadow: 0 0 10px turquoise;
 }
-
-.modal-actions {
-  display: flex;
-  justify-content: center;
-  gap: 1rem;
-  margin-top: 1.5rem;
-}
-
-.modal-actions button {
-  padding: 0.7em 1.4em;
-  border-radius: 30px;
-  border: 1px solid;
-  font-size: 1.5em;
-  cursor: pointer;
-  font-family: 'Great Vibes', cursive;
-  background-color: black;
-  transition: box-shadow 0.3s ease, color 0.3s ease;
-}
-
-.confirm-button {
-  color: magenta;
-  border-color: magenta;
-  box-shadow: inset 0 0 8px rgba(255, 0, 255, 0.5), 0 0 8px rgba(255, 0, 255, 0.5);
-}
-
-.confirm-button:hover {
-  box-shadow: inset 0 0 12px rgba(255, 0, 255, 0.8), 0 0 12px rgba(255, 0, 255, 0.8);
-}
-
-.cancel-button {
-  color: turquoise;
-  border-color: turquoise;
-  box-shadow: inset 0 0 8px rgba(64, 224, 208, 0.5), 0 0 8px rgba(64, 224, 208, 0.5);
-}
-
-.cancel-button:hover {
-    box-shadow: inset 0 0 12px rgba(64, 224, 208, 0.8), 0 0 12px rgba(64, 224, 208, 0.8);
-}
-
 .error-message {
   color: #ff6b6b;
   text-align: center;

@@ -143,28 +143,29 @@
     </template>
 
     <template #footer-right>
-      <button
-        type="button"
-        class="tc-btn tc-btn-ghost"
-        :disabled="isSubmitting || isUploading"
-        @click="emitClose"
-      >
-        Cancel
-      </button>
-      <button
-        type="button"
-        class="tc-btn tc-btn-primary"
-        :disabled="isSubmitting || isUploading"
-        @click="handleSubmit"
-      >
-        <span v-if="isEditMode">
-          {{ isSubmitting ? 'Saving…' : 'Save changes' }}
-        </span>
-        <span v-else>
-          {{ isSubmitting ? 'Creating…' : 'Create capsule' }}
-        </span>
-      </button>
-    </template>
+  <button
+    type="button"
+    class="ds-modal-action-btn ds-modal-action-btn--cancel"
+    :disabled="isSubmitting || isUploading"
+    @click="emitClose"
+  >
+    Cancel
+  </button>
+
+  <button
+    type="button"
+    class="ds-modal-action-btn ds-modal-action-btn--confirm"
+    :disabled="isSubmitting || isUploading"
+    @click="handleSubmit"
+  >
+    <span v-if="isEditMode">
+      {{ isSubmitting ? 'Saving…' : 'Save changes' }}
+    </span>
+    <span v-else>
+      {{ isSubmitting ? 'Creating…' : 'Create capsule' }}
+    </span>
+  </button>
+</template>
   </BaseCapsuleModal>
 </template>
 
@@ -535,21 +536,6 @@
   transform: translateY(-0.06rem);
 }
 
-.tc-btn-primary {
-  border-color: magenta;
-  background: rgba(0, 0, 0, 0.8);
-  color: magenta;
-  box-shadow:
-    inset 0 0 0.4rem rgba(255, 0, 255, 0.6),
-    0 0 0.4rem rgba(255, 0, 255, 0.5);
-}
-
-.tc-btn-primary:hover:not(:disabled) {
-  box-shadow:
-    inset 0 0 0.5rem rgba(255, 0, 255, 0.9),
-    0 0 0.6rem rgba(0, 255, 255, 0.6);
-  transform: translateY(-0.06rem);
-}
 
 .tc-btn:disabled {
   opacity: 0.55;

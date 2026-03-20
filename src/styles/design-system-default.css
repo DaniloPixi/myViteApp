@@ -253,7 +253,6 @@ body {
   min-height: 2.75rem;
   padding: 0.7rem 1.2rem;
   border-radius: var(--ds-radius-pill);
-  border: 1px solid var(--ds-color-border);
   background: var(--ds-gradient-glass);
   color: var(--ds-color-text);
   font-size: var(--ds-text-md);
@@ -387,7 +386,112 @@ body {
     0 0 8px rgba(0, 255, 255, 0.35),
     0 0 10px rgba(255, 0, 255, 0.28);
 }
+/* -------------------------------------------------------------------------- */
+/* Modal action buttons                                                        */
+/* -------------------------------------------------------------------------- */
+/*
+  Shared action-button system for modal footers and modal confirmation areas.
 
+  Use for:
+  - Save / Create / Confirm
+  - Cancel
+  - Destructive confirm actions
+
+  Do not use for:
+  - tiny icon buttons
+  - upload utility buttons
+  - compact card action buttons
+*/
+
+.ds-modal-actions {
+  display: flex;
+  justify-content: center;
+  gap: var(--ds-space-4);
+  margin-top: var(--ds-space-5);
+  flex-wrap: wrap;
+}
+
+.ds-modal-action-btn {
+  min-width: 10rem;
+  min-height: 2.85rem;
+  padding: 0.75rem 1.35rem;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+
+  border: 1px solid transparent;
+  border-radius: var(--ds-radius-pill);
+
+  background: var(--ds-gradient-glass);
+  color: var(--ds-color-text);
+
+  font-family: var(--ds-font-display);
+  font-size: clamp(1.15rem, 1rem + 0.7vw, 1.55rem);
+  line-height: 1;
+
+  cursor: pointer;
+  box-shadow: var(--ds-shadow-soft);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+
+  transition:
+    color var(--ds-transition-base),
+    transform var(--ds-transition-fast),
+    box-shadow var(--ds-transition-base),
+    border-color var(--ds-transition-base),
+    opacity var(--ds-transition-base);
+}
+
+.ds-modal-action-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.ds-modal-action-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Primary positive action: save / create / confirm */
+.ds-modal-action-btn--confirm {
+  color: color-mix(in srgb, var(--ds-color-accent-magenta) 82%, white 10%);
+  border-color: rgba(255, 79, 233, 0.36);
+}
+
+.ds-modal-action-btn--confirm:hover:not(:disabled) {
+  box-shadow:
+    var(--ds-shadow-soft),
+    0 0 18px rgba(255, 79, 233, 0.28);
+  border-color: rgba(255, 79, 233, 0.58);
+}
+
+/* Secondary neutral action: cancel / close */
+.ds-modal-action-btn--cancel {
+  color: color-mix(in srgb, var(--ds-color-accent-cyan) 80%, white 10%);
+  border-color: rgba(0, 247, 255, 0.38);
+}
+
+.ds-modal-action-btn--cancel:hover:not(:disabled) {
+  box-shadow:
+    var(--ds-shadow-soft),
+    0 0 18px rgba(0, 247, 255, 0.24);
+  border-color: rgba(0, 247, 255, 0.58);
+}
+
+/* Destructive confirmation action */
+.ds-modal-action-btn--danger {
+  color: color-mix(in srgb, var(--ds-color-danger) 85%, white 10%);
+  border-color: rgba(255, 107, 107, 0.38);
+}
+
+.ds-modal-action-btn--danger:hover:not(:disabled) {
+  box-shadow:
+    var(--ds-shadow-soft),
+    0 0 18px rgba(255, 107, 107, 0.28);
+  border-color: rgba(255, 107, 107, 0.58);
+}
 @media (max-width: 768px) {
   .ds-modal-surface {
     width: min(var(--ds-container-sm), calc(100vw - 1.25rem));
@@ -418,5 +522,14 @@ body {
 
   .ds-grid-auto {
     grid-template-columns: 1fr;
+  }
+
+  .ds-modal-actions {
+    gap: var(--ds-space-3);
+  }
+
+  .ds-modal-action-btn {
+    width: 100%;
+    min-width: 0;
   }
 }

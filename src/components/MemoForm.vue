@@ -1,7 +1,7 @@
 
 <template>
 <div class="modal-overlay" @click.self="$emit('close')">
-  <div class="modal-content">
+  <div class="modal-content ds-modal-surface">
     <h3 class="modal-title">{{ isEditing ? 'Edit Memo' : 'Create New Memo' }}</h3>
 
     <form @submit.prevent="submitForm" class="plan-form">
@@ -108,23 +108,23 @@
       <div v-if="error" class="error-message">{{ error }}</div>
 
       <!-- Action Buttons -->
-      <div class="modal-actions">
-        <button
-          type="submit"
-          class="modal-action-button modal-action-button--confirm"
-          :disabled="isUploading || isSubmitting"
-        >
-          {{ isSubmitting ? 'Saving...' : 'Save Memo' }}
-        </button>
+      <div class="modal-actions ds-modal-actions">
+  <button
+    type="submit"
+    class="ds-modal-action-btn ds-modal-action-btn--confirm"
+    :disabled="isUploading || isSubmitting"
+  >
+    {{ isSubmitting ? 'Saving...' : 'Save Memo' }}
+  </button>
 
-        <button
-          type="button"
-          class="modal-action-button modal-action-button--cancel"
-          @click="$emit('close')"
-        >
-          Cancel
-        </button>
-      </div>
+  <button
+    type="button"
+    class="ds-modal-action-btn ds-modal-action-btn--cancel"
+    @click="$emit('close')"
+  >
+    Cancel
+  </button>
+</div>
     </form>
   </div>
 </div>
@@ -335,29 +335,8 @@ const submitForm = async () => {
 
 .modal-content {
   position: relative;
-  box-sizing: border-box;
-  width: min(780px, calc(100vw - 2rem));
-  max-height: calc(100vh - 2rem);
-
-  padding: 2rem 2.2rem 1.2rem;
-  border-radius: 18px;
-  border: 1px solid rgba(255, 255, 255, 0.22);
-
-  background:
-    radial-gradient(circle at 10% 0%, rgba(255, 0, 255, 0.22), transparent 60%),
-    radial-gradient(circle at 90% 100%, rgba(0, 255, 255, 0.22), transparent 55%),
-    radial-gradient(circle at 50% 20%, rgba(255, 255, 255, 0.06), transparent 65%),
-    radial-gradient(circle at 50% 50%, rgba(6, 0, 20, 0.96) 0%, rgba(1, 0, 10, 0.98) 55%, rgba(0, 0, 0, 1) 100%);
-
-  box-shadow:
-    inset 0 2px 4px rgba(0, 0, 0, 0.4),
-    inset 0 0 10px rgba(255, 0, 255, 0.5),
-    -60px 0 80px -40px rgba(255, 0, 255, 0.5),
-    60px 0 80px -40px rgba(0, 255, 255, 0.5);
-
   overflow-x: hidden;
   overflow-y: hidden;
-
   animation: memo-modal-glow 4.5s ease-in-out infinite;
 }
 
@@ -464,82 +443,6 @@ textarea.form-input {
 .description-input {
   font-size: clamp(1rem, 0.9rem + 0.45vw, 1.25rem);
   line-height: 1.45;
-}
-
-.modal-actions {
-  display: flex;
-  justify-content: center;
-  gap: var(--ds-space-4);
-  margin-top: var(--ds-space-5);
-  flex-wrap: wrap;
-}
-
-.modal-action-button {
-  min-width: 10rem;
-  min-height: 2.85rem;
-  padding: 0.75rem 1.35rem;
-  border-radius: var(--ds-radius-pill);
-  border: 1px solid transparent;
-  background: var(--ds-gradient-glass);
-  color: var(--ds-color-text);
-  font-family: var(--ds-font-display);
-  font-size: clamp(1.15rem, 1rem + 0.7vw, 1.55rem);
-  line-height: 1;
-  cursor: pointer;
-  box-shadow: var(--ds-shadow-soft);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  transition:
-    color var(--ds-transition-base),
-    transform var(--ds-transition-fast),
-    box-shadow var(--ds-transition-base),
-    border-color var(--ds-transition-base),
-    opacity var(--ds-transition-base);
-}
-
-.modal-action-button:hover:not(:disabled) {
-  transform: translateY(-1px);
-}
-
-.modal-action-button--confirm {
-  color: color-mix(in srgb, var(--ds-color-accent-magenta) 82%, white 10%);
-  border-color: rgba(255, 79, 233, 0.36);
-}
-
-.modal-action-button--confirm:hover:not(:disabled) {
-  box-shadow:
-    var(--ds-shadow-soft),
-    0 0 18px rgba(255, 79, 233, 0.28);
-  border-color: rgba(255, 79, 233, 0.58);
-}
-
-.modal-action-button--cancel {
-  color: color-mix(in srgb, var(--ds-color-accent-cyan) 80%, white 10%);
-  border-color: rgba(0, 247, 255, 0.38);
-}
-
-.modal-action-button--cancel:hover:not(:disabled) {
-  box-shadow:
-    var(--ds-shadow-soft),
-    0 0 18px rgba(0, 247, 255, 0.24);
-  border-color: rgba(0, 247, 255, 0.58);
-}
-
-.modal-action-button:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-  transform: none;
-}
-
-@media (max-width: 480px) {
-  .modal-actions {
-    gap: var(--ds-space-3);
-  }
-
-  .modal-action-button {
-    width: 100%;
-    min-width: 0;
-  }
 }
 
 .error-message {
@@ -683,15 +586,6 @@ textarea.form-input {
 
   .modal-title::after {
     width: 100%;
-  }
-
-  .modal-actions {
-    gap: var(--ds-space-3);
-  }
-
-  .modal-action-button {
-    width: 100%;
-    min-width: 0;
   }
 }
 </style>
