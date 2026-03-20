@@ -9,11 +9,11 @@
       <div class="form-group">
         <label for="description">Description</label>
         <textarea
-          id="description"
-          v-model="formData.description"
-          class="form-input description-input"
-          required
-        ></textarea>
+  id="description"
+  v-model="formData.description"
+  class="ds-textarea description-input"
+  required
+></textarea>
       </div>
 
       <!-- Location & Date -->
@@ -21,22 +21,22 @@
         <div class="form-group">
           <label for="location">Location</label>
           <input
-            id="location"
-            v-model="formData.location"
-            class="form-input"
-            type="text"
-          />
+  id="location"
+  v-model="formData.location"
+  class="ds-input"
+  type="text"
+/>
         </div>
 
         <div class="form-group">
           <label for="date">Date</label>
           <input
-            id="date"
-            v-model="formData.date"
-            class="form-input"
-            type="date"
-            required
-          />
+  id="date"
+  v-model="formData.date"
+  class="ds-input"
+  type="date"
+  required
+/>
         </div>
       </div>
 
@@ -408,38 +408,6 @@ const submitForm = async () => {
   margin-bottom: 0.5rem;
   color: turquoise;
 }
-
-.form-input {
-  width: 100%;
-  box-sizing: border-box;
-  padding: 0.8rem 1rem;
-  border-radius: var(--ds-radius-sm);
-  border: 1px solid transparent;
-  background: rgba(0, 0, 0, 0.8);
-  color: var(--ds-color-accent-cyan);
-  font: inherit;
-  font-size: var(--ds-text-md);
-  box-shadow:
-    inset 0 0 5px rgba(64, 224, 208, 0.45),
-    0 0 5px rgba(64, 224, 208, 0.28);
-  transition:
-    box-shadow var(--ds-transition-base),
-    border-color var(--ds-transition-base);
-}
-
-.form-input:focus {
-  outline: none;
-  border-color: rgba(0, 247, 255, 0.42);
-  box-shadow:
-    inset 0 0 8px rgba(64, 224, 208, 0.72),
-    0 0 9px rgba(64, 224, 208, 0.4);
-}
-
-textarea.form-input {
-  min-height: 100px;
-  resize: vertical;
-}
-
 .description-input {
   font-size: clamp(1rem, 0.9rem + 0.45vw, 1.25rem);
   line-height: 1.45;

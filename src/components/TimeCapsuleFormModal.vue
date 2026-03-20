@@ -23,24 +23,24 @@
       <div class="tc-form-field">
         <label class="tc-form-label" for="tc-title">Title</label>
         <input
-          id="tc-title"
-          v-model="title"
-          type="text"
-          class="tc-input"
-          placeholder="Untitled capsule"
-        />
+  id="tc-title"
+  v-model="title"
+  type="text"
+  class="ds-input"
+  placeholder="Untitled capsule"
+/>
       </div>
 
       <!-- Message -->
       <div class="tc-form-field">
         <label class="tc-form-label" for="tc-message">Message</label>
         <textarea
-          id="tc-message"
-          v-model="message"
-          class="tc-textarea"
-          rows="5"
-          placeholder="Write something for your future hearts..."
-        />
+  id="tc-message"
+  v-model="message"
+  class="ds-textarea"
+  rows="5"
+  placeholder="Write something for your future hearts..."
+/>
       </div>
 
       <!-- Unlock + recipient (centered block) -->
@@ -49,11 +49,11 @@
           Unlock date &amp; time
         </label>
         <input
-          id="tc-unlock"
-          v-model="unlockAtLocal"
-          type="datetime-local"
-          class="tc-input tc-input--centered"
-        />
+  id="tc-unlock"
+  v-model="unlockAtLocal"
+  type="datetime-local"
+  class="ds-input tc-input--centered"
+ />
 
         <div class="tc-recipient-toggle">
           <button
@@ -372,37 +372,6 @@
   letter-spacing: 0.16em;
   color: #7ef7ff;
   opacity: 0.9;
-}
-
-/* Inputs */
-.tc-input,
-.tc-textarea {
-  border-radius: 0.6rem;
-  border: 0.0625rem solid rgba(255, 255, 255, 0.25);
-  background: rgba(0, 0, 0, 0.75);
-  color: #f5f5ff;
-  padding: 0.4rem 0.7rem;
-  font-size: 0.9rem;
-  outline: none;
-  box-shadow:
-    inset 0 0 0.25rem rgba(0, 0, 0, 0.6),
-    0 0 0.5rem rgba(255, 0, 255, 0.25);
-  transition: border-color 0.15s ease, box-shadow 0.15s ease,
-    background 0.15s ease;
-}
-
-.tc-input:focus,
-.tc-textarea:focus {
-  border-color: rgba(0, 255, 255, 0.95);
-  box-shadow:
-    inset 0 0 0.3rem rgba(0, 0, 0, 0.7),
-    0 0 0.75rem rgba(0, 255, 255, 0.7);
-  background: rgba(0, 0, 0, 0.9);
-}
-
-.tc-textarea {
-  resize: vertical;
-  min-height: 6.25rem;
 }
 
 /* Recipient toggle */

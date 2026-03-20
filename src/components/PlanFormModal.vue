@@ -6,11 +6,24 @@
         <!-- Text, Date, Location fields remain the same -->
         <div class="form-group">
           <label for="plan-text">What's the plan?</label>
-          <input type="text" id="plan-text" v-model="formData.text" required>
+          <input
+  type="text"
+  id="plan-text"
+  v-model="formData.text"
+  class="ds-input"
+  required
+>
         </div>
         <div class="form-group">
           <label for="plan-date">Date</label>
-          <input type="date" id="plan-date" v-model="formData.date" :min="today" required>
+          <input
+  type="date"
+  id="plan-date"
+  v-model="formData.date"
+  class="ds-input"
+  :min="today"
+  required
+>
         </div>
 
         <!-- UPDATED Time and Duration Group -->
@@ -28,7 +41,13 @@
 
         <div class="form-group">
           <label for="plan-location">Location</label>
-          <input type="text" id="plan-location" v-model="formData.location" required>
+          <input
+  type="text"
+  id="plan-location"
+  v-model="formData.location"
+  class="ds-input"
+  required
+>
         </div>
         <div class="form-group">
           <label>Hashtags</label>
@@ -200,24 +219,6 @@ h3::after {
   display: block;
   margin-bottom: 0.5rem;
   color: turquoise;
-}
-
-input {
-  box-sizing: border-box;
-  width: 100%;
-  padding: 0.8em 1em;
-  border-radius: 8px;
-  border: 1px solid transparent;
-  background-color: #000;
-  color: turquoise;
-  font-size: 1em;
-  box-shadow: inset 0 0 5px rgba(64, 224, 208, 0.5), 0 0 5px rgba(64, 224, 208, 0.5);
-  transition: box-shadow 0.3s ease;
-}
-
-input:focus {
-    outline: none;
-    box-shadow: inset 0 0 8px rgba(64, 224, 208, 0.8), 0 0 8px rgba(64, 224, 208, 0.8);
 }
 
 .time-duration-group {
