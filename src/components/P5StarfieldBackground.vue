@@ -1,9 +1,6 @@
 <template>
   <div class="p5-starfield-wrapper">
-    <!-- Fullscreen background canvas -->
     <canvas ref="canvasRef" class="p5-starfield-canvas"></canvas>
-
-    <!-- Your app content on top -->
     <div class="p5-starfield-content">
       <slot />
     </div>
@@ -17,101 +14,99 @@ import { createNoise3D } from 'simplex-noise';
 const TAU = 2 * Math.PI;
 const BASE_TTL = 50;
 const RANGE_TTL = 150;
-// x, y, vx, vy, life, ttl, speed, radius, hue, depth
-const PARTICLE_PROP_COUNT = 10;
+const PARTICLE_PROP_COUNT = 10; // x, y, vx, vy, life, ttl, speed, radius, hue, depth
+
 const NOISE_STEPS = 3;
 const X_OFF = 0.00125;
 const Y_OFF = 0.00125;
 const Z_OFF = 0.0005;
 
+// Constellations
+const MAX_CONSTELLATIONS = 2;
+const CONST_MIN_INTERVAL = 5;
+const CONST_MAX_INTERVAL = 15;
+const CONST_MIN_TTL = 3.5;
+const CONST_MAX_TTL = 7.0;
+const CONST_MIN_STARS = 4;
+const CONST_MAX_STARS = 8;
+
+const CONST_PALETTES = [
+  { fromHue: 190, toHue: 305 },
+  { fromHue: 260, toHue: 40 },
+  { fromHue: 210, toHue: 260 },
+];
+
+// Themes
+const STAR_THEMES = {
+  cosmicPurple: { hueBase: 255, hueRange: 95, sat: 100, lightNear: 72, lightFar: 58 },
+  auroraTeal: { hueBase: 178, hueRange: 70, sat: 95, lightNear: 74, lightFar: 56 },
+  sunsetNebula: { hueBase: 18, hueRange: 115, sat: 96, lightNear: 73, lightFar: 54 },
+  monochrome: { hueBase: 220, hueRange: 8, sat: 10, lightNear: 88, lightFar: 62 },
+  cyberpunk: { hueBase: 300, hueRange: 120, sat: 100, lightNear: 76, lightFar: 57 },
+};
+
+const THEME_ORDER = ['cosmicPurple', 'auroraTeal', 'sunsetNebula', 'monochrome', 'cyberpunk'];
+
 const props = defineProps({
-  particleCount: {
-    type: Number,
-    default: 300,
-  },
-  rangeY: {
-    type: Number,
-    default: 150,
-  },
-  baseHue: {
-    type: Number,
-    default: 260, // used when theme="custom"
-  },
-  baseSpeed: {
-    type: Number,
-    default: 0.0,
-  },
-  rangeSpeed: {
-    type: Number,
-    default: 1.5,
-  },
-  baseRadius: {
-    type: Number,
-    default: 1,
-  },
-  rangeRadius: {
-    type: Number,
-    default: 2,
-  },
-  // parallax strength
-  parallaxIntensity: {
-    type: Number,
-    default: 0.12,
-  },
-  // parallax smoothing
-  parallaxEasing: {
-    type: Number,
-    default: 0.06,
-  },
+  particleCount: { type: Number, default: 300 },
+  rangeY: { type: Number, default: 150 },
 
-  // theme pack: cosmicPurple | auroraTeal | sunsetNebula | monochrome | cyberpunk | custom
-  theme: {
-    type: String,
-    default: 'auroraTeal',
-  },
+  // Used when theme="custom"
+  baseHue: { type: Number, default: 260 },
 
-  // depth-of-field strength (0 = off)
-  dofStrength: {
-    type: Number,
-    default: 0.5,
-  },
+  baseSpeed: { type: Number, default: 0.0 },
+  rangeSpeed: { type: Number, default: 1.5 },
+  baseRadius: { type: Number, default: 1 },
+  rangeRadius: { type: Number, default: 2 },
 
-  // intro warp-in
-  introWarpEnabled: {
-    type: Boolean,
-    default: true,
-  },
-  introWarpDuration: {
-    type: Number,
-    default: 1.0, // seconds
-  },
-  
-  themeCycleEnabled: {
-    type: Boolean,
-    default: true,
-  },
-  themeCycleSeconds: {
-    type: Number,
-    default: 12, // change every 12s
-  },
-  themeCycleMode: {
-    type: String,
-    default: 'random', // sequential | random
-  },
+  parallaxIntensity: { type: Number, default: 0.12 },
+  parallaxEasing: { type: Number, default: 0.06 },
+
+  // cosmicPurple | auroraTeal | sunsetNebula | monochrome | cyberpunk | custom
+  theme: { type: String, default: 'auroraTeal' },
+
+  // 0 = off
+  dofStrength: { type: Number, default: 0.5 },
+
+  // Intro warp
+  introWarpEnabled: { type: Boolean, default: true },
+  introWarpDuration: { type: Number, default: 1.0 },
+
+  // Theme cycle
+  themeCycleEnabled: { type: Boolean, default: true },
+  themeCycleSeconds: { type: Number, default: 12 },
+  themeCycleMode: { type: String, default: 'random' }, // sequential | random
 });
 
 const animationFrame = ref(null);
-const particleProps = shallowRef(null); // Float32Array
-const center = ref([0, 0]); // [cx, cy]
+const particleProps = shallowRef(null);
+const center = ref([0, 0]);
+
 const ctx = shallowRef(null);
+const glowCtx = shallowRef(null);
 const canvasRef = ref(null);
 const glowCanvasRef = shallowRef(null);
-const glowCtx = shallowRef(null);
+
+const activeTheme = ref(props.theme);
 
 let devicePixelRatioValue = 1;
 let viewportWidth = 0;
 let viewportHeight = 0;
 let particlePropsLength = 0;
+
+let lastTime = 0;
+let elapsedSeconds = 0;
+
+let pointerNormX = 0;
+let pointerNormY = 0;
+let parallaxX = 0;
+let parallaxY = 0;
+
+let constellations = [];
+let nextConstellationTime = 0;
+
+let resizeTimeout = null;
+let themeIntervalId = null;
 
 const particleCache = {
   x: 0,
@@ -128,48 +123,8 @@ const particleCache = {
 
 const noise3D = createNoise3D();
 
-// Time tracking
-let lastTime = 0;
-let elapsedSeconds = 0;
+/* -------------------------------- Helpers -------------------------------- */
 
-// Parallax state
-let pointerNormX = 0; // -1..1
-let pointerNormY = 0; // -1..1
-let parallaxX = 0;
-let parallaxY = 0;
-
-// ---- constellation state ----
-let constellations = [];
-let nextConstellationTime = 0;
-
-const MAX_CONSTELLATIONS = 2;
-const CONST_MIN_INTERVAL = 5; // seconds
-const CONST_MAX_INTERVAL = 15; // seconds
-const CONST_MIN_TTL = 3.5; // seconds
-const CONST_MAX_TTL = 7.0; // seconds
-const CONST_MIN_STARS = 4;
-const CONST_MAX_STARS = 8;
-
-const CONST_PALETTES = [
-  { fromHue: 190, toHue: 305 }, // cyan -> magenta
-  { fromHue: 260, toHue: 40 }, // purple -> warm orange/red
-  { fromHue: 210, toHue: 260 }, // blue -> violet
-];
-
-// ---- theme packs ----
-const STAR_THEMES = {
-  cosmicPurple: { hueBase: 255, hueRange: 95, sat: 100, lightNear: 72, lightFar: 58 },
-  auroraTeal: { hueBase: 178, hueRange: 70, sat: 95, lightNear: 74, lightFar: 56 },
-  sunsetNebula: { hueBase: 18, hueRange: 115, sat: 96, lightNear: 73, lightFar: 54 },
-  monochrome: { hueBase: 220, hueRange: 8, sat: 10, lightNear: 88, lightFar: 62 },
-  cyberpunk: { hueBase: 300, hueRange: 120, sat: 100, lightNear: 76, lightFar: 57 },
-};
-
-const THEME_ORDER = ['cosmicPurple', 'auroraTeal', 'sunsetNebula', 'monochrome', 'cyberpunk'];
-
-const activeTheme = ref(props.theme);
-let themeIntervalId = null;
-// Helpers
 function rand(n) {
   return n * Math.random();
 }
@@ -179,37 +134,50 @@ function randRange(n) {
 function randBetween(min, max) {
   return min + Math.random() * (max - min);
 }
-function fadeInOut(t, m) {
-  const hm = 0.5 * m;
-  return Math.abs(((t + hm) % m) - hm) / hm;
-}
-function lerp(n1, n2, speed) {
-  return (1 - speed) * n1 + speed * n2;
+function lerp(a, b, t) {
+  return (1 - t) * a + t * b;
 }
 function clamp01(v) {
   return Math.max(0, Math.min(1, v));
 }
+function fadeInOut(t, m) {
+  const hm = 0.5 * m;
+  return Math.abs(((t + hm) % m) - hm) / hm;
+}
+
+function isMobileLike() {
+  return (
+    window.matchMedia?.('(pointer: coarse)')?.matches ||
+    (viewportWidth || window.innerWidth) <= 900
+  );
+}
+function mobileFactor() {
+  // 0 mobile-ish -> 1 desktop-ish
+  const w = viewportWidth || window.innerWidth || 1200;
+  return clamp01((w - 420) / (1200 - 420));
+}
+
 function getTheme() {
   const name = activeTheme.value;
-
   if (name === 'custom') {
     return { hueBase: props.baseHue, hueRange: 100, sat: 100, lightNear: 72, lightFar: 58 };
   }
-
   return STAR_THEMES[name] || STAR_THEMES.cosmicPurple;
 }
+
 function getWarpProgress() {
   if (!props.introWarpEnabled) return 1;
   const d = Math.max(0.001, props.introWarpDuration);
-  return clamp01(elapsedSeconds / d); // 0..1
+  return clamp01(elapsedSeconds / d);
 }
+
+/* ----------------------------- Theme cycling ------------------------------ */
+
 function pickNextTheme(current) {
   if (props.themeCycleMode === 'random') {
     const pool = THEME_ORDER.filter((t) => t !== current);
     return pool[Math.floor(Math.random() * pool.length)] || current;
   }
-
-  // sequential
   const idx = THEME_ORDER.indexOf(current);
   if (idx === -1) return THEME_ORDER[0];
   return THEME_ORDER[(idx + 1) % THEME_ORDER.length];
@@ -218,7 +186,6 @@ function pickNextTheme(current) {
 function startThemeCycle() {
   stopThemeCycle();
   if (!props.themeCycleEnabled) return;
-
   const ms = Math.max(1, props.themeCycleSeconds) * 1000;
   themeIntervalId = window.setInterval(() => {
     activeTheme.value = pickNextTheme(activeTheme.value);
@@ -231,26 +198,27 @@ function stopThemeCycle() {
     themeIntervalId = null;
   }
 }
-// Parallax pointer handlers
+
+/* -------------------------------- Input ---------------------------------- */
+
 function handlePointerMove(e) {
   const w = viewportWidth || window.innerWidth || 1;
   const h = viewportHeight || window.innerHeight || 1;
-  const x = e.clientX ?? 0;
-  const y = e.clientY ?? 0;
-  pointerNormX = ((x / w) - 0.5) * 2;
-  pointerNormY = ((y / h) - 0.5) * 2;
+  pointerNormX = ((e.clientX ?? 0) / w - 0.5) * 2;
+  pointerNormY = ((e.clientY ?? 0) / h - 0.5) * 2;
 }
 
 function handleTouchMove(e) {
-  if (!e.touches || !e.touches.length) return;
+  if (!e.touches?.length) return;
   const t = e.touches[0];
   const w = viewportWidth || window.innerWidth || 1;
   const h = viewportHeight || window.innerHeight || 1;
-  pointerNormX = ((t.clientX / w) - 0.5) * 2;
-  pointerNormY = ((t.clientY / h) - 0.5) * 2;
+  pointerNormX = (t.clientX / w - 0.5) * 2;
+  pointerNormY = (t.clientY / h - 0.5) * 2;
 }
 
-// ---- particles ----
+/* ------------------------------- Particles -------------------------------- */
+
 function computeParticleCount() {
   const baseArea = 1280 * 720;
   const w = viewportWidth || window.innerWidth || 0;
@@ -286,18 +254,32 @@ function initParticle(i) {
   const warpT = getWarpProgress();
   const isWarping = warpT < 1;
 
-  // During warp intro, spawn around center and expand outward.
   if (isWarping) {
     const spread = lerp(Math.min(w, h) * 0.04, Math.min(w, h) * 0.22, warpT);
     particleCache.x = center.value[0] + randRange(spread);
     particleCache.y = center.value[1] + randRange(spread);
   } else {
-    // regular spawn
     particleCache.x = rand(w);
 
-    const biasCenterChance = 0.63;
-    if (Math.random() < biasCenterChance) {
-      let y = center.value[1] + randRange(props.rangeY);
+    // Mobile-aware multi-band bias (less uniform)
+    const isMobile = isMobileLike();
+    const mf = mobileFactor();
+
+    const centerChance = lerp(0.42, 0.63, mf);
+    const bandChance = isMobile ? 0.38 : 0.22;
+    const r = Math.random();
+
+    if (r < centerChance) {
+      const mobileRangeY = props.rangeY * lerp(1.5, 1.0, mf);
+      let y = center.value[1] + randRange(mobileRangeY);
+      if (y < 0) y = 0;
+      if (y > h) y = h;
+      particleCache.y = y;
+    } else if (r < centerChance + bandChance) {
+      const bands = [0.22, 0.38, 0.56, 0.74];
+      const b = bands[Math.floor(Math.random() * bands.length)];
+      const spread = h * (isMobile ? 0.08 : 0.06);
+      let y = h * b + randRange(spread);
       if (y < 0) y = 0;
       if (y > h) y = h;
       particleCache.y = y;
@@ -318,7 +300,6 @@ function initParticle(i) {
   const depthSizeMul = 0.1 + (1 - depth) * 1.7;
   particleCache.radius = baseRadius * depthSizeMul;
 
-  // theme hue
   particleCache.hue = theme.hueBase + rand(theme.hueRange);
   particleCache.depth = depth;
 
@@ -343,21 +324,21 @@ function updateParticle(i, dt, timeSeconds, parallaxOffsetX, parallaxOffsetY) {
   if (!particleProps.value || !canvasRef.value || !glowCtx.value) return;
 
   const canvas = canvasRef.value;
-  const propsArr = particleProps.value;
+  const arr = particleProps.value;
   const w = viewportWidth || canvas.width;
   const h = viewportHeight || canvas.height;
   const theme = getTheme();
 
-  particleCache.x = propsArr[i];
-  particleCache.y = propsArr[i + 1];
-  particleCache.vx = propsArr[i + 2];
-  particleCache.vy = propsArr[i + 3];
-  particleCache.life = propsArr[i + 4];
-  particleCache.ttl = propsArr[i + 5];
-  particleCache.speed = propsArr[i + 6];
-  particleCache.radius = propsArr[i + 7];
-  particleCache.hue = propsArr[i + 8];
-  particleCache.depth = propsArr[i + 9];
+  particleCache.x = arr[i];
+  particleCache.y = arr[i + 1];
+  particleCache.vx = arr[i + 2];
+  particleCache.vy = arr[i + 3];
+  particleCache.life = arr[i + 4];
+  particleCache.ttl = arr[i + 5];
+  particleCache.speed = arr[i + 6];
+  particleCache.radius = arr[i + 7];
+  particleCache.hue = arr[i + 8];
+  particleCache.depth = arr[i + 9];
 
   const n =
     noise3D(
@@ -368,12 +349,22 @@ function updateParticle(i, dt, timeSeconds, parallaxOffsetX, parallaxOffsetY) {
     NOISE_STEPS *
     TAU;
 
-  let nextVx = lerp(particleCache.vx, Math.cos(n), 0.5);
-  let nextVy = lerp(particleCache.vy, Math.sin(n), 0.5);
+  const mf = mobileFactor();
+  const isMobile = isMobileLike();
 
-  // Intro warp: radial push outward that decays over intro duration
-  const warpT = getWarpProgress(); // 0..1
-  const warpStrength = 1 - warpT; // 1..0
+  const steerLerp = lerp(0.34, 0.5, mf);
+  let nextVx = lerp(particleCache.vx, Math.cos(n), steerLerp);
+  let nextVy = lerp(particleCache.vy, Math.sin(n), steerLerp);
+
+  // Slight rightward drift on mobile to reduce isotropic feel
+  if (isMobile) {
+    const drift = 0.08 + (1 - particleCache.depth) * 0.07;
+    nextVx += drift;
+  }
+
+  // Intro warp
+  const warpT = getWarpProgress();
+  const warpStrength = 1 - warpT;
   if (warpStrength > 0.001) {
     const dx = particleCache.x - center.value[0];
     const dy = particleCache.y - center.value[1];
@@ -383,16 +374,14 @@ function updateParticle(i, dt, timeSeconds, parallaxOffsetX, parallaxOffsetY) {
 
     const depthBoost = 0.55 + (1 - particleCache.depth) * 1.2;
     const boost = 2.8 * warpStrength * depthBoost;
-
     nextVx += ux * boost;
     nextVy += uy * boost;
   }
 
-  const speedFactor = dt * 60;
+  const speedFactor = dt * 60 * lerp(0.86, 1.0, mf);
   const nextX = particleCache.x + nextVx * particleCache.speed * speedFactor;
   const nextY = particleCache.y + nextVy * particleCache.speed * speedFactor;
 
-  // parallax: near moves more, far moves less
   const depth = particleCache.depth;
   const parallaxDepthFactor = 1 - depth * 0.7;
   const px = parallaxOffsetX * parallaxDepthFactor;
@@ -403,7 +392,7 @@ function updateParticle(i, dt, timeSeconds, parallaxOffsetX, parallaxOffsetY) {
   const drawX2 = nextX + px;
   const drawY2 = nextY + py;
 
-  // depth-of-field look: far stars slightly wider + dimmer
+  // DOF look
   const dof = Math.max(0, props.dofStrength);
   const farBlur = 1 + dof * depth * 0.95;
   const lineWidth = particleCache.radius * farBlur;
@@ -422,11 +411,11 @@ function updateParticle(i, dt, timeSeconds, parallaxOffsetX, parallaxOffsetY) {
   glowCtx.value.stroke();
 
   const nextLife = particleCache.life + dt * 60;
-  propsArr[i] = nextX;
-  propsArr[i + 1] = nextY;
-  propsArr[i + 2] = nextVx;
-  propsArr[i + 3] = nextVy;
-  propsArr[i + 4] = nextLife;
+  arr[i] = nextX;
+  arr[i + 1] = nextY;
+  arr[i + 2] = nextVx;
+  arr[i + 3] = nextVy;
+  arr[i + 4] = nextLife;
 
   if (
     nextX > w ||
@@ -439,7 +428,8 @@ function updateParticle(i, dt, timeSeconds, parallaxOffsetX, parallaxOffsetY) {
   }
 }
 
-// ---- constellation helpers ----
+/* ----------------------------- Constellations ----------------------------- */
+
 function scheduleNextConstellation() {
   nextConstellationTime = elapsedSeconds + randBetween(CONST_MIN_INTERVAL, CONST_MAX_INTERVAL);
 }
@@ -497,6 +487,7 @@ function trySpawnConstellation(parallaxOffsetX, parallaxOffsetY) {
     const dx = pos.x - basePos.x;
     const dy = pos.y - basePos.y;
     const dist = Math.sqrt(dx * dx + dy * dy);
+
     if (dist <= maxDist) {
       indices.push(idx);
       used.add(idx);
@@ -547,10 +538,8 @@ function updateAndDrawConstellations(glowContext, dt, parallaxOffsetX, parallaxO
     let maxY = -Infinity;
 
     for (let i = 0; i < idxList.length; i++) {
-      const idx = idxList[i];
-      const p = getParticleScreenPos(idx, parallaxOffsetX, parallaxOffsetY);
+      const p = getParticleScreenPos(idxList[i], parallaxOffsetX, parallaxOffsetY);
       positions.push(p);
-
       if (p.x < minX) minX = p.x;
       if (p.x > maxX) maxX = p.x;
       if (p.y < minY) minY = p.y;
@@ -586,7 +575,8 @@ function updateAndDrawConstellations(glowContext, dt, parallaxOffsetX, parallaxO
   }
 }
 
-// ---- main draw ----
+/* -------------------------------- Render ---------------------------------- */
+
 function draw(now) {
   if (!canvasRef.value || !ctx.value || !glowCtx.value || !particleProps.value) {
     animationFrame.value = requestAnimationFrame(draw);
@@ -598,6 +588,7 @@ function draw(now) {
   lastTime = now;
   elapsedSeconds += dt;
 
+  // Parallax follow
   const easing = props.parallaxEasing;
   parallaxX += (pointerNormX - parallaxX) * easing;
   parallaxY += (pointerNormY - parallaxY) * easing;
@@ -610,7 +601,10 @@ function draw(now) {
   const w = viewportWidth || canvas.width;
   const h = viewportHeight || canvas.height;
 
-  const parallaxScale = props.parallaxIntensity;
+  const parallaxScale = isMobileLike()
+    ? props.parallaxIntensity * 0.55
+    : props.parallaxIntensity;
+
   const parallaxOffsetX = parallaxX * w * parallaxScale;
   const parallaxOffsetY = parallaxY * h * parallaxScale;
 
@@ -628,18 +622,7 @@ function draw(now) {
   }
 
   updateAndDrawConstellations(glowContext, dt, parallaxOffsetX, parallaxOffsetY);
-  watch(
-  () => props.theme,
-  (next) => {
-    activeTheme.value = next;
-  },
-);
-watch(
-  () => [props.themeCycleEnabled, props.themeCycleSeconds, props.themeCycleMode],
-  () => {
-    startThemeCycle();
-  },
-);
+
   // Base pass
   context.save();
   context.globalCompositeOperation = 'source-over';
@@ -694,8 +677,7 @@ watch(
   animationFrame.value = requestAnimationFrame(draw);
 }
 
-// ---- resize & lifecycle ----
-let resizeTimeout = null;
+/* ------------------------------ Resize/setup ------------------------------ */
 
 function handleResize() {
   if (resizeTimeout !== null) window.clearTimeout(resizeTimeout);
@@ -722,6 +704,26 @@ function handleResize() {
     rebuildParticles();
   }, 150);
 }
+
+/* -------------------------------- Watches --------------------------------- */
+
+// Keep internal active theme in sync with prop
+watch(
+  () => props.theme,
+  (next) => {
+    activeTheme.value = next;
+  },
+);
+
+// Restart cycle if cycle settings change
+watch(
+  () => [props.themeCycleEnabled, props.themeCycleSeconds, props.themeCycleMode],
+  () => {
+    startThemeCycle();
+  },
+);
+
+/* ------------------------------- Lifecycle -------------------------------- */
 
 onMounted(() => {
   const canvas = canvasRef.value;
@@ -754,16 +756,20 @@ onMounted(() => {
   window.addEventListener('resize', handleResize);
 
   scheduleNextConstellation();
-  animationFrame.value = requestAnimationFrame(draw);
   startThemeCycle();
+
+  animationFrame.value = requestAnimationFrame(draw);
 });
 
 onUnmounted(() => {
   if (animationFrame.value) cancelAnimationFrame(animationFrame.value);
+
   if (resizeTimeout !== null) {
     window.clearTimeout(resizeTimeout);
     resizeTimeout = null;
   }
+
+  stopThemeCycle();
 
   window.removeEventListener('resize', handleResize);
   window.removeEventListener('mousemove', handlePointerMove);
@@ -774,7 +780,6 @@ onUnmounted(() => {
   particleProps.value = null;
   constellations = [];
   nextConstellationTime = 0;
-  stopThemeCycle();
 });
 </script>
 
