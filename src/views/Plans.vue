@@ -141,19 +141,6 @@ const props = defineProps({
   },
 });
 
-function scrollToPlan(id) {
-  if (!id) return;
-  const el = document.querySelector(`[data-plan-id="${id}"]`);
-  if (!el) return;
-
-  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-
-  el.classList.add('plan-highlight');
-  setTimeout(() => {
-    el.classList.remove('plan-highlight');
-  }, 1500);
-}
-
 watch(
   () => props.focusPlanId,
   (id) => {
@@ -245,8 +232,22 @@ watch(
   },
   { immediate: true }
 );
+const centerPlanInViewport = (planId) => {
+  if (!planId) return;
+  nextTick(() => {
+    requestAnimationFrame(() => {
+      const el = document.querySelector(`[data-plan-id="${planId}"]`);
+      if (!el) return;
 
-
+      const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      el.scrollIntoView({
+        behavior: prefersReducedMotion ? 'auto' : 'smooth',
+        block: 'center',
+        inline: 'nearest',
+      });
+    });
+  });
+};
 const getScaleForDesktop = (plan) => {
   if (!plan.rect) return 1;
   const centerX = plan.rect.left + plan.rect.width / 2;
@@ -281,7 +282,13 @@ const updatePlanRects = () => {
 };
 
 const toggleExpand = (planId) => {
-  expandedPlanId.value = expandedPlanId.value === planId ? null : planId;
+  const shouldExpand = expandedPlanId.value !== planId;
+  expandedPlanId.value = shouldExpand ? planId : null;
+
+  if (shouldExpand) {
+    centerPlanInViewport(planId);
+    setTimeout(updatePlanRects, 250);
+  }
 };
 
 const setHovered = (planId) => {
