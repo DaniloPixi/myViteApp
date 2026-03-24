@@ -624,7 +624,7 @@ watch(
 }
 
 .plan-title {
-  font-family: 'Innocent',cursive;
+  font-family: 'Exo 2', sans-serif;
   font-size: clamp(1rem, 1.45vw, 1.35rem);
   line-height: 1.1;
   margin: 0;
@@ -651,7 +651,7 @@ watch(
 .expanded-content h3 {
   margin: 0 0 1rem;
   color: var(--bubble-text-color, turquoise);
-  font-family: 'Innocent',cursive;
+  font-family: 'Exo 2', sans-serif;
   font-size: 2.5em;
   font-weight: normal;
   max-width: 100%;
@@ -704,7 +704,7 @@ watch(
 }
 
 .add-plan-button__title {
-  font-family: 'Innocent', cursive;
+  font-family: 'Exo 2', sans-serif;
   font-size: clamp(1rem, 2.2vw, 1.35rem);
   font-weight: 600;
   line-height: 1.1;

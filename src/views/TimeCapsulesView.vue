@@ -672,7 +672,7 @@ watch(
   -webkit-backdrop-filter: blur(14px);
   color: turquoise;
   text-align: center;
-  font-family: 'Innocent', cursive;
+  font-family: 'Exo 2', sans-serif;
   font-size: clamp(1rem, 2.2vw, 1.35rem);
   font-weight: 600;
   line-height: 1.1;
