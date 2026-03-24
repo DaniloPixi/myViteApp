@@ -5,13 +5,11 @@
 @font-face {
   font-family: 'Innocent';
   src:
-    url('/fonts/Innocent-Regular.woff2') format('woff2'),
-    url('/fonts/Innocent-Regular.woff') format('woff');
+    local('Innocent',cursive);
   font-weight: 400;
   font-style: normal;
   font-display: swap;
 }
-
 /* --- Base Styles & Theme --- */
 :root {
   font-family: 'Innocent',cursive;
