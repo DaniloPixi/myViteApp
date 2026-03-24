@@ -46,7 +46,7 @@ function showBlockingUpdateModal(delayMs) {
       'radial-gradient(circle at 20% 20%, rgba(0,255,255,0.18), transparent 55%), radial-gradient(circle at 80% 80%, rgba(255,0,255,0.18), transparent 55%), rgba(10,10,16,0.9)',
     boxShadow: '0 0 24px rgba(255,0,255,0.35), 0 0 24px rgba(0,255,255,0.25)',
     color: '#fff',
-    fontFamily: 'Montserrat, sans-serif',
+    fontFamily: 'Innocent, cursive',
   });
 
   const title = overlay.querySelector('.pwa-update-title');

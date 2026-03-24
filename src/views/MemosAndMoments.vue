@@ -745,7 +745,7 @@ onUnmounted(() => {
   line-height: 1.6;
   color: magenta;
   margin-bottom: 0.15rem;
-  font-family: "Innocent";
+  font-family: "Innocent", cursive;
 
   /* ✅ UPDATED: more readable on bright/busy images */
   text-shadow:
