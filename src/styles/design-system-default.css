@@ -1,7 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Great+Vibes:wght@400;500;600;700&display=swap');
 
 :root {
-  --ds-font-body: 'Innocent', cursive;
+  --ds-font-body: 'Innocent';
   --ds-font-display: 'Great Vibes', cursive;
 
   --ds-text-xs: 0.75rem;
