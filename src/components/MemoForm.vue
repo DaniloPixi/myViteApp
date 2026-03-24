@@ -327,7 +327,6 @@ const submitForm = async () => {
 
 <style scoped>
 /* Styles remain unchanged, but I'm including them for completeness */
-@import url('https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap');
 
 .modal-content {
   position: relative;

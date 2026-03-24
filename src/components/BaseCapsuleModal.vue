@@ -73,8 +73,6 @@ function onClose() {
 </script>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap');
-
 /* Overlay */
 /*
   Shell = actual panel.

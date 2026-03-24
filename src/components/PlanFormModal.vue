@@ -161,7 +161,6 @@ const submitForm = () => {
 </script>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap');
 
 .modal-content {
   position: relative;

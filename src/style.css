@@ -1,9 +1,12 @@
+/* Load both fonts once, globally */
 @import url('https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap');
 
-/* Optional: load local Innocent font file */
+/* Self-hosted Innocent with fallback formats */
 @font-face {
   font-family: 'Innocent';
-  src: url('/fonts/Innocent.woff2') format('woff2');
+  src:
+    url('/fonts/Innocent-Regular.woff2') format('woff2'),
+    url('/fonts/Innocent-Regular.woff') format('woff');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
