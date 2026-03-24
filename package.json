@@ -19,6 +19,7 @@
     "firebase": "^12.3.0",
     "firebase-admin": "^13.5.0",
     "firebase-tools": "^14.15.1",
+    "leaflet": "^1.9.4",
     "lucide-vue-next": "^0.544.0",
     "netlify-cli": "^23.12.2",
     "p5": "^2.1.1",

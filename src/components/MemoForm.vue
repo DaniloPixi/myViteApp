@@ -1,145 +1,138 @@
-
 <template>
+  <div class="modal-overlay ds-modal-overlay" @click.self="$emit('close')">
+    <div class="modal-content ds-modal-surface">
+      <h3 class="modal-title ds-modal-title">
+        {{ isEditing ? 'Edit Memo' : 'Create New Memo' }}
+      </h3>
+      <div class="ds-divider-glow modal-title-divider"></div>
 
-<div class="modal-overlay ds-modal-overlay" @click.self="$emit('close')">
-  <div class="modal-content ds-modal-surface">
-    <h3 class="modal-title ds-modal-title">
-  {{ isEditing ? 'Edit Memo' : 'Create New Memo' }}
-</h3>
-<div class="ds-divider-glow modal-title-divider"></div>
-
-    <form @submit.prevent="submitForm" class="plan-form">
-      <!-- Description -->
-      <div class="form-group">
-        <label class="ds-label" for="description">Description</label>
-        <textarea
-  id="description"
-  v-model="formData.description"
-  class="ds-textarea description-input"
-  required
-></textarea>
-      </div>
-
-      <!-- Location & Date -->
-      <div class="form-row">
+      <form @submit.prevent="submitForm" class="plan-form">
         <div class="form-group">
-          <label class="ds-label" for="location">Location</label>
-          <input
-  id="location"
-  v-model="formData.location"
-  class="ds-input"
-  type="text"
-/>
+          <label class="ds-label" for="description">Description</label>
+          <textarea
+            id="description"
+            v-model="formData.description"
+            class="ds-textarea description-input"
+            required
+          ></textarea>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <LocationAutocomplete
+              input-id="memo-location"
+              label="Location"
+              v-model="formData.location"
+              v-model:coords="selectedLocationCoords"
+            />
+          </div>
+
+          <div class="form-group">
+            <label class="ds-label" for="date">Date</label>
+            <input
+              id="date"
+              v-model="formData.date"
+              class="ds-input"
+              type="date"
+              required
+            />
+          </div>
         </div>
 
         <div class="form-group">
-          <label class="ds-label" for="date">Date</label>
+          <div class="ds-inline-cluster-tight">
+            <button
+              v-for="tag in availableHashtags"
+              :key="tag"
+              class="ds-chip"
+              :class="{ 'is-selected': formData.hashtags.includes(tag) }"
+              @click.prevent="toggleHashtag(tag)"
+            >
+              #{{ tag }}
+            </button>
+          </div>
+        </div>
+
+        <div class="form-group">
           <input
-  id="date"
-  v-model="formData.date"
-  class="ds-input"
-  type="date"
-  required
-/>
-        </div>
-      </div>
-
-      <!-- Hashtags -->
-      <div class="form-group">
-        <div class="ds-inline-cluster-tight">
-  <button
-    v-for="tag in availableHashtags"
-    :key="tag"
-    class="ds-chip"
-    :class="{ 'is-selected': formData.hashtags.includes(tag) }"
-    @click.prevent="toggleHashtag(tag)"
-  >
-    #{{ tag }}
-  </button>
-</div>
-      </div>
-
-      <!-- Media Uploader -->
-      <div class="form-group">
-        <input
-          id="file-upload"
-          type="file"
-          @change="handleFileChange"
-          multiple
-          accept="image/*,video/*"
-          :disabled="isUploading"
-          class="file-input-hidden"
-        />
-        <label
-          for="file-upload"
-          class="file-upload-label"
-          :class="{ disabled: isUploading }"
-        >
-          + Add Media
-        </label>
-        <div v-if="isUploading" class="upload-status">
-          Uploading... {{ uploadProgress }}%
-        </div>
-      </div>
-
-      <!-- Media Previews -->
-      <div v-if="mediaPreviews.length > 0" class="media-previews">
-        <div v-for="(preview, index) in mediaPreviews" :key="index" class="preview-item">
-          <img
-            v-if="preview.resource_type === 'image'"
-            :src="preview.url"
-            :class="{ 'adult-preview-blur': preview.isAdult }"
+            id="file-upload"
+            type="file"
+            @change="handleFileChange"
+            multiple
+            accept="image/*,video/*"
+            :disabled="isUploading"
+            class="file-input-hidden"
           />
-          <video
-            v-else-if="preview.resource_type === 'video'"
-            :src="preview.url"
-            muted
-            loop
-            playsinline
-            class="video-preview"
-          ></video>
-          <button @click.prevent="removeMedia(index)" class="remove-media-btn">X</button>
-          <button
-            @click.prevent="toggleAdultFlag(index)"
-            class="adult-flag"
-            :class="{ 'adult-flag-selected': preview.isAdult }"
+          <label
+            for="file-upload"
+            class="file-upload-label"
+            :class="{ disabled: isUploading }"
           >
-            18+
+            + Add Media
+          </label>
+          <div v-if="isUploading" class="upload-status">
+            Uploading... {{ uploadProgress }}%
+          </div>
+        </div>
+
+        <div v-if="mediaPreviews.length > 0" class="media-previews">
+          <div v-for="(preview, index) in mediaPreviews" :key="index" class="preview-item">
+            <img
+              v-if="preview.resource_type === 'image'"
+              :src="preview.url"
+              :class="{ 'adult-preview-blur': preview.isAdult }"
+            />
+            <video
+              v-else-if="preview.resource_type === 'video'"
+              :src="preview.url"
+              muted
+              loop
+              playsinline
+              class="video-preview"
+            ></video>
+            <button @click.prevent="removeMedia(index)" class="remove-media-btn">X</button>
+            <button
+              @click.prevent="toggleAdultFlag(index)"
+              class="adult-flag"
+              :class="{ 'adult-flag-selected': preview.isAdult }"
+            >
+              18+
+            </button>
+          </div>
+        </div>
+
+        <div v-if="error" class="error-message ds-alert ds-alert--danger ds-alert--compact">
+          {{ error }}
+        </div>
+
+        <div class="modal-actions ds-modal-actions">
+          <button
+            type="submit"
+            class="ds-modal-action-btn ds-modal-action-btn--confirm"
+            :disabled="isUploading || isSubmitting"
+          >
+            {{ isSubmitting ? 'Saving...' : 'Save Memo' }}
+          </button>
+
+          <button
+            type="button"
+            class="ds-modal-action-btn ds-modal-action-btn--cancel"
+            @click="$emit('close')"
+          >
+            Cancel
           </button>
         </div>
-      </div>
-
-      <!-- Error Display -->
-      <div v-if="error" class="error-message ds-alert ds-alert--danger ds-alert--compact">
-  {{ error }}
-</div>
-
-      <!-- Action Buttons -->
-      <div class="modal-actions ds-modal-actions">
-  <button
-    type="submit"
-    class="ds-modal-action-btn ds-modal-action-btn--confirm"
-    :disabled="isUploading || isSubmitting"
-  >
-    {{ isSubmitting ? 'Saving...' : 'Save Memo' }}
-  </button>
-
-  <button
-    type="button"
-    class="ds-modal-action-btn ds-modal-action-btn--cancel"
-    @click="$emit('close')"
-  >
-    Cancel
-  </button>
-</div>
-    </form>
+      </form>
+    </div>
   </div>
-</div>
 </template>
 
 <script setup>
 import { ref, computed, watch } from 'vue';
 import { auth } from '../firebase';
+import LocationAutocomplete from './LocationAutocomplete.vue';
+import { geocodeLocationLabel, sanitizeLocationLabel } from '../composables/useLocationGeocoding';
+
 const props = defineProps({
   memo: { type: Object, default: null },
   cloudinaryCloudName: { type: String, required: true },
@@ -151,6 +144,7 @@ const emit = defineEmits(['close', 'memo-saved']);
 const availableHashtags = ref(['date', 'party', 'food', '18+', 'travel', 'weekend', 'chill', 'friends', 'love', 'random']);
 const isEditing = computed(() => !!props.memo);
 const formData = ref({ hashtags: [] });
+const selectedLocationCoords = ref(null);
 const mediaPreviews = ref([]);
 const isUploading = ref(false);
 const isSubmitting = ref(false);
@@ -160,19 +154,21 @@ const error = ref(null);
 watch(() => props.memo, (newMemo) => {
   if (newMemo) {
     formData.value = { ...newMemo };
+    selectedLocationCoords.value = newMemo.locationCoords || null;
     formData.value.hashtags = (newMemo.hashtags || []).map(t => t.startsWith('#') ? t.substring(1) : t);
-    
+
     if (newMemo.photos && Array.isArray(newMemo.photos)) {
-      mediaPreviews.value = newMemo.photos.map(media => ({ 
-        ...media, 
-        resource_type: media.resource_type || 'image', // Default to image for old data
-        source: 'existing' 
+      mediaPreviews.value = newMemo.photos.map(media => ({
+        ...media,
+        resource_type: media.resource_type || 'image',
+        source: 'existing'
       }));
     } else {
       mediaPreviews.value = [];
     }
   } else {
     formData.value = { description: '', location: '', date: new Date().toISOString().split('T')[0], hashtags: [] };
+    selectedLocationCoords.value = null;
     mediaPreviews.value = [];
   }
 }, { immediate: true });
@@ -243,8 +239,8 @@ const uploadFiles = async () => {
       });
       const data = await response.json();
       if (data.secure_url) {
-        uploadedMedia.push({ 
-          url: data.secure_url, 
+        uploadedMedia.push({
+          url: data.secure_url,
           isAdult: preview.isAdult,
           resource_type: data.resource_type
         });
@@ -278,18 +274,17 @@ const submitForm = async () => {
     .map(({url, isAdult, resource_type}) => ({url, isAdult, resource_type}));
 
   const finalMedia = [...existingMedia, ...newMedia];
-
   const memoHashtags = new Set(formData.value.hashtags);
   const hasAdultContent = finalMedia.some(p => p.isAdult);
 
-  if (hasAdultContent) {
-    memoHashtags.add('18+');
-  }
+  if (hasAdultContent) memoHashtags.add('18+');
 
   const payload = {
     ...formData.value,
+    location: sanitizeLocationLabel(formData.value.location),
+    locationCoords: selectedLocationCoords.value || await geocodeLocationLabel(formData.value.location),
     hashtags: Array.from(memoHashtags).map(tag => `#${tag}`),
-    photos: finalMedia, // API expects a 'photos' field
+    photos: finalMedia,
   };
 
   try {
@@ -315,9 +310,8 @@ const submitForm = async () => {
 
     emit('memo-saved');
     emit('close');
-
   } catch (err) {
-    console.error("Form submission error:", err);
+    console.error('Form submission error:', err);
     error.value = err.message;
   } finally {
     isSubmitting.value = false;
@@ -326,8 +320,6 @@ const submitForm = async () => {
 </script>
 
 <style scoped>
-/* Styles remain unchanged, but I'm including them for completeness */
-
 .modal-content {
   position: relative;
   overflow-x: hidden;
@@ -355,6 +347,7 @@ const submitForm = async () => {
     margin-bottom: var(--ds-space-4);
   }
 }
+
 .plan-form {
   display: flex;
   flex-direction: column;

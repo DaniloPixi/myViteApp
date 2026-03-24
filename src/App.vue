@@ -99,6 +99,13 @@
               >
               Capsules
               </a>
+              <a
+                @click="currentView = 'map'"
+                :class="{ active: currentView === 'map' }"
+                :style="getNavStyle('map', 4)"
+              >
+              Map
+              </a>
             </nav>
 
             <!-- Conditional Views -->
@@ -137,6 +144,7 @@
                   :lock-status-filter="lockStatusFilter"
                   :focus-capsule-id="focusCapsuleId"
                 />
+                <MapSpotsView v-if="currentView === 'map'" />
               </div>
             </transition>
           </div>
@@ -169,6 +177,7 @@ import Sidebar from './components/Sidebar.vue';
 import ScrollToTopButton from './components/ScrollToTopButton.vue';
 import InAppNotification from './components/InAppNotification.vue';
 import NotificationStack from './components/NotificationStack.vue';
+import MapSpotsView from './views/MapSpotsView.vue';
 import CursorTrail from './components/CursorTrail.vue';
 import P5StarfieldBackground from './components/P5StarfieldBackground.vue';
 import DailyQuestWidget from './components/DailyQuestWidget.vue';

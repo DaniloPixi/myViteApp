@@ -198,7 +198,7 @@
 
 .tc-read-message {
   margin: 0;
-  font-family: var(--ds-font-display);
+  font-family: var(--ds-font-body);
   font-size: clamp(1.15rem, 1rem + 0.6vw, 1.35rem);
   line-height: 1.55;
   font-weight: 600;

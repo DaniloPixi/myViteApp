@@ -35,7 +35,7 @@ export default function (db, sendPushNotification) {
 
   router.post('/', async (req, res) => {
     try {
-      const { text, date, time, location, hashtags } = req.body;
+      const { text, date, time, location,locationCoords, hashtags } = req.body;
       const { uid, name, email } = req.user;
       const createdBy = name || email || 'Someone';
 
@@ -44,6 +44,7 @@ export default function (db, sendPushNotification) {
         date,
         time,
         location,
+        locationCoords: locationCoords || null,
         hashtags,
         createdBy,
         creatorUid: uid,
@@ -151,13 +152,14 @@ export default function (db, sendPushNotification) {
     try {
       const { planId } = req.params;
       const { uid } = req.user;
-      const { text, date, time, location, hashtags } = req.body;
+      const { text, date, time, location,locationCoords, hashtags } = req.body;
 
       const updateData = {
         text,
         date,
         time,
         location,
+        locationCoords: locationCoords || null,
         hashtags,
       };
 

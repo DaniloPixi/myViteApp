@@ -2,34 +2,34 @@
   <div class="modal-overlay ds-modal-overlay" @click.self="$emit('close')">
     <div class="modal-content ds-modal-surface">
       <h3 class="modal-title ds-modal-title">{{ formTitle }}</h3>
-<div class="ds-divider-glow modal-title-divider"></div>
+      <div class="ds-divider-glow modal-title-divider"></div>
+
       <form @submit.prevent="submitForm" class="plan-form">
-        <!-- Text, Date, Location fields remain the same -->
         <div class="form-group">
           <label class="ds-label" for="plan-text">What's the plan?</label>
           <input
-  type="text"
-  id="plan-text"
-  v-model="formData.text"
-  class="ds-input"
-  required
->
+            type="text"
+            id="plan-text"
+            v-model="formData.text"
+            class="ds-input"
+            required
+          />
         </div>
+
         <div class="form-group">
           <label class="ds-label" for="plan-date">Date</label>
           <input
-  type="date"
-  id="plan-date"
-  v-model="formData.date"
-  class="ds-input"
-  :min="today"
-  required
->
+            type="date"
+            id="plan-date"
+            v-model="formData.date"
+            class="ds-input"
+            :min="today"
+            required
+          />
         </div>
 
-        <!-- UPDATED Time and Duration Group -->
         <div class="form-group">
-          <label class="ds-label" >Time & Duration</label>
+          <label class="ds-label">Time & Duration</label>
           <div class="time-duration-group">
             <StyledTimeInput v-model="specificTime" />
             <div class="duration-buttons">
@@ -41,49 +41,50 @@
         </div>
 
         <div class="form-group">
-          <label class="ds-label" for="plan-location">Location</label>
-          <input
-  type="text"
-  id="plan-location"
-  v-model="formData.location"
-  class="ds-input"
-  required
->
+          <LocationAutocomplete
+            input-id="plan-location"
+            label="Location"
+            v-model="formData.location"
+            v-model:coords="selectedLocationCoords"
+          />
         </div>
+
         <div class="form-group">
           <label class="ds-label">Hashtags</label>
           <div class="ds-inline-cluster-tight">
-  <button
-    v-for="tag in availableHashtags"
-    :key="tag"
-    class="ds-chip"
-    :class="{ 'is-selected': formData.hashtags.includes(tag) }"
-    @click.prevent="toggleHashtag(tag)"
-  >
-    #{{ tag }}
-  </button>
-</div>
+            <button
+              v-for="tag in availableHashtags"
+              :key="tag"
+              class="ds-chip"
+              :class="{ 'is-selected': formData.hashtags.includes(tag) }"
+              @click.prevent="toggleHashtag(tag)"
+            >
+              #{{ tag }}
+            </button>
+          </div>
         </div>
-        <div class="modal-actions ds-modal-actions">
-  <button
-    type="submit"
-    class="ds-modal-action-btn ds-modal-action-btn--confirm"
-    :disabled="isSubmitting"
-  >
-    {{ isSubmitting ? 'Saving...' : 'Save' }}
-  </button>
 
-  <button
-    type="button"
-    @click="$emit('close')"
-    class="ds-modal-action-btn ds-modal-action-btn--cancel"
-  >
-    Cancel
-  </button>
-</div>
-<p v-if="submitError" class="error-message ds-alert ds-alert--danger ds-alert--compact">
-  {{ submitError }}
-</p>
+        <div class="modal-actions ds-modal-actions">
+          <button
+            type="submit"
+            class="ds-modal-action-btn ds-modal-action-btn--confirm"
+            :disabled="isSubmitting"
+          >
+            {{ isSubmitting ? 'Saving...' : 'Save' }}
+          </button>
+
+          <button
+            type="button"
+            @click="$emit('close')"
+            class="ds-modal-action-btn ds-modal-action-btn--cancel"
+          >
+            Cancel
+          </button>
+        </div>
+
+        <p v-if="submitError" class="error-message ds-alert ds-alert--danger ds-alert--compact">
+          {{ submitError }}
+        </p>
       </form>
     </div>
   </div>
@@ -92,6 +93,8 @@
 <script setup>
 import { ref, watch, computed } from 'vue';
 import StyledTimeInput from './StyledTimeInput.vue';
+import LocationAutocomplete from './LocationAutocomplete.vue';
+import { geocodeLocationLabel, sanitizeLocationLabel } from '../composables/useLocationGeocoding';
 
 const props = defineProps({ plan: Object, isSubmitting: Boolean, submitError: String });
 const emit = defineEmits(['save', 'close']);
@@ -100,14 +103,13 @@ const today = new Date().toISOString().split('T')[0];
 const availableHashtags = ref(['date', 'party', 'food', '18+', 'travel', 'weekend', 'chill', 'friends', 'love', 'random']);
 const DURATION_OPTIONS = ['All day', 'All night', 'Indetermined'];
 
-// Form state
 const formData = ref({ text: '', date: '', location: '', hashtags: [] });
+const selectedLocationCoords = ref(null);
 const specificTime = ref('');
 const selectedDuration = ref('');
 
 const formTitle = computed(() => props.plan ? 'Edit Plan' : 'Create a New Plan');
 
-// Correctly parse incoming plan data for editing
 const setFormState = (plan) => {
   if (plan) {
     formData.value = {
@@ -116,17 +118,17 @@ const setFormState = (plan) => {
       location: plan.location || '',
       hashtags: plan.hashtags ? plan.hashtags.map(t => t.replace('#', '')) : [],
     };
+    selectedLocationCoords.value = plan.locationCoords || null;
 
     const timeString = plan.time || '';
     const timeRegex = /\d{2}:\d{2}/;
     const timeMatch = timeString.match(timeRegex);
-    
+
     specificTime.value = timeMatch ? timeMatch[0] : '';
     selectedDuration.value = DURATION_OPTIONS.find(d => timeString.includes(d)) || '';
-
   } else {
-    // Reset for creation
     formData.value = { text: '', date: '', location: '', hashtags: [] };
+    selectedLocationCoords.value = null;
     specificTime.value = '';
     selectedDuration.value = '';
   }
@@ -144,24 +146,26 @@ const selectDuration = (duration) => {
   selectedDuration.value = selectedDuration.value === duration ? '' : duration;
 };
 
-// Combine time and duration before saving
-const submitForm = () => {
+const submitForm = async () => {
   const timeParts = [];
   if (specificTime.value) timeParts.push(specificTime.value);
   if (selectedDuration.value) timeParts.push(selectedDuration.value);
 
+  const normalizedLocation = sanitizeLocationLabel(formData.value.location);
+
   const dataToSave = {
     ...formData.value,
+    location: normalizedLocation,
+    locationCoords: selectedLocationCoords.value || await geocodeLocationLabel(normalizedLocation),
     hashtags: formData.value.hashtags.map(tag => `#${tag}`),
-    time: timeParts.join(', '), // Combine into one string
+    time: timeParts.join(', '),
   };
+
   emit('save', dataToSave);
 };
-
 </script>
 
 <style scoped>
-
 .modal-content {
   position: relative;
   overflow-x: hidden;
