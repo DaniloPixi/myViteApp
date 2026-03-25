@@ -57,6 +57,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 const MAP_STYLE_URL = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
 const SPOT_SOURCE_ID = 'spot-source';
 const SPOT_LAYER_ID = 'spot-layer';
+const SPOT_GLOW_LAYER_ID = 'spot-layer-glow';
 
 const mapRoot = ref(null);
 const loading = ref(true);
@@ -149,6 +150,36 @@ const selectedSpot = computed(() => {
   return groupedSpots.value.find((spot) => spot.key === selectedSpotKey.value) || null;
 });
 
+function tuneLabelVisibility(map) {
+  const style = map.getStyle();
+  const labelLayers = (style.layers || []).filter(
+    (layer) =>
+      layer.type === 'symbol' &&
+      typeof layer.id === 'string' &&
+      /(label|place|road|street)/i.test(layer.id),
+  );
+
+  for (const layer of labelLayers) {
+    try {
+      map.setLayerZoomRange(layer.id, 5, 24);
+      map.setLayoutProperty(layer.id, 'text-size', [
+        'interpolate',
+        ['linear'],
+        ['zoom'],
+        5, 11,
+        8, 13,
+        11, 15,
+        14, 18,
+      ]);
+      map.setPaintProperty(layer.id, 'text-color', '#e9f2ff');
+      map.setPaintProperty(layer.id, 'text-halo-color', 'rgba(0,0,0,0.88)');
+      map.setPaintProperty(layer.id, 'text-halo-width', 1.4);
+    } catch (_) {
+      // Some symbol layers may not support all properties.
+    }
+  }
+}
+
 function initMap() {
   if (!mapRoot.value || mapInstance.value) return;
 
@@ -160,40 +191,10 @@ function initMap() {
   });
 
   map.addControl(new maplibregl.NavigationControl(), 'top-right');
+
   map.on('load', () => {
     mapIsLoaded.value = true;
-    const style = map.getStyle();
-const labelLayers = (style.layers || []).filter(
-  (layer) =>
-    layer.type === 'symbol' &&
-    typeof layer.id === 'string' &&
-    /(label|place|road|street)/i.test(layer.id)
-);
-
-for (const layer of labelLayers) {
-  try {
-    // Show labels from lower zooms
-    map.setLayerZoomRange(layer.id, 5, 24);
-
-    // If text exists on this symbol layer, make it larger earlier
-    map.setLayoutProperty(layer.id, 'text-size', [
-      'interpolate',
-      ['linear'],
-      ['zoom'],
-      5, 11,
-      8, 13,
-      11, 15,
-      14, 18
-    ]);
-
-    // Better contrast on dark theme
-    map.setPaintProperty(layer.id, 'text-color', '#e9f2ff');
-    map.setPaintProperty(layer.id, 'text-halo-color', 'rgba(0,0,0,0.88)');
-    map.setPaintProperty(layer.id, 'text-halo-width', 1.4);
-  } catch (_) {
-    // Some symbol layers may not support all properties; safe to ignore
-  }
-}
+    tuneLabelVisibility(map);
     renderMarkers();
   });
 
@@ -227,6 +228,7 @@ function renderMarkers() {
       title: spot.title,
       count: spot.count,
       primaryType: spot.items.plan.length ? 'plan' : 'memo',
+      isSelected: selectedSpotKey.value === spot.key,
     },
   }));
 
@@ -245,13 +247,16 @@ function renderMarkers() {
     });
 
     map.addLayer({
-      id: SPOT_LAYER_ID,
+      id: SPOT_GLOW_LAYER_ID,
       type: 'circle',
       source: SPOT_SOURCE_ID,
       paint: {
-        'circle-radius': 8,
-        'circle-stroke-width': 2,
-        'circle-stroke-color': '#ffffff',
+        'circle-radius': [
+          'case',
+          ['==', ['get', 'isSelected'], true],
+          18,
+          14,
+        ],
         'circle-color': [
           'match',
           ['get', 'primaryType'],
@@ -261,6 +266,43 @@ function renderMarkers() {
           '#3ef06d',
           '#df6eff',
         ],
+        'circle-opacity': [
+          'case',
+          ['==', ['get', 'isSelected'], true],
+          0.42,
+          0.24,
+        ],
+        'circle-blur': 0.9,
+      },
+    });
+
+    map.addLayer({
+      id: SPOT_LAYER_ID,
+      type: 'circle',
+      source: SPOT_SOURCE_ID,
+      paint: {
+        'circle-radius': [
+          'case',
+          ['==', ['get', 'isSelected'], true],
+          11,
+          8,
+        ],
+        'circle-stroke-width': 2,
+        'circle-stroke-color': '#ffffff',
+        'circle-color': [
+          'case',
+          ['==', ['get', 'isSelected'], true],
+          '#ffd166',
+          [
+            'match',
+            ['get', 'primaryType'],
+            'memo',
+            '#20e3ff',
+            'plan',
+            '#3ef06d',
+            '#df6eff',
+          ],
+        ],
       },
     });
 
@@ -269,11 +311,13 @@ function renderMarkers() {
       const key = feature?.properties?.key;
       if (!key) return;
       selectedSpotKey.value = key;
+      renderMarkers();
     });
 
     map.on('mouseenter', SPOT_LAYER_ID, () => {
       map.getCanvas().style.cursor = 'pointer';
     });
+
     map.on('mouseleave', SPOT_LAYER_ID, () => {
       map.getCanvas().style.cursor = '';
     });
@@ -294,6 +338,7 @@ function renderMarkers() {
 
   if (!selectedSpotKey.value) {
     selectedSpotKey.value = groupedSpots.value[0].key;
+    renderMarkers();
   }
 }
 
@@ -365,6 +410,11 @@ watch(groupedSpots, () => {
     return;
   }
   stabilizeMapLayout();
+  renderMarkers();
+});
+
+watch(selectedSpotKey, () => {
+  if (!mapInstance.value || !mapIsLoaded.value) return;
   renderMarkers();
 });
 

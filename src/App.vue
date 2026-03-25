@@ -100,6 +100,7 @@
               Capsules
               </a>
               <!-- Place this near your other fixed controls (inside <template>, where user is available) -->
+<!-- Floating Map button (put near other fixed controls, outside the nav links) -->
 <button
   v-if="user"
   type="button"
@@ -108,10 +109,9 @@
   aria-label="Open map view"
   @click="currentView = 'map'"
 >
- 
 <svg
   class="floating-map-nav-icon"
-  viewBox="0 0 64 64"
+  viewBox="0 0 24 24"
   preserveAspectRatio="xMidYMid meet"
   aria-hidden="true"
 >
@@ -120,35 +120,22 @@
       <stop offset="0%" stop-color="#8ffcff" />
       <stop offset="100%" stop-color="#ff8be4" />
     </linearGradient>
-    <radialGradient id="floatingMapPinCore" cx="48%" cy="34%" r="62%">
-      <stop offset="0%" stop-color="rgba(143,252,255,0.36)" />
-      <stop offset="100%" stop-color="rgba(255,139,228,0.14)" />
-    </radialGradient>
   </defs>
   <path
-    d="M32 8C22 8 14 16 14 26c0 12 11 25 16 30a3.2 3.2 0 0 0 4 0c5-5 16-18 16-30 0-10-8-18-18-18Z"
-    fill="url(#floatingMapPinCore)"
+    d="M12 1.5C7.3 1.5 3.5 5.3 3.5 10c0 6 8.5 13.5 8.5 13.5S20.5 16 20.5 10c0-4.7-3.8-8.5-8.5-8.5Z"
+    fill="rgba(143,252,255,0.12)"
     stroke="url(#floatingMapPinGradient)"
-    stroke-width="2.8"
+    stroke-width="2.5"
     stroke-linecap="round"
     stroke-linejoin="round"
   />
   <circle
-    cx="32"
-    cy="26"
-    r="6.5"
-    fill="rgba(10, 20, 34, 0.38)"
+    cx="12"
+    cy="10"
+    r="4.2"
+    fill="rgba(10, 20, 34, 0.1)"
     stroke="url(#floatingMapPinGradient)"
-    stroke-width="2.6"
-  />
-  <path
-    d="M10 50c7-3.5 14-5.8 22-5.8 8.2 0 15.3 2.3 22 5.8"
-    fill="none"
-    stroke="url(#floatingMapPinGradient)"
-    stroke-opacity="0.88"
     stroke-width="2.1"
-    stroke-linecap="round"
-    stroke-dasharray="2 4"
   />
 </svg>
 </button>
@@ -1277,41 +1264,31 @@ onUnmounted(() => {
     font-size: 1.4rem;
   }
 }
-/* Add to <style scoped> in src/App.vue */
+/* Floating map button */
 .floating-map-nav {
   position: fixed;
-  left: 25px;
+  left: max(0.65rem, env(safe-area-inset-left));
   top: 50%;
   transform: translateY(-50%);
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  background:
-    radial-gradient(circle at 22% 20%, rgba(46, 231, 231, 0.12), transparent 62%),
-    radial-gradient(circle at 78% 82%, rgba(255, 0, 255, 0.12), transparent 62%),
-    rgba(10, 10, 16, 0.14);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  opacity: 0.92;
+  border: none;
+  background: transparent;
+  opacity: 0.9;
+  padding: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   z-index: 1000;
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.25);
-  transition: transform 0.24s ease-out, box-shadow 0.24s ease-out, opacity 0.24s ease-out;
+  transition: transform 0.22s ease-out, opacity 0.22s ease-out;
 }
 
 .floating-map-nav:hover {
-  transform: translateY(calc(-50% - 3px)) scale(1.06);
+  transform: translateY(calc(-50% - 2px)) scale(1.05);
   opacity: 1;
-  box-shadow: 0 14px 26px rgba(0, 0, 0, 0.32);
 }
 
 .floating-map-nav.active {
-  box-shadow:
-    0 14px 26px rgba(0, 0, 0, 0.32),
-    0 0 14px rgba(110, 255, 255, 0.2);
+  opacity: 1;
 }
 
 .floating-map-nav:focus,
@@ -1320,27 +1297,23 @@ onUnmounted(() => {
   outline: none;
 }
 
-
 .floating-map-nav-icon {
-  width: 100%;
-  height: 100%;
-  padding: 3px;
+  width: 2.15rem;
+  height: 2.15rem;
   display: block;
   filter:
-    drop-shadow(0 0 6px rgba(123, 255, 246, 0.45))
-    drop-shadow(0 0 8px rgba(255, 119, 221, 0.3));
+    drop-shadow(0 0 8px rgba(123, 255, 246, 0.1))
+    drop-shadow(0 0 10px rgba(255, 119, 221, 0.1));
 }
 
 @media (max-width: 768px) {
-  .floating-map-nav-icon {
-    width: 40px;
-    height: 40px;
+  .floating-map-nav {
+    left: max(0.25rem, env(safe-area-inset-left));
   }
 
-
   .floating-map-nav-icon {
-    width: 24px;
-    height: 24px;
+    width: 1.8rem;
+    height: 1.8rem;
   }
 }
 </style>
