@@ -2,7 +2,6 @@
   <section class="map-spots-view">
     <header class="map-spots-header">
       <h1>Shared Map</h1>
-      <p>Tap a spot to see all memos and plans linked to that place.</p>
     </header>
 
     <div v-if="loading" class="ds-state">
@@ -25,19 +24,19 @@
       <aside class="spot-sidebar ds-card">
         <h2 class="ds-script-title">Locations</h2>
 
-        <template v-if="groupedSpots.length">
+        <template v-if="cityGroups.length">
           <ul class="spot-location-list">
             <li
-              v-for="spot in groupedSpots"
+              v-for="spot in cityGroups"
               :key="spot.key"
               class="spot-location-item"
-              :class="{ 'spot-location-item--active': selectedSpotKey === spot.key }"
+              :class="{ 'spot-location-item--active': selectedCityKey === spot.key }"
             >
               <button
                 type="button"
                 class="spot-location-toggle"
                 :aria-expanded="isSpotExpanded(spot.key)"
-                @click="toggleSpot(spot.key)"
+                @click="toggleSpot(spot)"
               >
                 <span class="spot-location-meta">
                   <span class="spot-location-title">{{ spot.title }}</span>
@@ -166,6 +165,47 @@ function buildSpotKey(locationLabel, lat, lng) {
   return `${locationLabel}|${lat.toFixed(6)},${lng.toFixed(6)}`;
 }
 
+function extractCityFromLocation(locationLabel) {
+  if (!locationLabel) return 'Unknown city';
+
+  const blockedCountryTokens = new Set([
+    'austria',
+    'österreich',
+    'germany',
+    'deutschland',
+    'france',
+    'italy',
+    'spain',
+    'united states',
+    'usa',
+    'uk',
+    'united kingdom',
+  ]);
+
+  const streetHints = /(street|st\.?|road|rd\.?|gasse|straße|strasse|avenue|ave\.?|boulevard|blvd|lane|ln\.?|drive|dr\.?|way|platz)/i;
+  const numericOrPostal = /^\d+[a-zA-Z-]*$/;
+
+  const chunks = locationLabel
+    .split(',')
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .filter((part) => {
+      const normalized = part.toLowerCase();
+      if (blockedCountryTokens.has(normalized)) return false;
+      if (numericOrPostal.test(normalized)) return false;
+      return true;
+    });
+
+  if (!chunks.length) return 'Unknown city';
+
+  for (let index = chunks.length - 1; index >= 0; index -= 1) {
+    const candidate = chunks[index];
+    if (!streetHints.test(candidate)) return candidate;
+  }
+
+  return chunks[chunks.length - 1];
+}
+
 const groupedSpots = computed(() => {
   const bucket = new Map();
   const allItems = [
@@ -193,26 +233,74 @@ const groupedSpots = computed(() => {
   return Array.from(bucket.values());
 });
 
+const cityGroups = computed(() => {
+  const bucket = new Map();
+
+  for (const spot of groupedSpots.value) {
+    const cityTitle = extractCityFromLocation(spot.title);
+    const cityKey = cityTitle.toLowerCase();
+    if (!bucket.has(cityKey)) {
+      bucket.set(cityKey, {
+        key: cityKey,
+        title: cityTitle,
+        count: 0,
+        spots: [],
+        items: { memo: [], plan: [] },
+      });
+    }
+    const group = bucket.get(cityKey);
+    group.count += spot.count;
+    group.spots.push(spot);
+    group.items.memo.push(...spot.items.memo);
+    group.items.plan.push(...spot.items.plan);
+  }
+
+  return Array.from(bucket.values()).sort((a, b) => a.title.localeCompare(b.title));
+});
+
+const selectedCityKey = computed(() => {
+  if (!selectedSpotKey.value) return '';
+  const spot = groupedSpots.value.find((entry) => entry.key === selectedSpotKey.value);
+  if (!spot) return '';
+  return extractCityFromLocation(spot.title).toLowerCase();
+});
+
 function isSpotExpanded(key) {
   return expandedSpotKeys.value.includes(key);
 }
 
-function toggleSpot(key) {
+function toggleSpot(cityGroup) {
+  const key = cityGroup.key;
   const isExpanded = isSpotExpanded(key);
   if (isExpanded) {
     expandedSpotKeys.value = expandedSpotKeys.value.filter((spotKey) => spotKey !== key);
   } else {
     expandedSpotKeys.value = [...expandedSpotKeys.value, key];
   }
-  selectedSpotKey.value = key;
 
-  const spot = groupedSpots.value.find((entry) => entry.key === key);
-  if (spot && mapInstance.value) {
-    mapInstance.value.easeTo({
-      center: [spot.lng, spot.lat],
-      duration: 450,
-      zoom: Math.max(mapInstance.value.getZoom(), 11.5),
-    });
+  const firstSpot = cityGroup.spots?.[0];
+  if (firstSpot) {
+    selectedSpotKey.value = firstSpot.key;
+  }
+
+  if (cityGroup.spots?.length && mapInstance.value) {
+    if (cityGroup.spots.length === 1) {
+      mapInstance.value.easeTo({
+        center: [cityGroup.spots[0].lng, cityGroup.spots[0].lat],
+        duration: 450,
+        zoom: Math.max(mapInstance.value.getZoom(), 11.5),
+      });
+    } else {
+      const bounds = new maplibregl.LngLatBounds();
+      for (const spot of cityGroup.spots) {
+        bounds.extend([spot.lng, spot.lat]);
+      }
+      mapInstance.value.fitBounds(bounds, {
+        padding: getFitPadding(),
+        duration: 500,
+        maxZoom: 13.5,
+      });
+    }
   }
 }
 
@@ -426,6 +514,7 @@ function renderMarkers() {
     properties: {
       key: spot.key,
       title: spot.title,
+      cityKey: extractCityFromLocation(spot.title).toLowerCase(),
       count: spot.count,
       primaryType: spot.items.plan.length ? 'plan' : 'memo',
       isSelected: selectedSpotKey.value === spot.key,
@@ -540,8 +629,9 @@ function renderMarkers() {
       const key = feature?.properties?.key;
       if (!key) return;
       selectedSpotKey.value = key;
-      if (!expandedSpotKeys.value.includes(key)) {
-        expandedSpotKeys.value = [...expandedSpotKeys.value, key];
+      const cityKey = String(feature?.properties?.cityKey || '').toLowerCase();
+      if (cityKey && !expandedSpotKeys.value.includes(cityKey)) {
+        expandedSpotKeys.value = [...expandedSpotKeys.value, cityKey];
       }
 
       const coords = feature.geometry?.coordinates;
@@ -605,7 +695,7 @@ function renderMarkers() {
 
   if (!selectedSpotKey.value) {
     selectedSpotKey.value = groupedSpots.value[0].key;
-    expandedSpotKeys.value = [groupedSpots.value[0].key];
+    expandedSpotKeys.value = [extractCityFromLocation(groupedSpots.value[0].title).toLowerCase()];
     renderMarkers();
   }
 }
@@ -677,7 +767,7 @@ watch(
 );
 
 watch(groupedSpots, () => {
-  const validKeys = new Set(groupedSpots.value.map((spot) => spot.key));
+  const validKeys = new Set(cityGroups.value.map((spot) => spot.key));
   expandedSpotKeys.value = expandedSpotKeys.value.filter((key) => validKeys.has(key));
   if (!mapInstance.value) {
     ensureMapReady();
