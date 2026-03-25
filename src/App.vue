@@ -115,28 +115,29 @@
   preserveAspectRatio="xMidYMid meet"
   aria-hidden="true"
 >
-  <defs>
-    <linearGradient id="floatingMapPinGradient" x1="20%" y1="16%" x2="82%" y2="86%">
-      <stop offset="0%" stop-color="#8ffcff" />
-      <stop offset="100%" stop-color="#ff8be4" />
-    </linearGradient>
-  </defs>
-  <path
-    d="M12 1.5C7.3 1.5 3.5 5.3 3.5 10c0 6 8.5 13.5 8.5 13.5S20.5 16 20.5 10c0-4.7-3.8-8.5-8.5-8.5Z"
-    fill="rgba(143,252,255,0.12)"
-    stroke="url(#floatingMapPinGradient)"
-    stroke-width="2.5"
-    stroke-linecap="round"
-    stroke-linejoin="round"
-  />
-  <circle
-    cx="12"
-    cy="10"
-    r="4.2"
-    fill="rgba(10, 20, 34, 0.1)"
-    stroke="url(#floatingMapPinGradient)"
-    stroke-width="2.1"
-  />
+<defs>
+  <linearGradient id="floatingMapPinGradient" x1="20%" y1="16%" x2="82%" y2="86%">
+    <stop offset="0%" stop-color="#8ffcff" stop-opacity="0.62" />
+    <stop offset="100%" stop-color="#ff8be4" stop-opacity="0.55" />
+  </linearGradient>
+</defs>
+
+<path
+  d="M12 1.5C7.3 1.5 3.5 5.3 3.5 10c0 6 8.5 13.5 8.5 13.5S20.5 16 20.5 10c0-4.7-3.8-8.5-8.5-8.5Z"
+  fill="rgba(143,252,255,0.1)"
+  stroke="url(#floatingMapPinGradient)"
+  stroke-width="1.5"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+/>
+<circle
+  cx="12"
+  cy="10"
+  r="4.2"
+  fill="rgba(10, 20, 34, 0.12)"
+  stroke="url(#floatingMapPinGradient)"
+  stroke-width="1.9"
+/>
 </svg>
 </button>
             </nav>
@@ -1302,10 +1303,9 @@ onUnmounted(() => {
   height: 2.15rem;
   display: block;
   filter:
-    drop-shadow(0 0 8px rgba(123, 255, 246, 0.1))
-    drop-shadow(0 0 10px rgba(255, 119, 221, 0.1));
+    drop-shadow(0 0 6px rgba(123, 255, 246, 0.28))
+    drop-shadow(0 0 9px rgba(255, 119, 221, 0.2));
 }
-
 @media (max-width: 768px) {
   .floating-map-nav {
     left: max(0.25rem, env(safe-area-inset-left));

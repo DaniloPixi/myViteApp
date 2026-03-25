@@ -58,6 +58,8 @@ const MAP_STYLE_URL = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/sty
 const SPOT_SOURCE_ID = 'spot-source';
 const SPOT_LAYER_ID = 'spot-layer';
 const SPOT_GLOW_LAYER_ID = 'spot-layer-glow';
+const SPOT_COUNT_LAYER_ID = 'spot-layer-count';
+const MAP_POPUP_CLASS = 'map-spot-popup';
 
 const mapRoot = ref(null);
 const loading = ref(true);
@@ -75,6 +77,7 @@ const listenerStatus = ref({
 
 let resizeObserver = null;
 const unsubscribers = [];
+let hoverPopup = null;
 
 function markListenerReady(key) {
   listenerStatus.value[key] = true;
@@ -161,21 +164,22 @@ function tuneLabelVisibility(map) {
 
   for (const layer of labelLayers) {
     try {
-      map.setLayerZoomRange(layer.id, 5, 24);
+      map.setLayerZoomRange(layer.id, 4.5, 24);
       map.setLayoutProperty(layer.id, 'text-size', [
         'interpolate',
         ['linear'],
         ['zoom'],
-        5, 11,
-        8, 13,
-        11, 15,
-        14, 18,
+        4, 10.5,
+        7, 12.5,
+        10, 14.5,
+        13, 17.5,
       ]);
-      map.setPaintProperty(layer.id, 'text-color', '#e9f2ff');
-      map.setPaintProperty(layer.id, 'text-halo-color', 'rgba(0,0,0,0.88)');
-      map.setPaintProperty(layer.id, 'text-halo-width', 1.4);
+      map.setPaintProperty(layer.id, 'text-color', '#edf5ff');
+      map.setPaintProperty(layer.id, 'text-halo-color', 'rgba(0,0,0,0.9)');
+      map.setPaintProperty(layer.id, 'text-halo-width', 1.5);
+      map.setPaintProperty(layer.id, 'text-halo-blur', 0.2);
     } catch (_) {
-      // Some symbol layers may not support all properties.
+      // Layer may not support every text property
     }
   }
 }
@@ -188,9 +192,17 @@ function initMap() {
     style: MAP_STYLE_URL,
     center: [16.3738, 48.2082],
     zoom: 11,
+    antialias: true,
   });
 
-  map.addControl(new maplibregl.NavigationControl(), 'top-right');
+  map.addControl(new maplibregl.NavigationControl({ showCompass: true }), 'top-right');
+
+  hoverPopup = new maplibregl.Popup({
+    closeButton: false,
+    closeOnClick: false,
+    className: MAP_POPUP_CLASS,
+    offset: 14,
+  });
 
   map.on('load', () => {
     mapIsLoaded.value = true;
@@ -211,6 +223,13 @@ function stabilizeMapLayout() {
   requestAnimationFrame(() => mapInstance.value?.resize());
   setTimeout(() => mapInstance.value?.resize(), 100);
   setTimeout(() => mapInstance.value?.resize(), 400);
+}
+
+function getFitPadding() {
+  const mobile = window.matchMedia('(max-width: 900px)').matches;
+  if (mobile) return 28;
+  // right padding leaves visual room for sidebar
+  return { top: 28, bottom: 28, left: 28, right: 340 };
 }
 
 function renderMarkers() {
@@ -246,48 +265,59 @@ function renderMarkers() {
       data: geojson,
     });
 
+    // Glow layer
     map.addLayer({
       id: SPOT_GLOW_LAYER_ID,
       type: 'circle',
       source: SPOT_SOURCE_ID,
       paint: {
         'circle-radius': [
-          'case',
-          ['==', ['get', 'isSelected'], true],
-          18,
-          14,
+          'interpolate',
+          ['linear'],
+          ['get', 'count'],
+          1, 14,
+          3, 16,
+          8, 20,
+          20, 24,
         ],
         'circle-color': [
           'match',
           ['get', 'primaryType'],
-          'memo',
-          '#20e3ff',
-          'plan',
-          '#3ef06d',
+          'memo', '#20e3ff',
+          'plan', '#3ef06d',
           '#df6eff',
         ],
         'circle-opacity': [
           'case',
           ['==', ['get', 'isSelected'], true],
-          0.42,
-          0.24,
+          0.44,
+          0.2,
         ],
-        'circle-blur': 0.9,
+        'circle-blur': 1,
       },
     });
 
+    // Main marker layer
     map.addLayer({
       id: SPOT_LAYER_ID,
       type: 'circle',
       source: SPOT_SOURCE_ID,
       paint: {
         'circle-radius': [
+          'interpolate',
+          ['linear'],
+          ['get', 'count'],
+          1, 7,
+          3, 9,
+          8, 12,
+          20, 15,
+        ],
+        'circle-stroke-width': [
           'case',
           ['==', ['get', 'isSelected'], true],
-          11,
-          8,
+          2.8,
+          2,
         ],
-        'circle-stroke-width': 2,
         'circle-stroke-color': '#ffffff',
         'circle-color': [
           'case',
@@ -296,13 +326,31 @@ function renderMarkers() {
           [
             'match',
             ['get', 'primaryType'],
-            'memo',
-            '#20e3ff',
-            'plan',
-            '#3ef06d',
+            'memo', '#20e3ff',
+            'plan', '#3ef06d',
             '#df6eff',
           ],
         ],
+      },
+    });
+
+    // Count label on marker (only when more than 1 item at that point)
+    map.addLayer({
+      id: SPOT_COUNT_LAYER_ID,
+      type: 'symbol',
+      source: SPOT_SOURCE_ID,
+      filter: ['>', ['get', 'count'], 1],
+      layout: {
+        'text-field': ['to-string', ['get', 'count']],
+        'text-size': 10,
+        'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+        'text-offset': [0, 0],
+        'text-allow-overlap': true,
+      },
+      paint: {
+        'text-color': '#ffffff',
+        'text-halo-color': 'rgba(0,0,0,0.85)',
+        'text-halo-width': 1.2,
       },
     });
 
@@ -311,15 +359,34 @@ function renderMarkers() {
       const key = feature?.properties?.key;
       if (!key) return;
       selectedSpotKey.value = key;
+
+      const coords = feature.geometry?.coordinates;
+      if (Array.isArray(coords)) {
+        map.easeTo({ center: coords, duration: 550, zoom: Math.max(map.getZoom(), 11.5) });
+      }
       renderMarkers();
     });
 
-    map.on('mouseenter', SPOT_LAYER_ID, () => {
+    map.on('mouseenter', SPOT_LAYER_ID, (event) => {
       map.getCanvas().style.cursor = 'pointer';
+      const feature = event.features?.[0];
+      if (!feature || !hoverPopup) return;
+
+      const coords = feature.geometry?.coordinates;
+      const title = feature.properties?.title || 'Pinned place';
+      const count = Number(feature.properties?.count || 0);
+
+      if (Array.isArray(coords)) {
+        hoverPopup
+          .setLngLat(coords)
+          .setHTML(`<strong>${title}</strong><br/>${count} item(s)`)
+          .addTo(map);
+      }
     });
 
     map.on('mouseleave', SPOT_LAYER_ID, () => {
       map.getCanvas().style.cursor = '';
+      hoverPopup?.remove();
     });
   }
 
@@ -331,9 +398,13 @@ function renderMarkers() {
   }
 
   if (features.length === 1) {
-    map.easeTo({ center: features[0].geometry.coordinates, zoom: 12 });
+    map.easeTo({ center: features[0].geometry.coordinates, zoom: 12, duration: 700 });
   } else {
-    map.fitBounds(bounds, { padding: 30, duration: 500 });
+    map.fitBounds(bounds, {
+      padding: getFitPadding(),
+      duration: 700,
+      maxZoom: 14,
+    });
   }
 
   if (!selectedSpotKey.value) {
@@ -423,6 +494,9 @@ onUnmounted(() => {
     if (typeof fn === 'function') fn();
   });
 
+  hoverPopup?.remove();
+  hoverPopup = null;
+
   if (mapInstance.value) {
     mapIsLoaded.value = false;
     mapInstance.value.remove();
@@ -451,7 +525,14 @@ onUnmounted(() => {
   border-radius: 14px;
   overflow: hidden;
   border: 1px solid rgba(64, 255, 255, 0.4);
-  background: #0d1117;
+  background:
+    radial-gradient(circle at 14% 12%, rgba(64, 255, 255, 0.12), transparent 40%),
+    radial-gradient(circle at 88% 82%, rgba(255, 0, 255, 0.08), transparent 38%),
+    #0d1117;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.05),
+    inset 0 0 36px rgba(0, 0, 0, 0.35),
+    0 10px 28px rgba(0, 0, 0, 0.35);
 }
 
 :deep(.maplibregl-canvas) {
@@ -461,6 +542,17 @@ onUnmounted(() => {
 :deep(.maplibregl-ctrl-group) {
   background: rgba(11, 16, 32, 0.85);
   border: 1px solid rgba(64, 255, 255, 0.25);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+}
+
+:deep(.maplibregl-ctrl-group button) {
+  transition: background-color 0.2s ease;
+}
+
+:deep(.maplibregl-ctrl-group button:hover),
+:deep(.maplibregl-ctrl-group button:focus-visible) {
+  background: rgba(64, 255, 255, 0.16);
+  outline: none;
 }
 
 :deep(.maplibregl-ctrl-group button span) {
@@ -471,6 +563,23 @@ onUnmounted(() => {
   font-size: 10px;
   background: rgba(4, 9, 18, 0.75);
   color: #9fb3c8;
+}
+
+:deep(.maplibregl-ctrl-attrib a) {
+  color: #c9e7ff;
+}
+
+:deep(.map-spot-popup .maplibregl-popup-content) {
+  background: rgba(9, 14, 24, 0.92);
+  color: #e7f4ff;
+  border: 1px solid rgba(64, 255, 255, 0.28);
+  border-radius: 10px;
+  font-size: 0.85rem;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.45);
+}
+
+:deep(.map-spot-popup .maplibregl-popup-tip) {
+  border-top-color: rgba(9, 14, 24, 0.92);
 }
 
 .spot-sidebar {
@@ -497,6 +606,10 @@ onUnmounted(() => {
 @media (max-width: 900px) {
   .map-spots-grid {
     grid-template-columns: 1fr;
+  }
+
+  .map-canvas {
+    min-height: 360px;
   }
 }
 </style>
