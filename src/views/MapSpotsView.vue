@@ -30,7 +30,11 @@
               v-for="spot in cityGroups"
               :key="spot.key"
               class="spot-location-item"
-              :class="{ 'spot-location-item--active': selectedCityKey === spot.key }"
+              :ref="(el) => registerLocationItemRef(spot.key, el)"
+              :class="{
+                'spot-location-item--active': selectedCityKey === spot.key,
+                'spot-location-item--expanded': isSpotExpanded(spot.key),
+              }"
             >
               <button
                 type="button"
@@ -47,37 +51,39 @@
                 </span>
               </button>
 
-              <div v-if="isSpotExpanded(spot.key)" class="spot-location-dropdown">
-                <section v-if="spot.items.memo.length" class="spot-location-block">
-                  <h3>Memos</h3>
-                  <ul>
-                    <li v-for="item in spot.items.memo" :key="item.id">
-                      <button
-                        type="button"
-                        class="spot-link-button"
-                        @click.stop="navigateToLinkedItem('memo', item.id)"
-                      >
-                        {{ item.label }}
-                      </button>
-                    </li>
-                  </ul>
-                </section>
+              <Transition name="spot-expand">
+                <div v-if="isSpotExpanded(spot.key)" class="spot-location-dropdown">
+                  <section v-if="spot.items.memo.length" class="spot-location-block">
+                    <h3>Memos</h3>
+                    <ul>
+                      <li v-for="item in spot.items.memo" :key="item.id">
+                        <button
+                          type="button"
+                          class="spot-link-button"
+                          @click.stop="navigateToLinkedItem('memo', item.id)"
+                        >
+                          {{ item.label }}
+                        </button>
+                      </li>
+                    </ul>
+                  </section>
 
-                <section v-if="spot.items.plan.length" class="spot-location-block">
-                  <h3>Plans</h3>
-                  <ul>
-                    <li v-for="item in spot.items.plan" :key="item.id">
-                      <button
-                        type="button"
-                        class="spot-link-button"
-                        @click.stop="navigateToLinkedItem('plan', item.id)"
-                      >
-                        {{ item.label }}
-                      </button>
-                    </li>
-                  </ul>
-                </section>
-              </div>
+                  <section v-if="spot.items.plan.length" class="spot-location-block">
+                    <h3>Plans</h3>
+                    <ul>
+                      <li v-for="item in spot.items.plan" :key="item.id">
+                        <button
+                          type="button"
+                          class="spot-link-button"
+                          @click.stop="navigateToLinkedItem('plan', item.id)"
+                        >
+                          {{ item.label }}
+                        </button>
+                      </li>
+                    </ul>
+                  </section>
+                </div>
+              </Transition>
             </li>
           </ul>
         </template>
@@ -112,6 +118,7 @@ const isTouchDevice = ref(false);
 
 const mapInstance = ref(null);
 const mapIsLoaded = ref(false);
+const locationItemRefs = ref(new Map());
 const listenerStatus = ref({
   memos: false,
   plans: false,
@@ -269,6 +276,30 @@ function isSpotExpanded(key) {
   return expandedSpotKeys.value.includes(key);
 }
 
+function registerLocationItemRef(key, element) {
+  if (!key) return;
+  if (!element) {
+    locationItemRefs.value.delete(key);
+    return;
+  }
+  locationItemRefs.value.set(key, element);
+}
+
+async function focusExpandedLocation(key) {
+  await nextTick();
+  const locationElement = locationItemRefs.value.get(key);
+  if (!locationElement) return;
+
+  locationElement.scrollIntoView({
+    behavior: 'smooth',
+    block: 'center',
+    inline: 'nearest',
+  });
+
+  const toggleButton = locationElement.querySelector('.spot-location-toggle');
+  toggleButton?.focus({ preventScroll: true });
+}
+
 function toggleSpot(cityGroup) {
   const key = cityGroup.key;
   const isExpanded = isSpotExpanded(key);
@@ -276,6 +307,7 @@ function toggleSpot(cityGroup) {
     expandedSpotKeys.value = expandedSpotKeys.value.filter((spotKey) => spotKey !== key);
   } else {
     expandedSpotKeys.value = [...expandedSpotKeys.value, key];
+    focusExpandedLocation(key);
   }
 
   const firstSpot = cityGroup.spots?.[0];
@@ -938,23 +970,46 @@ onUnmounted(() => {
   margin: 0;
   padding: 0;
   display: flex;
-  flex-direction: column;
-  gap: var(--ds-space-3);
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 0.6rem;
 }
 
 .spot-location-item {
-  border: 1px solid var(--ds-color-border);
-  border-radius: var(--ds-radius-md);
+  border: 1.4px solid rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
   background:
-    radial-gradient(circle at 16% 18%, rgba(51, 230, 220, 0.12), transparent 56%),
-    radial-gradient(circle at 86% 82%, rgba(255, 95, 122, 0.12), transparent 58%),
-    rgba(255, 255, 255, 0.04);
+    radial-gradient(circle at 16% 18%, rgba(51, 230, 220, 0.18), transparent 64%),
+    radial-gradient(circle at 86% 82%, rgba(255, 95, 122, 0.18), transparent 66%),
+    rgba(4, 8, 18, 0.8);
   overflow: hidden;
+  width: fit-content;
+  max-width: 100%;
+  min-width: 170px;
+  flex: 0 1 220px;
+  box-shadow:
+    inset 0 0 8px rgba(255, 255, 255, 0.06),
+    0 0 12px rgba(3, 220, 255, 0.14);
+  transition:
+    box-shadow 0.22s ease,
+    border-color 0.22s ease,
+    transform 0.28s ease,
+    border-radius 0.28s ease,
+    flex-basis 0.34s ease;
 }
 
 .spot-location-item--active {
   border-color: rgba(0, 247, 255, 0.56);
-  box-shadow: inset 0 0 0 1px rgba(0, 247, 255, 0.22);
+  box-shadow:
+    inset 0 0 10px rgba(0, 247, 255, 0.2),
+    0 0 16px rgba(0, 247, 255, 0.18);
+}
+
+.spot-location-item--expanded {
+  border-radius: 18px;
+  flex-basis: 100%;
+  width: 100%;
 }
 
 .spot-location-toggle {
@@ -962,31 +1017,39 @@ onUnmounted(() => {
   border: 0;
   background: transparent;
   color: var(--ds-color-text);
-  padding: var(--ds-space-3) var(--ds-space-4);
+  padding: 0.45rem 0.85rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
   text-align: left;
   cursor: pointer;
+  gap: 0.65rem;
 }
 
 .spot-location-toggle:hover {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .spot-location-meta {
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
+  gap: 0.06rem;
+  min-width: 0;
 }
 
 .spot-location-title {
-  font-size: var(--ds-text-md);
+  font-size: 0.78rem;
   font-weight: 600;
+  line-height: 1.15;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .spot-location-count {
-  font-size: var(--ds-text-sm);
+  font-size: 0.61rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   color: var(--ds-color-text-soft);
 }
 
@@ -1000,11 +1063,34 @@ onUnmounted(() => {
 }
 
 .spot-location-dropdown {
-  border-top: 1px solid var(--ds-color-border);
-  padding: var(--ds-space-3) var(--ds-space-4);
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  padding: 0.65rem 0.85rem 0.8rem;
   display: flex;
   flex-direction: column;
-  gap: var(--ds-space-3);
+  gap: 0.55rem;
+}
+
+.spot-expand-enter-active,
+.spot-expand-leave-active {
+  transition:
+    max-height 0.34s ease,
+    opacity 0.26s ease,
+    transform 0.3s ease;
+  overflow: hidden;
+}
+
+.spot-expand-enter-from,
+.spot-expand-leave-to {
+  max-height: 0;
+  opacity: 0;
+  transform: translateY(-6px);
+}
+
+.spot-expand-enter-to,
+.spot-expand-leave-from {
+  max-height: 280px;
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .spot-location-block h3 {
