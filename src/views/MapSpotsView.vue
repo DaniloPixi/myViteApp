@@ -59,14 +59,30 @@
                 <section v-if="spot.items.memo.length" class="spot-location-block">
                   <h3>Memos</h3>
                   <ul>
-                    <li v-for="item in spot.items.memo" :key="item.id">{{ item.label }}</li>
+                    <li v-for="item in spot.items.memo" :key="item.id">
+                      <button
+                        type="button"
+                        class="spot-link-button"
+                        @click.stop="navigateToLinkedItem('memo', item.id)"
+                      >
+                        {{ item.label }}
+                      </button>
+                    </li>
                   </ul>
                 </section>
 
                 <section v-if="spot.items.plan.length" class="spot-location-block">
                   <h3>Plans</h3>
                   <ul>
-                    <li v-for="item in spot.items.plan" :key="item.id">{{ item.label }}</li>
+                    <li v-for="item in spot.items.plan" :key="item.id">
+                      <button
+                        type="button"
+                        class="spot-link-button"
+                        @click.stop="navigateToLinkedItem('plan', item.id)"
+                      >
+                        {{ item.label }}
+                      </button>
+                    </li>
                   </ul>
                 </section>
               </div>
@@ -100,6 +116,7 @@ const expandedSpotKeys = ref([]);
 const memos = ref([]);
 const plans = ref([]);
 const mapLoadError = ref('');
+const isTouchDevice = ref(false);
 
 const mapInstance = ref(null);
 const mapIsLoaded = ref(false);
@@ -111,6 +128,8 @@ const listenerStatus = ref({
 let resizeObserver = null;
 const unsubscribers = [];
 let hoverPopup = null;
+let hoverCloseTimeout = null;
+let isPointerInsidePopup = false;
 
 function markListenerReady(key) {
   listenerStatus.value[key] = true;
@@ -204,6 +223,123 @@ function toggleSpot(key) {
   }
 }
 
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
+function encodeForDataAttr(value) {
+  return encodeURIComponent(String(value ?? ''));
+}
+
+function buildHoverPopupHtml(spot) {
+  if (!spot) return '<strong>Pinned place</strong>';
+
+  const placeHtml = `<p class="map-spot-popup__place">${escapeHtml(spot.title)}</p>`;
+  const memoItems = spot.items.memo
+    .map(
+      (item) => `
+        <li>
+          <button
+            type="button"
+            class="map-spot-popup-link"
+            data-item-type="memo"
+            data-item-id="${encodeForDataAttr(item.id)}"
+          >
+            ${escapeHtml(item.label)}
+          </button>
+        </li>`,
+    )
+    .join('');
+  const planItems = spot.items.plan
+    .map(
+      (item) => `
+        <li>
+          <button
+            type="button"
+            class="map-spot-popup-link"
+            data-item-type="plan"
+            data-item-id="${encodeForDataAttr(item.id)}"
+          >
+            ${escapeHtml(item.label)}
+          </button>
+        </li>`,
+    )
+    .join('');
+
+  const memoSection = memoItems
+    ? `<div class="map-spot-popup__section"><h4>Memos</h4><ul>${memoItems}</ul></div>`
+    : '';
+  const planSection = planItems
+    ? `<div class="map-spot-popup__section"><h4>Plans</h4><ul>${planItems}</ul></div>`
+    : '';
+
+  return `
+    <div class="map-spot-popup__content">
+      <strong>${escapeHtml(spot.title)}</strong>
+      ${placeHtml}
+      ${memoSection}
+      ${planSection}
+    </div>
+  `;
+}
+
+function navigateToLinkedItem(type, id) {
+  if (!id) return;
+  window.dispatchEvent(
+    new CustomEvent('map-spots-open-item', {
+      detail: { type, id },
+    }),
+  );
+}
+
+function clearHoverPopupCloseTimer() {
+  if (!hoverCloseTimeout) return;
+  clearTimeout(hoverCloseTimeout);
+  hoverCloseTimeout = null;
+}
+
+function scheduleHoverPopupClose() {
+  clearHoverPopupCloseTimer();
+  hoverCloseTimeout = setTimeout(() => {
+    if (isPointerInsidePopup) return;
+    hoverPopup?.remove();
+  }, 180);
+}
+
+function handlePopupContainerClick(event) {
+  const button = event.target?.closest?.('.map-spot-popup-link');
+  if (!button) return;
+  const type = button.getAttribute('data-item-type');
+  const encodedId = button.getAttribute('data-item-id') || '';
+  const id = decodeURIComponent(encodedId);
+  if (!type || !id) return;
+
+  event.preventDefault();
+  event.stopPropagation();
+  navigateToLinkedItem(type, id);
+  hoverPopup?.remove();
+}
+
+function handlePopupPointerOver(event) {
+  if (!event.target?.closest?.('.map-spot-popup')) return;
+  isPointerInsidePopup = true;
+  clearHoverPopupCloseTimer();
+}
+
+function handlePopupPointerOut(event) {
+  const fromPopup = event.target?.closest?.('.map-spot-popup');
+  if (!fromPopup) return;
+  const stillInPopup = event.relatedTarget?.closest?.('.map-spot-popup');
+  if (stillInPopup) return;
+  isPointerInsidePopup = false;
+  scheduleHoverPopupClose();
+}
+
 function tuneLabelVisibility(map) {
   const style = map.getStyle();
   const labelLayers = (style.layers || []).filter(
@@ -261,6 +397,11 @@ function initMap() {
     renderMarkers();
   });
 
+  const container = map.getContainer();
+  container.addEventListener('click', handlePopupContainerClick);
+  container.addEventListener('pointerover', handlePopupPointerOver);
+  container.addEventListener('pointerout', handlePopupPointerOut);
+
   mapInstance.value = map;
 }
 
@@ -315,6 +456,7 @@ function renderMarkers() {
       data: geojson,
     });
 
+    // Glow layer
     map.addLayer({
       id: SPOT_GLOW_LAYER_ID,
       type: 'circle',
@@ -346,6 +488,7 @@ function renderMarkers() {
       },
     });
 
+    // Main marker layer
     map.addLayer({
       id: SPOT_LAYER_ID,
       type: 'circle',
@@ -382,6 +525,7 @@ function renderMarkers() {
       },
     });
 
+    // Count label on marker (only when more than 1 item at that point)
     map.addLayer({
       id: SPOT_COUNT_LAYER_ID,
       type: 'symbol',
@@ -413,31 +557,43 @@ function renderMarkers() {
       const coords = feature.geometry?.coordinates;
       if (Array.isArray(coords)) {
         map.easeTo({ center: coords, duration: 550, zoom: Math.max(map.getZoom(), 11.5) });
+        if (isTouchDevice.value) {
+          const spot = groupedSpots.value.find((entry) => entry.key === key);
+          hoverPopup
+            ?.setLngLat(coords)
+            .setHTML(buildHoverPopupHtml(spot))
+            .addTo(map);
+        }
       }
       renderMarkers();
     });
 
-    map.on('mouseenter', SPOT_LAYER_ID, (event) => {
-      map.getCanvas().style.cursor = 'pointer';
-      const feature = event.features?.[0];
-      if (!feature || !hoverPopup) return;
+    if (!isTouchDevice.value) {
+      map.on('mouseenter', SPOT_LAYER_ID, (event) => {
+        clearHoverPopupCloseTimer();
+        map.getCanvas().style.cursor = 'pointer';
+        const feature = event.features?.[0];
+        if (!feature || !hoverPopup) return;
 
-      const coords = feature.geometry?.coordinates;
-      const title = feature.properties?.title || 'Pinned place';
-      const count = Number(feature.properties?.count || 0);
+        const coords = feature.geometry?.coordinates;
+        const key = feature.properties?.key;
+        const spot = groupedSpots.value.find((entry) => entry.key === key);
 
-      if (Array.isArray(coords)) {
-        hoverPopup
-          .setLngLat(coords)
-          .setHTML(`<strong>${title}</strong><br/>${count} item(s)`)
-          .addTo(map);
-      }
-    });
+        if (Array.isArray(coords)) {
+          hoverPopup
+            .setLngLat(coords)
+            .setHTML(buildHoverPopupHtml(spot))
+            .addTo(map);
+        }
+      });
 
-    map.on('mouseleave', SPOT_LAYER_ID, () => {
-      map.getCanvas().style.cursor = '';
-      hoverPopup?.remove();
-    });
+      map.on('mouseleave', SPOT_LAYER_ID, () => {
+        map.getCanvas().style.cursor = '';
+        if (!isPointerInsidePopup) {
+          scheduleHoverPopupClose();
+        }
+      });
+    }
   }
 
   if (!features.length) return;
@@ -478,6 +634,10 @@ async function ensureMapReady() {
 }
 
 onMounted(() => {
+  isTouchDevice.value =
+    window.matchMedia('(pointer: coarse)').matches ||
+    window.matchMedia('(hover: none)').matches;
+
   const db = getFirestore();
 
   unsubscribers.push(
@@ -549,8 +709,14 @@ onUnmounted(() => {
 
   hoverPopup?.remove();
   hoverPopup = null;
+  clearHoverPopupCloseTimer();
+  isPointerInsidePopup = false;
 
   if (mapInstance.value) {
+    const container = mapInstance.value.getContainer();
+    container.removeEventListener('click', handlePopupContainerClick);
+    container.removeEventListener('pointerover', handlePopupPointerOver);
+    container.removeEventListener('pointerout', handlePopupPointerOut);
     mapIsLoaded.value = false;
     mapInstance.value.remove();
     mapInstance.value = null;
@@ -629,10 +795,58 @@ onUnmounted(() => {
   border-radius: 10px;
   font-size: 0.85rem;
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.45);
+  max-width: min(340px, calc(100vw - 2rem));
 }
 
 :deep(.map-spot-popup .maplibregl-popup-tip) {
   border-top-color: rgba(9, 14, 24, 0.92);
+}
+
+:deep(.map-spot-popup__content) {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+:deep(.map-spot-popup__place) {
+  margin: 0;
+  color: var(--ds-color-text-soft);
+  font-size: var(--ds-text-sm);
+}
+
+:deep(.map-spot-popup__section h4) {
+  margin: 0 0 0.2rem;
+  color: var(--ds-color-accent-cyan);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+:deep(.map-spot-popup__section ul) {
+  margin: 0;
+  padding-left: 1rem;
+}
+
+:deep(.map-spot-popup__section li) {
+  color: var(--ds-color-text-soft);
+  font-size: 0.8rem;
+}
+
+:deep(.map-spot-popup-link) {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: var(--ds-color-text-soft);
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+}
+
+:deep(.map-spot-popup-link:hover),
+:deep(.map-spot-popup-link:focus-visible) {
+  color: var(--ds-color-accent-cyan);
+  text-decoration: underline;
+  outline: none;
 }
 
 .spot-sidebar {
@@ -731,6 +945,23 @@ onUnmounted(() => {
 
 .spot-location-block li {
   color: var(--ds-color-text-soft);
+}
+
+.spot-link-button {
+  border: 0;
+  background: transparent;
+  color: var(--ds-color-text-soft);
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+}
+
+.spot-link-button:hover,
+.spot-link-button:focus-visible {
+  color: var(--ds-color-accent-cyan);
+  text-decoration: underline;
+  outline: none;
 }
 
 .spot-empty-copy {

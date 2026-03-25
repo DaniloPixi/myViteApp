@@ -731,7 +731,7 @@ onMounted(() => {
 
   window.addEventListener('blur', setWindowUnfocused);
   document.addEventListener('visibilitychange', setTabUnfocused);
-
+  window.addEventListener('map-spots-open-item', handleMapSpotOpenItem);
   // --- Notification support + SW message bridge ---
   supportsNotifications.value =
     typeof window !== 'undefined' &&
@@ -763,7 +763,22 @@ onMounted(() => {
     return colors[(startingColorIndex + index) % 2];
   });
 });
+function handleMapSpotOpenItem(event) {
+  const type = event?.detail?.type;
+  const id = event?.detail?.id;
+  if (!id) return;
 
+  if (type === 'memo') {
+    currentView.value = 'memos';
+    focusMemoId.value = id;
+    return;
+  }
+
+  if (type === 'plan') {
+    currentView.value = 'plans';
+    focusPlanId.value = id;
+  }
+}
 function applyDeepLinkFromUrlString(urlString) {
   if (typeof window === 'undefined' || !urlString) return;
 
@@ -840,7 +855,7 @@ onUnmounted(() => {
     window.removeEventListener('blur', setWindowUnfocused);
     document.removeEventListener('visibilitychange', setTabUnfocused);
   }
-
+  window.removeEventListener('map-spots-open-item', handleMapSpotOpenItem);
   clearDataListeners(); // Clean up listeners when component is destroyed
 });
 </script>
