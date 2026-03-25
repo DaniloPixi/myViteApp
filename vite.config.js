@@ -10,16 +10,19 @@ export default defineConfig({
     VitePWA({
       registerType: 'prompt',
       injectRegister: null,
-      workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
-      },
-      // Use our own service worker implementation
+
       strategies: 'injectManifest',
       srcDir: 'src',
       filename: 'sw.js',
-      workbox: {
-        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024 // 5 MB
+
+      injectManifest: {
+        maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
       },
+
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+      },
+
       manifest: {
         name: 'Grus Corner',
         short_name: 'GrusCorner',
@@ -28,7 +31,6 @@ export default defineConfig({
         background_color: '#ffffff',
         theme_color: '#000000',
         icons: [
-          // maskable icons (for Android, etc.)
           {
             src: '/icons/manifest-icon-192-maskable.png',
             sizes: '192x192',
@@ -41,7 +43,6 @@ export default defineConfig({
             type: 'image/png',
             purpose: 'maskable',
           },
-          // regular icons as fallback
           {
             src: '/icons/manifest-icon-192.png',
             sizes: '192x192',
