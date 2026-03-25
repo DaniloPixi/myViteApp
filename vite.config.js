@@ -8,7 +8,7 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
-          vue: ['vue', 'vue-router'],
+          vue: ['vue'],
           firebase: ['firebase/app', 'firebase/auth', 'firebase/firestore'],
         },
       },
