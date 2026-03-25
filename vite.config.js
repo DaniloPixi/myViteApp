@@ -17,6 +17,9 @@ export default defineConfig({
       strategies: 'injectManifest',
       srcDir: 'src',
       filename: 'sw.js',
+      workbox: {
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024 // 5 MB
+      },
       manifest: {
         name: 'Grus Corner',
         short_name: 'GrusCorner',
