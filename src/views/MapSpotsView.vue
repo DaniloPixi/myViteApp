@@ -49,13 +49,6 @@
               </button>
 
               <div v-if="isSpotExpanded(spot.key)" class="spot-location-dropdown">
-                <section class="spot-location-block">
-                  <h3>Places</h3>
-                  <ul>
-                    <li>{{ spot.title }}</li>
-                  </ul>
-                </section>
-
                 <section v-if="spot.items.memo.length" class="spot-location-block">
                   <h3>Memos</h3>
                   <ul>
@@ -169,8 +162,8 @@ function normalizeItem(type, raw) {
   };
 }
 
-function buildSpotKey(lat, lng) {
-  return `${lat.toFixed(4)},${lng.toFixed(4)}`;
+function buildSpotKey(locationLabel, lat, lng) {
+  return `${locationLabel}|${lat.toFixed(6)},${lng.toFixed(6)}`;
 }
 
 const groupedSpots = computed(() => {
@@ -181,7 +174,7 @@ const groupedSpots = computed(() => {
   ].filter(Boolean);
 
   for (const item of allItems) {
-    const key = buildSpotKey(item.lat, item.lng);
+    const key = buildSpotKey(item.locationLabel, item.lat, item.lng);
     if (!bucket.has(key)) {
       bucket.set(key, {
         key,
@@ -239,7 +232,6 @@ function encodeForDataAttr(value) {
 function buildHoverPopupHtml(spot) {
   if (!spot) return '<strong>Pinned place</strong>';
 
-  const placeHtml = `<p class="map-spot-popup__place">${escapeHtml(spot.title)}</p>`;
   const memoItems = spot.items.memo
     .map(
       (item) => `
@@ -277,11 +269,9 @@ function buildHoverPopupHtml(spot) {
   const planSection = planItems
     ? `<div class="map-spot-popup__section"><h4>Plans</h4><ul>${planItems}</ul></div>`
     : '';
-
   return `
     <div class="map-spot-popup__content">
       <strong>${escapeHtml(spot.title)}</strong>
-      ${placeHtml}
       ${memoSection}
       ${planSection}
     </div>
@@ -474,8 +464,8 @@ function renderMarkers() {
         'circle-color': [
           'match',
           ['get', 'primaryType'],
-          'memo', '#20e3ff',
-          'plan', '#3ef06d',
+          'memo', '#ff5f7a',
+          'plan', '#33e6dc',
           '#df6eff',
         ],
         'circle-opacity': [
@@ -517,8 +507,8 @@ function renderMarkers() {
           [
             'match',
             ['get', 'primaryType'],
-            'memo', '#20e3ff',
-            'plan', '#3ef06d',
+            'memo', '#ff5f7a',
+            'plan', '#33e6dc',
             '#df6eff',
           ],
         ],
@@ -808,12 +798,6 @@ onUnmounted(() => {
   gap: 0.35rem;
 }
 
-:deep(.map-spot-popup__place) {
-  margin: 0;
-  color: var(--ds-color-text-soft);
-  font-size: var(--ds-text-sm);
-}
-
 :deep(.map-spot-popup__section h4) {
   margin: 0 0 0.2rem;
   color: var(--ds-color-accent-cyan);
@@ -871,7 +855,10 @@ onUnmounted(() => {
 .spot-location-item {
   border: 1px solid var(--ds-color-border);
   border-radius: var(--ds-radius-md);
-  background: var(--ds-color-surface-soft);
+  background:
+    radial-gradient(circle at 16% 18%, rgba(51, 230, 220, 0.12), transparent 56%),
+    radial-gradient(circle at 86% 82%, rgba(255, 95, 122, 0.12), transparent 58%),
+    rgba(255, 255, 255, 0.04);
   overflow: hidden;
 }
 
