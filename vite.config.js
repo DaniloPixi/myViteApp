@@ -4,6 +4,16 @@ import { VitePWA } from 'vite-plugin-pwa';
 import Inspector from 'vite-plugin-vue-inspector';
 
 export default defineConfig({
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vue: ['vue', 'vue-router'],
+          firebase: ['firebase/app', 'firebase/auth', 'firebase/firestore'],
+        },
+      },
+    },
+  },
   plugins: [
     vue(),
     Inspector(),
@@ -16,7 +26,8 @@ export default defineConfig({
       filename: 'sw.js',
 
       injectManifest: {
-        maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
+           // Keep precache working even when a compiled chunk temporarily exceeds 2 MiB.
+           maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
       },
 
       workbox: {

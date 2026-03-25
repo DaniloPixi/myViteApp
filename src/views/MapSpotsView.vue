@@ -9,7 +9,7 @@
       <p class="ds-state-copy">Loading map spots...</p>
     </div>
 
-    <div v-else class="map-spots-grid">
+    <div v-else class="map-spots-stack">
       <div>
         <div ref="mapRoot" class="map-canvas"></div>
 
@@ -22,27 +22,59 @@
         </p>
       </div>
 
-      <aside class="spot-sidebar">
-        <template v-if="selectedSpot">
-          <h2>{{ selectedSpot.title }}</h2>
-          <p>{{ selectedSpot.count }} item(s)</p>
+      <aside class="spot-sidebar ds-card">
+        <h2 class="ds-script-title">Locations</h2>
 
-          <div v-if="selectedSpot.items.memo.length">
-            <h3>Memos</h3>
-            <ul>
-              <li v-for="item in selectedSpot.items.memo" :key="item.id">{{ item.label }}</li>
-            </ul>
-          </div>
+        <template v-if="groupedSpots.length">
+          <ul class="spot-location-list">
+            <li
+              v-for="spot in groupedSpots"
+              :key="spot.key"
+              class="spot-location-item"
+              :class="{ 'spot-location-item--active': selectedSpotKey === spot.key }"
+            >
+              <button
+                type="button"
+                class="spot-location-toggle"
+                :aria-expanded="isSpotExpanded(spot.key)"
+                @click="toggleSpot(spot.key)"
+              >
+                <span class="spot-location-meta">
+                  <span class="spot-location-title">{{ spot.title }}</span>
+                  <span class="spot-location-count">{{ spot.count }} item(s)</span>
+                </span>
+                <span class="spot-location-chevron" :class="{ 'spot-location-chevron--open': isSpotExpanded(spot.key) }">
+                  ▾
+                </span>
+              </button>
 
-          <div v-if="selectedSpot.items.plan.length">
-            <h3>Plans</h3>
-            <ul>
-              <li v-for="item in selectedSpot.items.plan" :key="item.id">{{ item.label }}</li>
-            </ul>
-          </div>
+              <div v-if="isSpotExpanded(spot.key)" class="spot-location-dropdown">
+                <section class="spot-location-block">
+                  <h3>Places</h3>
+                  <ul>
+                    <li>{{ spot.title }}</li>
+                  </ul>
+                </section>
+
+                <section v-if="spot.items.memo.length" class="spot-location-block">
+                  <h3>Memos</h3>
+                  <ul>
+                    <li v-for="item in spot.items.memo" :key="item.id">{{ item.label }}</li>
+                  </ul>
+                </section>
+
+                <section v-if="spot.items.plan.length" class="spot-location-block">
+                  <h3>Plans</h3>
+                  <ul>
+                    <li v-for="item in spot.items.plan" :key="item.id">{{ item.label }}</li>
+                  </ul>
+                </section>
+              </div>
+            </li>
+          </ul>
         </template>
 
-        <p v-else class="spot-empty-copy">Select a marker to inspect linked moments.</p>
+        <p v-else class="spot-empty-copy">No mapped locations yet.</p>
       </aside>
     </div>
   </section>
@@ -64,6 +96,7 @@ const MAP_POPUP_CLASS = 'map-spot-popup';
 const mapRoot = ref(null);
 const loading = ref(true);
 const selectedSpotKey = ref('');
+const expandedSpotKeys = ref([]);
 const memos = ref([]);
 const plans = ref([]);
 const mapLoadError = ref('');
@@ -148,10 +181,28 @@ const groupedSpots = computed(() => {
   return Array.from(bucket.values());
 });
 
-const selectedSpot = computed(() => {
-  if (!selectedSpotKey.value) return null;
-  return groupedSpots.value.find((spot) => spot.key === selectedSpotKey.value) || null;
-});
+function isSpotExpanded(key) {
+  return expandedSpotKeys.value.includes(key);
+}
+
+function toggleSpot(key) {
+  const isExpanded = isSpotExpanded(key);
+  if (isExpanded) {
+    expandedSpotKeys.value = expandedSpotKeys.value.filter((spotKey) => spotKey !== key);
+  } else {
+    expandedSpotKeys.value = [...expandedSpotKeys.value, key];
+  }
+  selectedSpotKey.value = key;
+
+  const spot = groupedSpots.value.find((entry) => entry.key === key);
+  if (spot && mapInstance.value) {
+    mapInstance.value.easeTo({
+      center: [spot.lng, spot.lat],
+      duration: 450,
+      zoom: Math.max(mapInstance.value.getZoom(), 11.5),
+    });
+  }
+}
 
 function tuneLabelVisibility(map) {
   const style = map.getStyle();
@@ -228,8 +279,7 @@ function stabilizeMapLayout() {
 function getFitPadding() {
   const mobile = window.matchMedia('(max-width: 900px)').matches;
   if (mobile) return 28;
-  // right padding leaves visual room for sidebar
-  return { top: 28, bottom: 28, left: 28, right: 340 };
+  return { top: 28, bottom: 28, left: 28, right: 28 };
 }
 
 function renderMarkers() {
@@ -265,7 +315,6 @@ function renderMarkers() {
       data: geojson,
     });
 
-    // Glow layer
     map.addLayer({
       id: SPOT_GLOW_LAYER_ID,
       type: 'circle',
@@ -297,7 +346,6 @@ function renderMarkers() {
       },
     });
 
-    // Main marker layer
     map.addLayer({
       id: SPOT_LAYER_ID,
       type: 'circle',
@@ -334,7 +382,6 @@ function renderMarkers() {
       },
     });
 
-    // Count label on marker (only when more than 1 item at that point)
     map.addLayer({
       id: SPOT_COUNT_LAYER_ID,
       type: 'symbol',
@@ -359,6 +406,9 @@ function renderMarkers() {
       const key = feature?.properties?.key;
       if (!key) return;
       selectedSpotKey.value = key;
+      if (!expandedSpotKeys.value.includes(key)) {
+        expandedSpotKeys.value = [...expandedSpotKeys.value, key];
+      }
 
       const coords = feature.geometry?.coordinates;
       if (Array.isArray(coords)) {
@@ -409,6 +459,7 @@ function renderMarkers() {
 
   if (!selectedSpotKey.value) {
     selectedSpotKey.value = groupedSpots.value[0].key;
+    expandedSpotKeys.value = [groupedSpots.value[0].key];
     renderMarkers();
   }
 }
@@ -476,6 +527,8 @@ watch(
 );
 
 watch(groupedSpots, () => {
+  const validKeys = new Set(groupedSpots.value.map((spot) => spot.key));
+  expandedSpotKeys.value = expandedSpotKeys.value.filter((key) => validKeys.has(key));
   if (!mapInstance.value) {
     ensureMapReady();
     return;
@@ -513,9 +566,9 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.map-spots-grid {
-  display: grid;
-  grid-template-columns: 1.2fr 1fr;
+.map-spots-stack {
+  display: flex;
+  flex-direction: column;
   gap: 1rem;
 }
 
@@ -583,10 +636,101 @@ onUnmounted(() => {
 }
 
 .spot-sidebar {
-  border: 1px solid rgba(255, 0, 255, 0.3);
-  border-radius: 14px;
-  padding: 0.9rem;
-  background: rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--ds-space-3);
+}
+
+.spot-sidebar h2 {
+  margin: 0;
+}
+
+.spot-location-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ds-space-3);
+}
+
+.spot-location-item {
+  border: 1px solid var(--ds-color-border);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-color-surface-soft);
+  overflow: hidden;
+}
+
+.spot-location-item--active {
+  border-color: rgba(0, 247, 255, 0.56);
+  box-shadow: inset 0 0 0 1px rgba(0, 247, 255, 0.22);
+}
+
+.spot-location-toggle {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--ds-color-text);
+  padding: var(--ds-space-3) var(--ds-space-4);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  text-align: left;
+  cursor: pointer;
+}
+
+.spot-location-toggle:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.spot-location-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.spot-location-title {
+  font-size: var(--ds-text-md);
+  font-weight: 600;
+}
+
+.spot-location-count {
+  font-size: var(--ds-text-sm);
+  color: var(--ds-color-text-soft);
+}
+
+.spot-location-chevron {
+  color: var(--ds-color-accent-cyan);
+  transition: transform var(--ds-transition-fast);
+}
+
+.spot-location-chevron--open {
+  transform: rotate(180deg);
+}
+
+.spot-location-dropdown {
+  border-top: 1px solid var(--ds-color-border);
+  padding: var(--ds-space-3) var(--ds-space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--ds-space-3);
+}
+
+.spot-location-block h3 {
+  margin: 0 0 var(--ds-space-2);
+  color: var(--ds-color-accent-cyan);
+  font-size: var(--ds-text-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.spot-location-block ul {
+  margin: 0;
+  padding-left: 1.1rem;
+}
+
+.spot-location-block li {
+  color: var(--ds-color-text-soft);
 }
 
 .spot-empty-copy {
@@ -604,10 +748,6 @@ onUnmounted(() => {
 }
 
 @media (max-width: 900px) {
-  .map-spots-grid {
-    grid-template-columns: 1fr;
-  }
-
   .map-canvas {
     min-height: 360px;
   }
