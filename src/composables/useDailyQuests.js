@@ -26,6 +26,9 @@ const QUEST_POOL = [
   "Give the other a sincere compliment that's oddly specific.",
   "Describe our relationship using only metaphors.",
   "Choose one thing to take off each other's mental load this week.",
+  "Spicy selfie",
+  "A visual memory of the last sex",
+  "A fantasy for the next sex"
 ];
 
 export const questVersion = ref(0);

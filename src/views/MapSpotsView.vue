@@ -489,7 +489,7 @@ function initMap() {
     style: MAP_STYLE_URL,
     center: [16.3738, 48.2082],
     zoom: 11,
-    antialias: true,
+    antialias: false,
   });
 
   map.addControl(new maplibregl.NavigationControl({ showCompass: true }), 'top-right');
@@ -725,11 +725,9 @@ function renderMarkers() {
     });
   }
 
-  if (!selectedSpotKey.value) {
-    selectedSpotKey.value = groupedSpots.value[0].key;
-    expandedSpotKeys.value = [extractCityFromLocation(groupedSpots.value[0].title).toLowerCase()];
-    renderMarkers();
-  }
+  if (!selectedSpotKey.value && groupedSpots.value.length) {
+  selectedSpotKey.value = groupedSpots.value[0].key;
+}
 }
 
 async function ensureMapReady() {
