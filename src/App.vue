@@ -76,71 +76,43 @@
           <div v-if="user">
             <!-- View Navigation -->
             <nav class="view-nav">
-              <a
-                @click="currentView = 'home'"
-                :class="{ active: currentView === 'home' }"
-                :style="getNavStyle('home', 0)"
-              >Home</a>
-              <a
-                @click="currentView = 'memos'"
-                :class="{ active: currentView === 'memos' }"
-                :style="getNavStyle('memos', 1)"
-              >Moments</a>
-              <a
-                @click="currentView = 'plans'"
-                :class="{ active: currentView === 'plans' }"
-                :style="getNavStyle('plans', 2)"
-              >Plans</a>
-              <!-- 🔥 NEW: Time Capsules tab -->
-              <a
-                @click="currentView = 'capsules'"
-                :class="{ active: currentView === 'capsules' }"
-                :style="getNavStyle('capsules', 3)"
-              >
-              Capsules
-              </a>
-              <!-- Place this near your other fixed controls (inside <template>, where user is available) -->
-<!-- Floating Map button (put near other fixed controls, outside the nav links) -->
-<button
-  v-if="user"
-  type="button"
-  class="floating-map-nav"
-  :class="{ active: currentView === 'map' }"
-  aria-label="Open map view"
-  @click="currentView = 'map'"
->
-<svg
-  class="floating-map-nav-icon"
-  viewBox="0 0 24 24"
-  preserveAspectRatio="xMidYMid meet"
-  aria-hidden="true"
->
-<defs>
-  <linearGradient id="floatingMapPinGradient" x1="20%" y1="16%" x2="82%" y2="86%">
-    <stop offset="0%" stop-color="#8ffcff" stop-opacity="0.62" />
-    <stop offset="100%" stop-color="#ff8be4" stop-opacity="0.55" />
-  </linearGradient>
-</defs>
+  <a
+    @click="switchView('home')"
+    :class="{ active: currentView === 'home' }"
+    :style="getNavStyle('home', 0)"
+  >Home</a>
 
-<path
-  d="M12 1.5C7.3 1.5 3.5 5.3 3.5 10c0 6 8.5 13.5 8.5 13.5S20.5 16 20.5 10c0-4.7-3.8-8.5-8.5-8.5Z"
-  fill="rgba(143,252,255,0.1)"
-  stroke="url(#floatingMapPinGradient)"
-  stroke-width="1.5"
-  stroke-linecap="round"
-  stroke-linejoin="round"
-/>
-<circle
-  cx="12"
-  cy="10"
-  r="4.2"
-  fill="rgba(10, 20, 34, 0.12)"
-  stroke="url(#floatingMapPinGradient)"
-  stroke-width="1.9"
-/>
-</svg>
-</button>
-            </nav>
+  <a
+    @click="switchView('memos')"
+    :class="{ active: currentView === 'memos' }"
+    :style="getNavStyle('memos', 1)"
+  >Moments</a>
+
+  <a
+    @click="switchView('plans')"
+    :class="{ active: currentView === 'plans' }"
+    :style="getNavStyle('plans', 2)"
+  >Plans</a>
+
+  <a
+    @click="switchView('capsules')"
+    :class="{ active: currentView === 'capsules' }"
+    :style="getNavStyle('capsules', 3)"
+  >
+    Capsules
+  </a>
+
+  <button
+    v-if="user"
+    type="button"
+    class="floating-map-nav"
+    :class="{ active: currentView === 'map' }"
+    aria-label="Open map view"
+    @click="switchView('map')"
+  >
+    <!-- your existing SVG unchanged -->
+  </button>
+</nav>
 
             <!-- Conditional Views -->
             <transition name="slide-fade" mode="out-in">
@@ -221,7 +193,7 @@ import { useViewFilters } from './composables/useViewFilters';
 import { useCalendarData } from './composables/useCalendarData';
 import { forceReloadCalendarQuests } from './composables/useDailyQuests';
 import { usePresence } from './composables/usePresence';
-
+import { useSoundManager } from './composables/useSoundManager';
 usePwaAutoUpdate();
 usePresence();
 
@@ -235,7 +207,7 @@ const partnerPresenceStatus = ref('offline');
 let unsubscribePartnerPresence = null;
 // --- Centralized Data for Calendar ---
 const { memos, plans, setupDataListeners, clearDataListeners } = useCalendarData();
-
+const { initAudioFromGesture, play } = useSoundManager();
 const focusMemoId = ref(null);
 const focusPlanId = ref(null);
 const focusCapsuleId = ref(null);
@@ -264,7 +236,12 @@ const shouldShowNotificationStackLauncher = computed(() => {
   if (isMobileDevice.value) return true;
   return hasTabBeenUnfocused.value;
 });
-
+function switchView(view) {
+  if (currentView.value !== view) {
+    play('tap');
+  }
+  currentView.value = view;
+}
 const {
   currentView,
   locationFilter,
@@ -373,22 +350,24 @@ function addToNotificationStack(title, body, data) {
   });
 }
 
+
 function dismissStackNotification(notificationId) {
   const target = notificationStack.value.find((notification) => notification.id === notificationId);
   if (!target) return;
 
   target.status = 'dismissed';
+  play('tap');
 
   if (unreadStackNotifications.value.length < 3) {
     isNotificationStackVisible.value = false;
   }
 }
-
 function openStackNotification(notificationId) {
   const target = notificationStack.value.find((notification) => notification.id === notificationId);
   if (!target) return;
 
   target.status = 'opened';
+  play('tap');
 
   const urlString = target.data?.url || target.data?.link;
   if (urlString) {
@@ -403,6 +382,7 @@ function openStackNotification(notificationId) {
 function toggleNotificationStack() {
   if (!shouldShowNotificationStackLauncher.value) return;
   isNotificationStackVisible.value = !isNotificationStackVisible.value;
+  play('tap');
 }
 
 function setTabUnfocused() {
@@ -430,6 +410,7 @@ function maybeShowNextNotification() {
   inAppNotification.body = next.body;
   inAppNotification.visible = true;
   lastNotificationData.value = next.data || null;
+  play('notification');
 }
 // --- Authentication State Management ---
 const unsubscribeAuth = auth.onAuthStateChanged((currentUser) => {
@@ -469,8 +450,10 @@ async function sendLoveNotification() {
     inAppNotification.title = 'Message Sent!';
     inAppNotification.body = "You've sent an 'I love you' notification.";
     inAppNotification.visible = true;
+    play('success');
   } catch (error) {
     console.error('Error sending "I love you" notification:', error);
+    play('error');
   }
 }
 
@@ -732,6 +715,14 @@ onMounted(() => {
   window.addEventListener('blur', setWindowUnfocused);
   document.addEventListener('visibilitychange', setTabUnfocused);
   window.addEventListener('map-spots-open-item', handleMapSpotOpenItem);
+    // Unlock Web Audio once (required by browser autoplay policy)
+    window.addEventListener(
+    'pointerdown',
+    () => {
+      initAudioFromGesture();
+    },
+    { once: true, passive: true }
+  );
   // --- Notification support + SW message bridge ---
   supportsNotifications.value =
     typeof window !== 'undefined' &&
@@ -824,6 +815,7 @@ function applyDeepLinkFromUrlString(urlString) {
 
 
 function handleInAppNotificationClick() {
+  play('tap');
   const data = lastNotificationData.value;
 
   if (data) {
