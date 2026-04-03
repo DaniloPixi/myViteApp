@@ -111,14 +111,137 @@
     @click="switchView('map')"
   >
     <!-- your existing SVG unchanged -->
-  </button>
-</nav>
+    <svg
+  class="floating-map-nav-icon"
+  viewBox="0 0 24 24"
+  preserveAspectRatio="xMidYMid meet"
+  aria-hidden="true"
+>
+<defs>
+  <linearGradient id="floatingMapPinGradient" x1="20%" y1="16%" x2="82%" y2="86%">
+    <stop offset="0%" stop-color="#8ffcff" stop-opacity="0.62" />
+    <stop offset="100%" stop-color="#ff8be4" stop-opacity="0.55" />
+  </linearGradient>
+</defs>
 
+<path
+  d="M12 1.5C7.3 1.5 3.5 5.3 3.5 10c0 6 8.5 13.5 8.5 13.5S20.5 16 20.5 10c0-4.7-3.8-8.5-8.5-8.5Z"
+  fill="rgba(143,252,255,0.1)"
+  stroke="url(#floatingMapPinGradient)"
+  stroke-width="1.5"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+/>
+<circle
+  cx="12"
+  cy="10"
+  r="4.2"
+  fill="rgba(10, 20, 34, 0.12)"
+  stroke="url(#floatingMapPinGradient)"
+  stroke-width="1.9"
+/>
+</svg>
+  </button>
+
+</nav>
+  <!-- Floating Sound button -->
+  <button
+  v-if="user"
+  ref="soundButtonRef"
+  type="button"
+  class="floating-sound-nav"
+  :class="{ active: isSoundPanelOpen }"
+  aria-label="Open sound controls"
+  @click="toggleSoundPanel"
+>
+  <svg
+    class="floating-sound-nav-icon"
+    viewBox="0 0 24 24"
+    preserveAspectRatio="xMidYMid meet"
+    aria-hidden="true"
+  >
+    <defs>
+      <linearGradient id="floatingSoundGradient" x1="20%" y1="16%" x2="82%" y2="86%">
+        <stop offset="0%" stop-color="#8ffcff" stop-opacity="0.62" />
+        <stop offset="100%" stop-color="#ff8be4" stop-opacity="0.55" />
+      </linearGradient>
+    </defs>
+
+    <!-- Speaker body -->
+    <path
+      d="M4 10.2h3.1l4.3-3.4c.38-.3.92-.03.92.45v9.56c0 .48-.54.75-.92.45l-4.3-3.4H4c-.55 0-1-.45-1-1v-1.62c0-.55.45-1 1-1Z"
+      fill="rgba(143,252,255,0.1)"
+      stroke="url(#floatingSoundGradient)"
+      stroke-width="1.45"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+
+    <!-- Sound waves -->
+    <path
+      d="M15.2 9.2c1.15.75 1.85 2.06 1.85 3.45s-.7 2.7-1.85 3.45"
+      fill="none"
+      stroke="url(#floatingSoundGradient)"
+      stroke-width="1.55"
+      stroke-linecap="round"
+    />
+    <path
+      d="M17.55 7.45c1.72 1.22 2.75 3.18 2.75 5.2s-1.03 3.98-2.75 5.2"
+      fill="none"
+      stroke="url(#floatingSoundGradient)"
+      stroke-width="1.55"
+      stroke-linecap="round"
+    />
+  </svg>
+</button>
+<!-- Floating expandable Sound panel -->
+<transition name="sound-panel-fade">
+  <aside
+  v-if="user && isSoundPanelOpen"
+  ref="soundPanelRef"
+  class="floating-sound-panel"
+  aria-label="Sound controls"
+  @mouseenter="onSoundPanelPointerEnter"
+  @mouseleave="onSoundPanelPointerLeave"
+  @focusin="onSoundPanelPointerEnter"
+  @focusout="onSoundPanelPointerLeave"
+  >
+    <div class="sound-panel-head">
+      <h4>Sound</h4>
+      <label class="sound-toggle-inline">
+        <input
+          type="checkbox"
+          :checked="soundEnabled"
+          @change="onSoundToggle"
+        />
+        <span>{{ soundEnabled ? 'On' : 'Off' }}</span>
+      </label>
+    </div>
+
+    <div class="sound-panel-row">
+      <input
+  id="soundVolume"
+  type="range"
+  min="0"
+  max="1"
+  step="0.01"
+  :value="soundVolume"
+  :disabled="!soundEnabled"
+  @input="onSoundVolumeInput"
+  @pointerdown="onSoundSliderPointerDown"
+  @pointerup="onSoundSliderPointerUp"
+  @pointercancel="onSoundSliderPointerUp"
+/>
+      <small>{{ Math.round(soundVolume * 100) }}%</small>
+    </div>
+  </aside>
+</transition>
             <!-- Conditional Views -->
             <transition name="slide-fade" mode="out-in">
               <div :key="currentView">
                 <div v-if="currentView === 'home'">
                   <button @click="sendLoveNotification" class="love-button">Send Love</button>
+                  
                   <div class="calendar-container">
                     <DailyQuestWidget />
                     <CombinedCalendar :memos="memos" :plans="plans" />
@@ -170,7 +293,7 @@
 </template>
 
 <script setup>
-import { ref, watch, onUnmounted, onMounted, reactive, computed } from 'vue';
+import { ref, watch, onUnmounted, onMounted, reactive, computed,nextTick } from 'vue';
 import { auth, messaging,db } from './firebase';
 import { LogOut } from 'lucide-vue-next';
 // Import child components and views
@@ -207,12 +330,23 @@ const partnerPresenceStatus = ref('offline');
 let unsubscribePartnerPresence = null;
 // --- Centralized Data for Calendar ---
 const { memos, plans, setupDataListeners, clearDataListeners } = useCalendarData();
-const { initAudioFromGesture, play } = useSoundManager();
+
+const {
+  enabled: soundEnabled,
+  volume: soundVolume,
+  initAudioFromGesture,
+  play,
+  setEnabled: setSoundEnabled,
+  setVolume: setSoundVolume,
+} = useSoundManager();
 const focusMemoId = ref(null);
 const focusPlanId = ref(null);
 const focusCapsuleId = ref(null);
 const lastNotificationData = ref(null);
 const notificationQueue = ref([]);
+const SOUND_PANEL_AUTO_CLOSE_MS = 4000;
+const soundPanelAutoCloseTimer = ref(null);
+const isAdjustingSoundSlider = ref(false);
 // In-app notification state
 const inAppNotification = reactive({
   visible: false,
@@ -223,7 +357,9 @@ const notificationStack = ref([]);
 const isNotificationStackVisible = ref(false);
 const hasTabBeenUnfocused = ref(false);
 const isMobileDevice = ref(false);
-
+const isSoundPanelOpen = ref(false);
+const soundPanelRef = ref(null);
+const soundButtonRef = ref(null);
 const unreadStackNotifications = computed(() =>
   notificationStack.value
     .filter((notification) => notification.status === 'unread')
@@ -241,6 +377,7 @@ function switchView(view) {
     play('tap');
   }
   currentView.value = view;
+  closeSoundPanel();
 }
 const {
   currentView,
@@ -319,8 +456,86 @@ async function registerDeviceForNotifications() {
     console.error('An error occurred while retrieving token:', error);
   }
 }
+function toggleSoundPanel() {
+  isSoundPanelOpen.value = !isSoundPanelOpen.value;
+  play('tap');
 
+  if (isSoundPanelOpen.value) {
+    scheduleSoundPanelAutoClose();
+  } else {
+    clearSoundPanelAutoClose();
+  }
+}
 
+function closeSoundPanel() {
+  isSoundPanelOpen.value = false;
+  clearSoundPanelAutoClose();
+}
+
+function handleGlobalPointerDown(event) {
+  if (!isSoundPanelOpen.value) return;
+
+  const panelEl = soundPanelRef.value;
+  const buttonEl = soundButtonRef.value;
+  const target = event.target;
+
+  const clickedInsidePanel = panelEl && panelEl.contains(target);
+  const clickedButton = buttonEl && buttonEl.contains(target);
+
+  if (!clickedInsidePanel && !clickedButton) {
+    closeSoundPanel();
+  }
+}
+function onSoundToggle(event) {
+  const next = event.target.checked;
+  setSoundEnabled(next);
+
+  // optional tiny feedback when turning on
+  if (next) play('tap');
+  scheduleSoundPanelAutoClose();
+}
+
+function onSoundVolumeInput(event) {
+  const next = Number(event.target.value);
+  setSoundVolume(next);
+
+  // optional preview ping while adjusting
+  if (soundEnabled.value) play('tap');
+  scheduleSoundPanelAutoClose();
+}
+function clearSoundPanelAutoClose() {
+  if (soundPanelAutoCloseTimer.value) {
+    clearTimeout(soundPanelAutoCloseTimer.value);
+    soundPanelAutoCloseTimer.value = null;
+  }
+}
+
+function scheduleSoundPanelAutoClose() {
+  clearSoundPanelAutoClose();
+  if (!isSoundPanelOpen.value || isAdjustingSoundSlider.value) return;
+
+  soundPanelAutoCloseTimer.value = setTimeout(() => {
+    isSoundPanelOpen.value = false;
+  }, SOUND_PANEL_AUTO_CLOSE_MS);
+}
+
+function onSoundPanelPointerEnter() {
+  clearSoundPanelAutoClose();
+}
+
+function onSoundPanelPointerLeave() {
+  scheduleSoundPanelAutoClose();
+}
+
+function onSoundSliderPointerDown() {
+  isAdjustingSoundSlider.value = true;
+  clearSoundPanelAutoClose();
+}
+
+function onSoundSliderPointerUp() {
+  isAdjustingSoundSlider.value = false;
+  scheduleSoundPanelAutoClose();
+}
 async function enableNotifications() {
   if (!supportsNotifications.value) {
     console.error('This browser does not support notifications for this app.');
@@ -713,6 +928,7 @@ onMounted(() => {
     window.matchMedia('(max-width: 768px)').matches;
 
   window.addEventListener('blur', setWindowUnfocused);
+  window.addEventListener('pointerdown', handleGlobalPointerDown);
   document.addEventListener('visibilitychange', setTabUnfocused);
   window.addEventListener('map-spots-open-item', handleMapSpotOpenItem);
     // Unlock Web Audio once (required by browser autoplay policy)
@@ -848,7 +1064,9 @@ onUnmounted(() => {
     document.removeEventListener('visibilitychange', setTabUnfocused);
   }
   window.removeEventListener('map-spots-open-item', handleMapSpotOpenItem);
+  window.removeEventListener('pointerdown', handleGlobalPointerDown);
   clearDataListeners(); // Clean up listeners when component is destroyed
+  clearSoundPanelAutoClose();
 });
 </script>
 
@@ -1287,7 +1505,7 @@ onUnmounted(() => {
   justify-content: center;
   cursor: pointer;
   z-index: 1000;
-  transition: transform 0.22s ease-out, opacity 0.22s ease-out;
+  transition: transform var(--ds-transition-fast), opacity var(--ds-transition-fast);
 }
 
 .floating-map-nav:hover {
@@ -1310,9 +1528,215 @@ onUnmounted(() => {
   height: 2.15rem;
   display: block;
   filter:
-    drop-shadow(0 0 6px rgba(123, 255, 246, 0.28))
-    drop-shadow(0 0 9px rgba(255, 119, 221, 0.2));
+    drop-shadow(0 0 6px rgba(0, 247, 255, 0.28))
+    drop-shadow(0 0 9px rgba(255, 79, 233, 0.22));
 }
+
+/* Floating sound button (right side) */
+.floating-sound-nav {
+  position: fixed;
+  right: max(0.65rem, env(safe-area-inset-right));
+  top: 50%;
+  transform: translateY(-50%);
+  border: none;
+  background: transparent;
+  opacity: 0.92;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 1000;
+  transition: transform var(--ds-transition-fast), opacity var(--ds-transition-fast);
+}
+
+.floating-sound-nav:hover {
+  transform: translateY(calc(-50% - 2px)) scale(1.05);
+  opacity: 1;
+}
+
+.floating-sound-nav.active {
+  opacity: 1;
+}
+
+.floating-sound-nav:focus,
+.floating-sound-nav:focus-visible,
+.floating-sound-nav:active {
+  outline: none;
+}
+
+.floating-sound-nav-icon {
+  width: 2.15rem;
+  height: 2.15rem;
+  display: block;
+  filter:
+    drop-shadow(0 0 6px rgba(0, 247, 255, 0.28))
+    drop-shadow(0 0 9px rgba(255, 79, 233, 0.22));
+}
+
+/* Sound panel — adapted to your design system tokens */
+.floating-sound-panel {
+  position: fixed;
+  right: max(2.9rem, calc(env(safe-area-inset-right) + 2.6rem));
+  top: 50%;
+  transform: translateY(-50%);
+  width: min(320px, 76vw);
+  padding: var(--ds-space-4);
+  border-radius: var(--ds-radius-lg);
+  z-index: 1100;
+
+  border: 1px solid var(--ds-color-border);
+  background:
+    radial-gradient(circle at 18% 16%, rgba(0, 247, 255, 0.14), transparent 60%),
+    radial-gradient(circle at 82% 84%, rgba(255, 79, 233, 0.14), transparent 62%),
+    rgba(10, 10, 16, 0.26);
+  box-shadow:
+    var(--ds-shadow-soft),
+    0 0 14px rgba(255, 79, 233, 0.18),
+    0 0 16px rgba(0, 247, 255, 0.14);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+
+  font-family: var(--ds-font-body);
+}
+
+.sound-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ds-space-3);
+  margin-bottom: var(--ds-space-3);
+}
+
+.sound-panel-head h4 {
+  margin: 0;
+  font-size: var(--ds-text-md);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--ds-color-text);
+  font-family: var(--ds-font-body);
+  text-shadow:
+    0 0 7px rgba(255, 79, 233, 0.22),
+    0 0 10px rgba(0, 247, 255, 0.16);
+}
+
+.sound-toggle-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--ds-color-text-soft);
+  font-size: var(--ds-text-sm);
+  font-family: var(--ds-font-body);
+}
+
+.sound-toggle-inline input[type='checkbox'] {
+  accent-color: var(--ds-color-accent-cyan);
+}
+
+.sound-panel-row {
+  display: grid;
+  grid-template-columns: 1fr auto; /* left content + percent */
+  grid-template-areas:
+    "label value"
+    "slider slider";
+  align-items: center;
+  gap: 0.4rem 0.65rem;
+}
+
+.sound-panel-row label {
+  grid-area: label;
+  font-size: var(--ds-text-sm);
+  color: var(--ds-color-text-soft);
+  font-family: var(--ds-font-body);
+}
+
+.sound-panel-row small {
+  grid-area: value;
+  min-width: 3ch;
+  text-align: right;
+  color: var(--ds-color-text-muted);
+  font-size: var(--ds-text-sm);
+  font-family: var(--ds-font-body);
+}
+
+.sound-panel-row input[type='range'] {
+  grid-area: slider;          /* now full row width */
+  width: 100%;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius: var(--ds-radius-pill);
+  outline: none;
+  background:
+    linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--ds-color-accent-cyan) 82%, transparent) 0%,
+      color-mix(in srgb, var(--ds-color-accent-magenta) 82%, transparent) 100%
+    );
+  border: 1px solid var(--ds-color-border);
+  box-shadow:
+    inset 0 0 10px rgba(0, 0, 0, 0.28),
+    0 0 8px rgba(0, 247, 255, 0.14),
+    0 0 8px rgba(255, 79, 233, 0.12);
+}
+
+/* Chrome/Safari thumb */
+.sound-panel-row input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1px solid var(--ds-color-border-strong);
+
+  background:
+    radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.04) 62%),
+    linear-gradient(135deg, var(--ds-color-accent-cyan), var(--ds-color-accent-magenta));
+
+  box-shadow:
+    0 0 8px rgba(0, 247, 255, 0.22),
+    0 0 8px rgba(255, 79, 233, 0.2);
+  cursor: pointer;
+}
+
+/* Firefox track + thumb */
+.sound-panel-row input[type='range']::-moz-range-track {
+  height: 6px;
+  border-radius: var(--ds-radius-pill);
+  background:
+    linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--ds-color-accent-cyan) 82%, transparent) 0%,
+      color-mix(in srgb, var(--ds-color-accent-magenta) 82%, transparent) 100%
+    );
+  border: 1px solid var(--ds-color-border);
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.28);
+}
+
+.sound-panel-row input[type='range']::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1px solid var(--ds-color-border-strong);
+  background: linear-gradient(135deg, var(--ds-color-accent-cyan), var(--ds-color-accent-magenta));
+  box-shadow:
+    0 0 8px rgba(0, 247, 255, 0.22),
+    0 0 8px rgba(255, 79, 233, 0.2);
+  cursor: pointer;
+}
+
+/* panel transition */
+.sound-panel-fade-enter-active,
+.sound-panel-fade-leave-active {
+  transition: opacity var(--ds-transition-fast), transform var(--ds-transition-fast);
+}
+
+.sound-panel-fade-enter-from,
+.sound-panel-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-50%) translateX(10px);
+}
+
 @media (max-width: 768px) {
   .floating-map-nav {
     left: max(0.25rem, env(safe-area-inset-left));
@@ -1321,6 +1745,21 @@ onUnmounted(() => {
   .floating-map-nav-icon {
     width: 1.8rem;
     height: 1.8rem;
+  }
+
+  .floating-sound-nav {
+    right: max(0.25rem, env(safe-area-inset-right));
+  }
+
+  .floating-sound-nav-icon {
+    width: 1.8rem;
+    height: 1.8rem;
+  }
+
+  .floating-sound-panel {
+    right: max(2.45rem, calc(env(safe-area-inset-right) + 2.2rem));
+    width: min(280px, 80vw);
+    padding: var(--ds-space-3) var(--ds-space-4);
   }
 }
 </style>
