@@ -37,12 +37,14 @@
         class="tc-read-media-item"
         @click="openMediaViewer(index)"
       >
-        <img
-          v-if="media.resource_type === 'image' || !media.resource_type"
-          :src="media.url"
-          class="tc-read-media-img"
-          alt="Time capsule image"
-        />
+      <img
+  v-if="media.resource_type === 'image' || !media.resource_type"
+  :src="getImageUrlByPreset(media.url, 'card')"
+  class="tc-read-media-img"
+  alt="Time capsule image"
+  width="600"
+  height="420"
+/>
         <video
           v-else-if="media.resource_type === 'video'"
           :src="media.url"
@@ -89,7 +91,9 @@
   import { ref, computed } from 'vue';
   import BaseCapsuleModal from './BaseCapsuleModal.vue';
   import ImageModal from './ImageModal.vue';
-  
+  import { usePhotoUtils } from '../composables/usePhotoUtils';
+
+const { getImageUrlByPreset } = usePhotoUtils();
   const props = defineProps({
     capsule: { type: Object, required: true },
     isMine: { type: Boolean, default: false },

@@ -49,7 +49,14 @@
                 class="photo-item"
                 @click="openImageModal(getMemoMedia(memo), index)"
               >
-                <img :src="getThumbnailUrl(media)" alt="Memo media" :class="{ 'adult-content-blur': media.isAdult }" />
+               
+<img
+  :src="getThumbnailUrl(media)"
+  alt="Memo media"
+  :class="{ 'adult-content-blur': media.isAdult }"
+  width="320"
+  height="320"
+/>
               </div>
             </div>
           </div>
@@ -164,7 +171,7 @@ import ConfirmDeleteModal from "../components/ConfirmDeleteModal.vue";
 import ImageModal from "../components/ImageModal.vue";
 import { usePhotoUtils } from "../composables/usePhotoUtils";
 
-const { getOptimizedUrl } = usePhotoUtils();
+const { getImageUrlByPreset } = usePhotoUtils();
 
 const props = defineProps({
   locationFilter: { type: String, default: "" },
@@ -312,8 +319,8 @@ const ensureGalleryState = (memoId) => {
 const getMemoMedia = (memo) => (Array.isArray(memo.photos) ? memo.photos : []);
 
 const getThumbnailUrl = (media) => {
-  if (media.resource_type === "video") return media.url.replace(/\.mp4$/, ".jpg");
-  return getOptimizedUrl(media.url, { width: 600 });
+  if (media.resource_type === 'video') return media.url.replace(/\.mp4$/, '.jpg');
+  return getImageUrlByPreset(media.url, 'thumbnail');
 };
 
 // ---------- modal ----------

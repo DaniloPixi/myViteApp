@@ -49,18 +49,21 @@
           >
             <div class="image-container">
               <video
-                v-if="item.resource_type === 'video'"
-                :src="getOptimizedUrl(item.url, { isVideo: true, width: 1200 })"
-                controls
-                autoplay
-                loop
-                playsinline
-              ></video>
-              <img
-                v-else
-                :src="getOptimizedUrl(item.url, { width: 1200 })"
-                alt="Enlarged media"
-              />
+  v-if="item.resource_type === 'video'"
+  :src="getOptimizedUrl(item.url, { width: 1200 })"
+  controls
+  autoplay
+  loop
+  playsinline
+></video>
+
+<img
+  v-else
+  :src="getImageUrlByPreset(item.url, 'modal')"
+  alt="Enlarged media"
+  width="1400"
+  height="1400"
+/>
             </div>
           </div>
         </div>
@@ -89,9 +92,7 @@
 <script setup>
 import { ref, computed, watch, nextTick, onUnmounted } from 'vue';
 import { usePhotoUtils } from '../composables/usePhotoUtils';
-
-const { getOptimizedUrl } = usePhotoUtils();
-
+const { getOptimizedUrl, getImageUrlByPreset } = usePhotoUtils();
 const props = defineProps({
   isVisible: { type: Boolean, required: true },
   mediaItems: { type: Array, default: () => [] },
