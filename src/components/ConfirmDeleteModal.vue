@@ -1,31 +1,33 @@
 <template>
-  <div class="modal-overlay ds-modal-overlay" @click.self="onOverlayClose">
-    <div class="modal-content ds-modal-surface ds-modal-surface--xs ds-surface-danger">
-      <h3 class="modal-title ds-modal-title ds-modal-title--gold">
-        {{ randomMessage }}
-      </h3>
+  <Teleport to="body">
+    <div class="confirm-delete-overlay ds-modal-overlay" @click.self="onOverlayClose">
+      <div class="confirm-delete-content ds-modal-surface ds-modal-surface--xs ds-surface-danger">
+        <h3 class="confirm-delete-title ds-modal-title ds-modal-title--gold">
+          {{ randomMessage }}
+        </h3>
 
-      <div class="modal-actions ds-modal-actions">
-        <button
-          @click="onConfirm"
-          class="ds-modal-action-btn ds-modal-action-btn--danger"
-          type="button"
-        >
-          <Check :size="20" />
-          <span>Confirm</span>
-        </button>
+        <div class="ds-modal-actions">
+          <button
+            @click="onConfirm"
+            class="ds-modal-action-btn ds-modal-action-btn--danger"
+            type="button"
+          >
+            <Check :size="20" />
+            <span>Confirm</span>
+          </button>
 
-        <button
-          @click="onClose"
-          class="ds-modal-action-btn ds-modal-action-btn--cancel"
-          type="button"
-        >
-          <X :size="20" />
-          <span>Cancel</span>
-        </button>
+          <button
+            @click="onClose"
+            class="ds-modal-action-btn ds-modal-action-btn--cancel"
+            type="button"
+          >
+            <X :size="20" />
+            <span>Cancel</span>
+          </button>
+        </div>
       </div>
     </div>
-  </div>
+  </Teleport>
 </template>
 
 <script setup>
@@ -65,16 +67,34 @@ function onOverlayClose() {
 </script>
 
 <style scoped>
-.modal-content {
-  text-align: center;
+.confirm-delete-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 5000; /* above floating map/sound buttons */
+  display: grid;
+  place-items: center;
+  padding: max(1rem, env(safe-area-inset-top)) 1rem max(1rem, env(safe-area-inset-bottom));
 }
-.modal-title {
+
+.confirm-delete-content {
+  width: min(var(--ds-container-xs, 420px), calc(100vw - 1.5rem));
+  max-width: 100%;
+  margin: 0;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.confirm-delete-title {
   margin: 0 0 var(--ds-space-6);
 }
 
 @media (max-width: 480px) {
-  .modal-title {
+  .confirm-delete-title {
     margin-bottom: var(--ds-space-5);
+  }
+
+  .confirm-delete-content {
+    width: min(var(--ds-container-xs, 420px), calc(100vw - 1rem));
   }
 }
 </style>
