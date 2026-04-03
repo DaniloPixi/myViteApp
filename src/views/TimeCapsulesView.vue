@@ -110,8 +110,8 @@
     :from-name="myName"
     :is-submitting="saving"
     :submit-error="submitError"
-    cloudinary-cloud-name="dknmcj1qj"
-    cloudinary-upload-preset="memos_and_moments"
+    :cloudinary-cloud-name="cloudinaryCloudName"
+    :cloudinary-upload-preset="cloudinaryUploadPreset"
     @close="closeFormModal"
     @save="handleSaveCapsule"
   />
@@ -167,6 +167,7 @@
   import TimeCapsuleFormModal from '../components/TimeCapsuleFormModal.vue';
   import TimeCapsuleReadModal from '../components/TimeCapsuleReadModal.vue';
   import ConfirmDeleteModal from '../components/ConfirmDeleteModal.vue';
+  import { CLOUDINARY_CLOUD_NAME, CLOUDINARY_UPLOAD_PRESET } from '../config/env';
   
   const props = defineProps({
   dateFilter: {
@@ -186,6 +187,9 @@
 });
 
   
+  const cloudinaryCloudName = CLOUDINARY_CLOUD_NAME;
+  const cloudinaryUploadPreset = CLOUDINARY_UPLOAD_PRESET;
+
   const isTouchDevice = ref(false);
   const focusedCapsuleId = ref(null);
   

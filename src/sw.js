@@ -9,15 +9,8 @@ import { StaleWhileRevalidate } from 'workbox-strategies';
 importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-messaging-compat.js');
 
-// --- Firebase Configuration ---
-const firebaseConfig = {
-  apiKey: 'AIzaSyAGxR--Jx9ELN6IZ5hb1sCD67vreCJqm-k',
-  authDomain: 'gruandus.firebaseapp.com',
-  projectId: 'gruandus',
-  storageBucket: 'gruandus.appspot.com',
-  messagingSenderId: '104287336044',
-  appId: '1:104287336044:web:c2065e0f2f6fb15ff64a49',
-};
+import { firebaseConfig } from './firebaseConfig';
+import { APP_ENV, IS_TEST_MODE } from './config/env';
 
 // Initialize Firebase
 firebase.initializeApp(firebaseConfig);
@@ -185,6 +178,10 @@ messaging.onBackgroundMessage((payload) => {
 
   // If it looks auto-renderable, DO NOT show a second notification.
   if (looksAuto) return;
+
+  const payloadEnv = payload?.data?.appEnv;
+  if (payloadEnv && payloadEnv !== APP_ENV) return;
+  if (IS_TEST_MODE) return;
 
   // --- Pure data-only path: we render exactly one notification ---
   const data = payload?.data || {};

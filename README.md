@@ -116,3 +116,45 @@ npm run generate:pwa-icons
 1. Add linting + formatting scripts (`eslint`, `prettier`) and a pre-deploy check.
 2. Add smoke tests for API routes and one frontend happy-path flow.
 3. Add a simple backup/export routine for Firestore data.
+
+
+## Environment isolation (recommended)
+
+For safe feature development, maintain two channels:
+
+- **production**: real users + real notifications
+- **staging**: test users only, no production side-effects
+
+### Frontend env files
+
+Create `.env.production` and `.env.staging` from `.env.example`.
+
+Key variables:
+
+- `VITE_APP_ENV` (`production` or `staging`)
+- `VITE_TEST_MODE` (`true` disables client notification registration/actions)
+- `VITE_FIREBASE_*` (use separate Firebase projects per environment)
+- `VITE_CLOUDINARY_*` (use separate upload presets/folders per environment)
+
+### Function env variables (Netlify)
+
+Set these per-site/per-context:
+
+- `APP_ENV=production|staging`
+- `TEST_MODE=true|false`
+- `ALLOW_PUSH_IN_NON_PROD=true|false`
+
+Push logic behavior:
+
+- Push payloads and tokens are tagged with `appEnv`.
+- Sender exclusion is applied in production.
+- Non-production push is blocked unless `ALLOW_PUSH_IN_NON_PROD=true`.
+- `TEST_MODE=true` hard-disables push sending.
+
+### Safe testing checklist
+
+1. Use a dedicated staging Firebase project and staging users.
+2. Keep `VITE_TEST_MODE=true` while validating CRUD + upload flows.
+3. Enable `ALLOW_PUSH_IN_NON_PROD=true` only when you explicitly test push.
+4. Verify staging app writes only staging Firestore/RTDB data.
+5. Deploy production only from production env vars.

@@ -1,5 +1,3 @@
-// netlify/functions/api.mjs  (or your current api file)
-
 import express from 'express';
 import serverless from 'serverless-http';
 import admin from 'firebase-admin';
@@ -9,7 +7,6 @@ import path from 'path';
 import fs from 'fs';
 import { v2 as cloudinary } from 'cloudinary';
 
-// Import route handlers
 import createPlansRouter from './routes/plans.mjs';
 import createMemosRouter from './routes/memos.mjs';
 import createQuestsRouter from './routes/quests.mjs';
@@ -17,12 +14,22 @@ import createTimeCapsulesRouter from './routes/timeCapsules.mjs';
 
 let db;
 
-// --- Dual-Environment Firebase Initialization ---
+const getRuntimeEnv = () => {
+  if (process.env.APP_ENV) return String(process.env.APP_ENV);
+  if (process.env.CONTEXT === 'production') return 'production';
+  return 'staging';
+};
+
+const APP_ENV = getRuntimeEnv();
+const IS_PRODUCTION_ENV = APP_ENV === 'production';
+const IS_TEST_MODE = String(process.env.TEST_MODE || 'false') === 'true';
+const ALLOW_PUSH_IN_NON_PROD =
+  String(process.env.ALLOW_PUSH_IN_NON_PROD || 'false') === 'true';
+
 try {
   if (admin.apps.length === 0) {
     let serviceAccount;
     if (process.env.FIREBASE_PROJECT_ID) {
-      console.log('Initializing Firebase Admin with environment variables (Production Mode).');
       serviceAccount = {
         type: 'service_account',
         project_id: process.env.FIREBASE_PROJECT_ID,
@@ -35,42 +42,48 @@ try {
         auth_provider_x509_cert_url: 'https://www.googleapis.com/oauth2/v1/certs',
         client_x509_cert_url: process.env.FIREBASE_CLIENT_X509_CERT_URL,
       };
+      console.log(`[api] Firebase Admin initialized from env vars (APP_ENV=${APP_ENV}).`);
     } else {
-      console.log('Initializing Firebase Admin with local serviceAccountKey.json (Local Mode).');
       const keyPath = path.join(process.cwd(), 'netlify', 'functions', 'serviceAccountKey.json');
       serviceAccount = JSON.parse(fs.readFileSync(keyPath, 'utf8'));
+      console.log(`[api] Firebase Admin initialized from local service account (APP_ENV=${APP_ENV}).`);
     }
+
     admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
     db = admin.firestore();
-    console.log('✅ Firebase Admin Initialized SUCCESSFULLY.');
   } else {
     db = admin.firestore();
   }
+
+  console.log('✅ Firebase Admin Initialized SUCCESSFULLY.');
 } catch (error) {
   db = null;
   console.error('❌ CRITICAL: FIREBASE ADMIN SDK INITIALIZATION FAILED.', error);
 }
 
-// --- Dual-Environment Cloudinary Initialization ---
 try {
   let cloudinaryConfig = {};
+
   if (process.env.CLOUDINARY_API_KEY) {
-    console.log('Initializing Cloudinary with environment variables (Production Mode).');
     cloudinaryConfig = {
-      cloud_name: 'dknmcj1qj',
+      cloud_name: process.env.CLOUDINARY_CLOUD_NAME || 'dknmcj1qj',
       api_key: process.env.CLOUDINARY_API_KEY,
       api_secret: process.env.CLOUDINARY_API_SECRET,
     };
   } else {
-    console.log('Initializing Cloudinary with local cloudinaryCreds.json (Local Mode).');
     const credsPath = path.join(process.cwd(), 'netlify', 'functions', 'cloudinaryCreds.json');
     if (fs.existsSync(credsPath)) {
-      const { api_key, api_secret } = JSON.parse(fs.readFileSync(credsPath, 'utf8'));
-      cloudinaryConfig = { cloud_name: 'dknmcj1qj', api_key, api_secret };
+      const { api_key, api_secret, cloud_name } = JSON.parse(fs.readFileSync(credsPath, 'utf8'));
+      cloudinaryConfig = {
+        cloud_name: cloud_name || 'dknmcj1qj',
+        api_key,
+        api_secret,
+      };
     } else {
       console.warn('Cloudinary credentials not found for local development. Deletion will be skipped.');
     }
   }
+
   if (cloudinaryConfig.api_key) {
     cloudinary.config(cloudinaryConfig);
     console.log('✅ Cloudinary Initialized SUCCESSFULLY.');
@@ -82,7 +95,6 @@ try {
 const app = express();
 app.use(bodyParser.json());
 
-// --- Middleware ---
 const checkDb = (req, res, next) => {
   if (!db) {
     return res.status(503).json({ success: false, message: 'DATABASE NOT CONNECTED. Check server logs.' });
@@ -94,10 +106,12 @@ const authenticateToken = async (req, res, next) => {
   if (admin.apps.length === 0) {
     return res.status(503).json({ success: false, message: 'Server config error: Firebase not initialized.' });
   }
+
   const idToken = req.headers.authorization?.split('Bearer ')[1];
   if (!idToken) {
     return res.status(401).json({ success: false, message: 'Unauthorized: No token provided.' });
   }
+
   try {
     const decodedToken = await admin.auth().verifyIdToken(idToken);
     req.user = { uid: decodedToken.uid, name: decodedToken.name, email: decodedToken.email };
@@ -107,7 +121,6 @@ const authenticateToken = async (req, res, next) => {
   }
 };
 
-// --- Helper Functions ---
 const extractPublicId = (url) => {
   const regex = /upload\/(?:v\d+\/)?([\w\/\-]+)/;
   const match = url.match(regex);
@@ -122,17 +135,7 @@ const extractPublicId = (url) => {
   return null;
 };
 
-/**
- * ✅ Web tokens only: send DATA-only and let the Service Worker render.
- * This prevents:
- * - double notifications
- * - Chrome bell fallback caused by auto-render paths
- *
- * IMPORTANT:
- * - Put a real monochrome transparent PNG at /badge-96.png
- * - If you update the badge, bump BADGE_VER to bust caches on Android
- */
-const BADGE_VER = '2'; // bump to '2' if Android keeps showing an old cached badge/icon
+const BADGE_VER = '2';
 
 async function sendPushNotification(title, body, link = '/', excludeUid, data = {}) {
   if (!db) {
@@ -140,9 +143,15 @@ async function sendPushNotification(title, body, link = '/', excludeUid, data = 
     return;
   }
 
-  console.log(`--- Starting push notification process ---`);
-  console.log(`Triggered by UID: ${excludeUid}`);
-  console.log(`Notification Title: ${title}`);
+  if (IS_TEST_MODE) {
+    console.log('[push] TEST_MODE=true: skipping sendPushNotification side effects.');
+    return;
+  }
+
+  if (!IS_PRODUCTION_ENV && !ALLOW_PUSH_IN_NON_PROD) {
+    console.log('[push] Non-production push blocked. Set ALLOW_PUSH_IN_NON_PROD=true to enable.');
+    return;
+  }
 
   try {
     const tokensSnapshot = await db.collection('fcmTokens').get();
@@ -151,48 +160,40 @@ async function sendPushNotification(title, body, link = '/', excludeUid, data = 
       return;
     }
 
-    const allTokens = tokensSnapshot.docs.map((doc) => ({ token: doc.id, uid: doc.data().uid }));
-    console.log(`Found ${allTokens.length} total tokens in DB.`);
+    const allTokens = tokensSnapshot.docs.map((doc) => {
+      const tokenData = doc.data() || {};
+      return {
+        token: doc.id,
+        uid: tokenData.uid || null,
+        appEnv: tokenData.appEnv || 'production',
+      };
+    });
 
-    const isDevish =
-  process.env.NETLIFY_DEV === 'true' ||
-  (process.env.CONTEXT && process.env.CONTEXT !== 'production') ||
-  process.env.NODE_ENV !== 'production';
-
-console.log(`Running in dev-ish mode: ${isDevish} (CONTEXT=${process.env.CONTEXT || 'n/a'})`);
-
-// In dev-ish mode: send to everyone (including yourself) so you can test easily.
-// In production: exclude the sender (if excludeUid is provided).
-const recipientTokens = isDevish
-  ? allTokens.map((t) => t.token)
-  : allTokens.filter((t) => t.uid !== excludeUid).map((t) => t.token);
-
-    console.log(`Found ${recipientTokens.length} tokens to send to.`);
+    const envFiltered = allTokens.filter((t) => t.appEnv === APP_ENV);
+    const recipientTokens = envFiltered
+      .filter((t) => !IS_PRODUCTION_ENV || t.uid !== excludeUid)
+      .map((t) => t.token);
 
     if (recipientTokens.length === 0) {
-      console.log('No recipient tokens after filtering. Aborting send.');
-      console.log(`--- Push notification process finished ---`);
+      console.log(`[push] No recipients after APP_ENV filter (${APP_ENV}).`);
       return;
     }
 
-    // Normalize and enrich data payload
     const baseData = {
       type: data.type || 'generic',
       url: data.url || link || '/',
+      appEnv: data.appEnv || APP_ENV,
       ...data,
     };
 
-    // FCM "data" payload must be strings
     const stringifiedData = Object.fromEntries(
       Object.entries(baseData).map(([k, v]) => [String(k), String(v)])
     );
 
-    // ✅ Force same-origin stable assets + cache busting
     const icon = stringifiedData.icon || `/icons/manifest-icon-192.png?v=${BADGE_VER}`;
     const badge = stringifiedData.badge || `/badge-96.png?v=${BADGE_VER}`;
     const url = stringifiedData.url || link || '/';
 
-    // ✅ DATA-ONLY for web: DO NOT include any `notification` object anywhere.
     const message = {
       data: {
         ...stringifiedData,
@@ -202,70 +203,63 @@ const recipientTokens = isDevish
         badge: String(badge),
         url: String(url),
       },
-
       webpush: {
-        // This is fine to keep (click-through hint); SW still handles click.
         fcm_options: { link: String(url) },
-        // DO NOT set webpush.notification here, or Chrome may auto-render.
       },
-
       tokens: recipientTokens,
     };
 
     const response = await getMessaging().sendEachForMulticast(message);
-    console.log(`Successfully sent ${response.successCount} messages.`);
+    console.log(`[push] Successfully sent ${response.successCount} messages (APP_ENV=${APP_ENV}).`);
 
     if (response.failureCount > 0) {
-      console.warn(`Failed to send ${response.failureCount} messages.`);
+      console.warn(`[push] Failed to send ${response.failureCount} messages.`);
       const tokensToDelete = [];
       response.responses.forEach((resp, idx) => {
         if (!resp.success) {
           console.error(`  - Token[${idx}]: ${recipientTokens[idx]}`, resp.error);
           const errorCode = resp.error?.errorInfo?.code;
           if (errorCode === 'messaging/registration-token-not-registered') {
-            const invalidToken = recipientTokens[idx];
-            console.log(`Scheduling token for deletion: ${invalidToken}`);
-            tokensToDelete.push(db.collection('fcmTokens').doc(invalidToken).delete());
+            tokensToDelete.push(db.collection('fcmTokens').doc(recipientTokens[idx]).delete());
           }
         }
       });
+
       if (tokensToDelete.length > 0) {
         await Promise.all(tokensToDelete);
-        console.log(`Successfully deleted ${tokensToDelete.length} invalid tokens.`);
+        console.log(`[push] Deleted ${tokensToDelete.length} invalid tokens.`);
       }
     }
-
-    console.log(`--- Push notification process finished ---`);
   } catch (error) {
     console.error('Error during sendPushNotification function:', error);
   }
 }
 
-// --- API Endpoints ---
 const apiRouter = express.Router();
-
-// Authenticated routes
 apiRouter.use(authenticateToken);
 apiRouter.use(checkDb);
 
-// Feature-specific routes
 apiRouter.use('/plans', createPlansRouter(db, sendPushNotification));
 apiRouter.use('/memos', createMemosRouter(db, cloudinary, extractPublicId, sendPushNotification));
 apiRouter.use('/quests', createQuestsRouter(db, sendPushNotification));
-apiRouter.use(
-  '/time-capsules',
-  createTimeCapsulesRouter(db, cloudinary, extractPublicId, sendPushNotification)
-);
+apiRouter.use('/time-capsules', createTimeCapsulesRouter(db, cloudinary, extractPublicId, sendPushNotification));
 
-// Standalone registration endpoint
 app.post('/api/register', authenticateToken, checkDb, async (req, res) => {
-  const { token } = req.body;
+  const { token, appEnv } = req.body;
   const { uid } = req.user;
+
   if (!token) {
     return res.status(400).json({ success: false, message: 'FCM token is required.' });
   }
+
+  const normalizedEnv = typeof appEnv === 'string' && appEnv ? appEnv : APP_ENV;
+
   try {
-    await db.collection('fcmTokens').doc(token).set({ uid, createdAt: new Date() });
+    await db.collection('fcmTokens').doc(token).set({
+      uid,
+      appEnv: normalizedEnv,
+      createdAt: new Date(),
+    });
     res.status(200).json({ success: true, message: 'Token registered successfully.' });
   } catch (error) {
     console.error('Error in /api/register:', error);
@@ -279,10 +273,10 @@ app.post('/api/send-love', authenticateToken, checkDb, async (req, res) => {
 
   try {
     const url = '/';
-
     await sendPushNotification(`A message from ${senderName}`, 'I love you', url, null, {
       type: 'love',
       url,
+      appEnv: APP_ENV,
     });
 
     res.status(200).json({ success: true, message: '"I love you" notification sent successfully.' });
@@ -300,6 +294,4 @@ app.use((req, res, next) => {
 app.use('/api', apiRouter);
 
 export const handler = serverless(app);
-
-// Export for routers that need it
 export { extractPublicId };

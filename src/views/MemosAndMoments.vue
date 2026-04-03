@@ -141,8 +141,8 @@
     <MemoForm
       v-if="showForm"
       :memo="selectedMemo"
-      :cloudinary-cloud-name="'dknmcj1qj'"
-      :cloudinary-upload-preset="'memos_and_moments'"
+      :cloudinary-cloud-name="cloudinaryCloudName"
+      :cloudinary-upload-preset="cloudinaryUploadPreset"
       @close="closeForm"
       @memo-saved="handleMemoSaved"
     />
@@ -170,8 +170,11 @@ import MemoForm from "../components/MemoForm.vue";
 import ConfirmDeleteModal from "../components/ConfirmDeleteModal.vue";
 import ImageModal from "../components/ImageModal.vue";
 import { usePhotoUtils } from "../composables/usePhotoUtils";
+import { CLOUDINARY_CLOUD_NAME, CLOUDINARY_UPLOAD_PRESET } from '../config/env';
 
 const { getImageUrlByPreset } = usePhotoUtils();
+const cloudinaryCloudName = CLOUDINARY_CLOUD_NAME;
+const cloudinaryUploadPreset = CLOUDINARY_UPLOAD_PRESET;
 
 const props = defineProps({
   locationFilter: { type: String, default: "" },

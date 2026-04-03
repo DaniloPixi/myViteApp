@@ -1,6 +1,7 @@
 <template>
   <P5StarfieldBackground>
     <CursorTrail />
+    <div v-if="IS_TEST_MODE" class="test-mode-badge">TEST MODE · {{ APP_ENV }}</div>
     <div
   v-if="user"
   class="presence-floating-wrap"
@@ -39,8 +40,9 @@
         v-if="notificationPermission !== 'granted'"
         @click="enableNotifications"
         class="notification-btn enable"
+        :disabled="IS_TEST_MODE"
       >
-        Enable Notifs
+        {{ IS_TEST_MODE ? 'Notifs Disabled (Test)' : 'Enable Notifs' }}
       </button>
     </div>
 
@@ -146,7 +148,7 @@
             <transition name="slide-fade" mode="out-in">
               <div :key="currentView">
                 <div v-if="currentView === 'home'">
-                  <button @click="sendLoveNotification" class="love-button">Send Love</button>
+                  <button @click="sendLoveNotification" class="love-button" :disabled="IS_TEST_MODE">{{ IS_TEST_MODE ? 'Send Love Disabled (Test)' : 'Send Love' }}</button>
                   <div class="calendar-container">
                     <DailyQuestWidget />
                     <CombinedCalendar :memos="memos" :plans="plans" />
@@ -221,6 +223,7 @@ import { useViewFilters } from './composables/useViewFilters';
 import { useCalendarData } from './composables/useCalendarData';
 import { forceReloadCalendarQuests } from './composables/useDailyQuests';
 import { usePresence } from './composables/usePresence';
+import { APP_ENV, IS_TEST_MODE } from './config/env';
 
 usePwaAutoUpdate();
 usePresence();
@@ -291,6 +294,11 @@ const getNavStyle = (view, index) => {
 
 // --- Core Notification Logic ---
 async function registerDeviceForNotifications() {
+  if (IS_TEST_MODE) {
+    console.info('TEST_MODE enabled: skipping FCM token registration.');
+    return;
+  }
+
   if (!supportsNotifications.value) {
     console.warn('Notifications are not supported in this browser.');
     return;
@@ -325,10 +333,14 @@ async function registerDeviceForNotifications() {
     } catch (err) {
       console.warn('Failed to bind messaging to custom service worker:', err);
     }
-    const partnerPresenceStatus = ref('offline'); // online | away | offline
-    let unsubscribePartnerPresence = null;
+    const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY;
+    if (!vapidKey) {
+      console.warn('VITE_FIREBASE_VAPID_KEY is missing; skipping token registration.');
+      return;
+    }
+
     const currentToken = await messaging.getToken({
-      vapidKey: 'BPACu3jz1Y3_bB4VPwO96LkPua-bJKVXBOioaf75Gc7xQQ-aqZ04a0qBSbxuX6ZW6KcPB1Lcv68zGP5qrM2q9dU',
+      vapidKey,
       // critical: bind the token to *this* SW registration
       serviceWorkerRegistration: swRegistration,
     });
@@ -345,6 +357,11 @@ async function registerDeviceForNotifications() {
 
 
 async function enableNotifications() {
+  if (IS_TEST_MODE) {
+    console.info('TEST_MODE enabled: skipping FCM token registration.');
+    return;
+  }
+
   if (!supportsNotifications.value) {
     console.error('This browser does not support notifications for this app.');
     return;
@@ -452,6 +469,12 @@ const logout = () => {
 
 async function sendLoveNotification() {
   if (!user.value) return;
+  if (IS_TEST_MODE) {
+    inAppNotification.title = 'Test mode';
+    inAppNotification.body = 'Push side-effects are disabled in test mode.';
+    inAppNotification.visible = true;
+    return;
+  }
   try {
     const idToken = await user.value.getIdToken(true);
     const response = await fetch('/api/send-love', {
@@ -477,6 +500,12 @@ async function sendLoveNotification() {
 // --- Push Notification API Calls ---
 async function sendTokenToServer(token) {
   if (!user.value) return;
+  if (IS_TEST_MODE) {
+    inAppNotification.title = 'Test mode';
+    inAppNotification.body = 'Push side-effects are disabled in test mode.';
+    inAppNotification.visible = true;
+    return;
+  }
   try {
     const idToken = await user.value.getIdToken(true);
     const response = await fetch('/api/register', {
@@ -485,7 +514,7 @@ async function sendTokenToServer(token) {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${idToken}`
       },
-      body: JSON.stringify({ token: token }),
+      body: JSON.stringify({ token: token, appEnv: APP_ENV }),
     });
     if (!response.ok) {
       const errorBody = await response.json();
@@ -861,6 +890,21 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+.test-mode-badge {
+  position: fixed;
+  top: 14px;
+  right: 14px;
+  z-index: 9999;
+  padding: 0.35rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  background: rgba(255, 141, 192, 0.18);
+  border: 1px solid rgba(255, 141, 192, 0.55);
+  color: #ffe0f1;
+  backdrop-filter: blur(6px);
+}
+
 .centered-content-container {
   display: flex;
   justify-content: center;
