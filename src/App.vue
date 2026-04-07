@@ -369,10 +369,9 @@ const unreadStackNotifications = computed(() =>
 );
 
 const shouldShowNotificationStackLauncher = computed(() => {
-  const reachedThreshold = unreadStackNotifications.value.length >= 3;
-  if (!reachedThreshold) return false;
-  if (isMobileDevice.value) return true;
-  return hasTabBeenUnfocused.value;
+  const unreadCount = unreadStackNotifications.value.length;
+  if (isMobileDevice.value) return unreadCount > 0;
+  return unreadCount >= 3 && hasTabBeenUnfocused.value;
 });
 function switchView(view) {
   if (currentView.value !== view) {
@@ -574,10 +573,6 @@ function dismissStackNotification(notificationId) {
 
   target.status = 'dismissed';
   play('tap');
-
-  if (unreadStackNotifications.value.length < 3) {
-    isNotificationStackVisible.value = false;
-  }
 }
 function openStackNotification(notificationId) {
   const target = notificationStack.value.find((notification) => notification.id === notificationId);
@@ -589,10 +584,6 @@ function openStackNotification(notificationId) {
   const urlString = target.data?.url || target.data?.link;
   if (urlString) {
     applyDeepLinkFromUrlString(urlString);
-  }
-
-  if (unreadStackNotifications.value.length < 3) {
-    isNotificationStackVisible.value = false;
   }
 }
 
