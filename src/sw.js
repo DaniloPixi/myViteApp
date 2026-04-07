@@ -156,9 +156,35 @@ function resolveActionUrl(action, data = {}) {
 }
 
 // Defaults (must exist in /public)
-const DEFAULT_ICON = '/icons/manifest-icon-192.png';
-const DEFAULT_BADGE = '/badge-96.png';
+const DEFAULT_ICON = '/icons/manifest-icon-192.png'; // richer drawer icon fallback
+const DEFAULT_BADGE = '/icons/notification-statusbar.png'; // status-bar-safe glyph
 
+// Keep accepted local assets tight so backend payloads cannot point to arbitrary paths.
+const ALLOWED_NOTIFICATION_ASSETS = new Set([
+  DEFAULT_ICON,
+  DEFAULT_BADGE,
+  '/icons/notification-icon2.png',
+  '/icons/notification-statusbar-72.png',
+  '/icons/notification-statusbar-48.png',
+]);
+
+function resolveNotificationAsset(input, fallbackPath) {
+  const normalized = sameOriginPath(input, fallbackPath);
+
+  if (typeof normalized !== 'string' || !normalized.startsWith('/')) {
+    return fallbackPath;
+  }
+
+  // Strip query/hash for allowlist checks
+  const cleanPath = normalized.split('#')[0].split('?')[0];
+
+  // Optional strictness: only allow known notification assets
+  if (!ALLOWED_NOTIFICATION_ASSETS.has(cleanPath)) {
+    return fallbackPath;
+  }
+
+  return normalized;
+}
 // --- Firebase Background Message Handler ---
 // IMPORTANT: This expects your backend to send DATA-ONLY (no payload.notification).
 messaging.onBackgroundMessage((payload) => {
@@ -167,17 +193,14 @@ messaging.onBackgroundMessage((payload) => {
     for (const client of clientsList) client.postMessage(msg);
   };
 
-  // --- Detect whether Chrome/FCM is likely to auto-display ---
-  // These signals mean: "this message isn't pure data-only"
   const looksAuto =
-    !!payload?.notification || // classic FCM notification
-    !!payload?.fcmMessage?.notification || // some wrappers
-    typeof payload?.icon === 'string' || // top-level icon is a big hint
-    typeof payload?.image === 'string' || // top-level image hint
-    typeof payload?.title === 'string' || // top-level title hint
-    typeof payload?.body === 'string'; // top-level body hint
+    !!payload?.notification ||
+    !!payload?.fcmMessage?.notification ||
+    typeof payload?.icon === 'string' ||
+    typeof payload?.image === 'string' ||
+    typeof payload?.title === 'string' ||
+    typeof payload?.body === 'string';
 
-  // Debug to your app (no console needed)
   broadcast({
     type: 'SW_DEBUG_PUSH_FLAGS',
     flags: {
@@ -192,37 +215,29 @@ messaging.onBackgroundMessage((payload) => {
     },
   });
 
-  // If it looks auto-renderable, DO NOT show a second notification.
   if (looksAuto) return;
 
-  // --- Pure data-only path: we render exactly one notification ---
   const data = payload?.data || {};
 
   const title = data.title || 'Notification';
   const body = data.body || '';
-
   const clickUrl =
     data.url || payload?.fcmOptions?.link || payload?.webpush?.fcm_options?.link || '/';
 
-  const icon =
-    typeof data.icon === 'string' && data.icon.startsWith('/')
-      ? data.icon
-      : '/icons/manifest-icon-192.png';
-
-  const badge =
-    typeof data.badge === 'string' && data.badge.startsWith('/') ? data.badge : '/badge-96.png';
+  // Enforce safe fallback for missing/invalid payload fields
+  const icon = resolveNotificationAsset(data.icon, DEFAULT_ICON);
+  const badge = resolveNotificationAsset(data.badge, DEFAULT_BADGE);
 
   const actions = buildNotificationActions(data);
 
   self.registration.showNotification(title, {
     body,
     icon,
-    badge,
+    badge, // keep status-bar-safe asset here
     actions,
     data: { url: clickUrl, ...data },
   });
 
-  // keep your questCompleted postMessage behavior
   if (data.type === 'questCompleted') {
     broadcast({
       type: 'questCompleted',
