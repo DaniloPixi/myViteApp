@@ -4,7 +4,8 @@
       <section v-if="visible" class="stack-panel" aria-label="Unread notifications">
         <header class="stack-header">
           <h4>Unread notifications</h4>
-          <button class="panel-close" type="button" @click="emit('toggle')">×</button>
+         <!-- template -->
+<button class="panel-close" type="button" @click="emit('toggle')">&times;</button>
         </header>
 
         <ul class="stack-list">
@@ -236,8 +237,12 @@ const openNotification = (id) => {
 .panel-close {
   width: 30px;
   height: 30px;
-  font-size: 1.2rem;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  font-size: 1.15rem;
   line-height: 1;
+  font-weight: 600;
 }
 
 .stack-list {
