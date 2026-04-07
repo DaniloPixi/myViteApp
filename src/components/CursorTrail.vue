@@ -3,7 +3,7 @@
 </template>
 
 <script setup>
-import { onMounted, onUnmounted, ref } from "vue";
+import { onMounted, onUnmounted, ref } from 'vue';
 
 const props = defineProps({
   friction: {
@@ -136,9 +136,9 @@ const E = {
   tension: props.tension,
 };
 
-if (typeof window !== 'undefined' && window.matchMedia("(max-width: 768px)").matches) {
-    E.trails = 10;
-    E.size = 40;
+if (typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches) {
+  E.trails = 10;
+  E.size = 40;
 }
 
 function createLines() {
@@ -160,9 +160,9 @@ function updatePosition(e) {
 
 function render() {
   if (ctx && ctx.running) {
-    ctx.globalCompositeOperation = "source-over";
+    ctx.globalCompositeOperation = 'source-over';
     ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-    ctx.globalCompositeOperation = "lighter";
+    ctx.globalCompositeOperation = 'lighter';
     ctx.strokeStyle = `hsla(${Math.round(f.update())}, 50%, 50%, 0.2)`;
     ctx.lineWidth = 1;
 
@@ -213,7 +213,7 @@ function initCanvas() {
   const canvas = canvasRef.value;
   if (!canvas) return;
 
-  ctx = canvas.getContext("2d");
+  ctx = canvas.getContext('2d');
   ctx.running = true;
 
   f = new Wave({
@@ -225,10 +225,10 @@ function initCanvas() {
 
   document.addEventListener('mousemove', onInteraction);
   document.addEventListener('touchstart', onInteraction);
-  document.body.addEventListener("orientationchange", resizeCanvas);
-  window.addEventListener("resize", resizeCanvas);
-  window.addEventListener("focus", handleFocus);
-  window.addEventListener("blur", handleBlur);
+  document.body.addEventListener('orientationchange', resizeCanvas);
+  window.addEventListener('resize', resizeCanvas);
+  window.addEventListener('focus', handleFocus);
+  window.addEventListener('blur', handleBlur);
 
   resizeCanvas();
 }
@@ -243,10 +243,10 @@ function cleanup() {
   document.removeEventListener('mousemove', updatePosition);
   document.removeEventListener('touchmove', updatePosition);
   document.removeEventListener('touchstart', updatePosition);
-  document.body.removeEventListener("orientationchange", resizeCanvas);
-  window.removeEventListener("resize", resizeCanvas);
-  window.removeEventListener("focus", handleFocus);
-  window.removeEventListener("blur", handleBlur);
+  document.body.removeEventListener('orientationchange', resizeCanvas);
+  window.removeEventListener('resize', resizeCanvas);
+  window.removeEventListener('focus', handleFocus);
+  window.removeEventListener('blur', handleBlur);
 }
 
 onMounted(() => {
@@ -256,7 +256,6 @@ onMounted(() => {
 onUnmounted(() => {
   cleanup();
 });
-
 </script>
 
 <style scoped>

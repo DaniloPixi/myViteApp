@@ -2,7 +2,7 @@
 import { createApp } from 'vue';
 import App from './App.vue';
 import './firebase'; // Import and initialize Firebase
-import './style.css';  // Import global styles
+import './style.css'; // Import global styles
 
 // Import V-Calendar styles & plugin
 import 'v-calendar/style.css';

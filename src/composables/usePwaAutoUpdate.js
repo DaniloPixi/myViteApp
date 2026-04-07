@@ -47,7 +47,6 @@ function showBlockingUpdateModal(delayMs) {
     boxShadow: '0 0 24px rgba(255,0,255,0.35), 0 0 24px rgba(0,255,255,0.25)',
     color: '#fff',
     fontFamily: 'Exo 2, sans-serif',
-  
   });
 
   const title = overlay.querySelector('.pwa-update-title');

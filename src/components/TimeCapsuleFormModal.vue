@@ -1,21 +1,12 @@
 <template>
-  <BaseCapsuleModal
-    title-id="tc-form-title"
-    :show-close-icon="false"
-    @close="emitClose"
-  >
-    <template #label>
-      Time capsule
-    </template>
+  <BaseCapsuleModal title-id="tc-form-title" :show-close-icon="false" @close="emitClose">
+    <template #label> Time capsule </template>
 
     <template #title>
       {{ isEditMode ? 'Edit time capsule' : 'New time capsule' }}
     </template>
 
-    <template #subtitle>
-  From {{ fromName }} to {{ recipientLabel }}
-</template>
-
+    <template #subtitle> From {{ fromName }} to {{ recipientLabel }} </template>
 
     <!-- BODY -->
     <div class="tc-form-body ds-scrollbar-none">
@@ -23,24 +14,24 @@
       <div class="tc-form-field">
         <label class="tc-form-label ds-label ds-label--meta" for="tc-title">Title</label>
         <input
-  id="tc-title"
-  v-model="title"
-  type="text"
-  class="ds-input"
-  placeholder="Untitled capsule"
-/>
+          id="tc-title"
+          v-model="title"
+          type="text"
+          class="ds-input"
+          placeholder="Untitled capsule"
+        />
       </div>
 
       <!-- Message -->
       <div class="tc-form-field">
         <label class="tc-form-label ds-label ds-label--meta" for="tc-message">Message</label>
         <textarea
-  id="tc-message"
-  v-model="message"
-  class="ds-textarea"
-  rows="5"
-  placeholder="Write something for your future hearts..."
-/>
+          id="tc-message"
+          v-model="message"
+          class="ds-textarea"
+          rows="5"
+          placeholder="Write something for your future hearts..."
+        />
       </div>
 
       <!-- Unlock + recipient (centered block) -->
@@ -49,33 +40,33 @@
           Unlock date &amp; time
         </label>
         <input
-  id="tc-unlock"
-  v-model="unlockAtLocal"
-  type="datetime-local"
-  class="ds-input tc-input--centered"
- />
+          id="tc-unlock"
+          v-model="unlockAtLocal"
+          type="datetime-local"
+          class="ds-input tc-input--centered"
+        />
 
- <div class="ds-segmented-control">
-  <button
-    type="button"
-    class="ds-segmented-control__item"
-    :class="{ 'is-selected': recipient === 'me' }"
-    :aria-pressed="recipient === 'me'"
-    @click="recipient = 'me'"
-  >
-    Me
-  </button>
+        <div class="ds-segmented-control">
+          <button
+            type="button"
+            class="ds-segmented-control__item"
+            :class="{ 'is-selected': recipient === 'me' }"
+            :aria-pressed="recipient === 'me'"
+            @click="recipient = 'me'"
+          >
+            Me
+          </button>
 
-  <button
-    type="button"
-    class="ds-segmented-control__item"
-    :class="{ 'is-selected': recipient === 'partner' }"
-    :aria-pressed="recipient === 'partner'"
-    @click="recipient = 'partner'"
-  >
-    {{ partnerName || 'Partner' }}
-  </button>
-</div>
+          <button
+            type="button"
+            class="ds-segmented-control__item"
+            :class="{ 'is-selected': recipient === 'partner' }"
+            :aria-pressed="recipient === 'partner'"
+            @click="recipient = 'partner'"
+          >
+            {{ partnerName || 'Partner' }}
+          </button>
+        </div>
       </div>
 
       <!-- Media upload + preview (centered) -->
@@ -101,16 +92,12 @@
             <span v-else>➕ Add photos / videos</span>
           </button>
           <p v-if="uploadError" class="tc-upload-error ds-alert ds-alert--danger ds-alert--compact">
-  {{ uploadError }}
-</p>
+            {{ uploadError }}
+          </p>
         </div>
 
         <div v-if="photos.length" class="tc-form-photos">
-          <div
-            v-for="(media, index) in photos"
-            :key="index"
-            class="tc-photo-thumb"
-          >
+          <div v-for="(media, index) in photos" :key="index" class="tc-photo-thumb">
             <img
               v-if="media.resource_type === 'image' || !media.resource_type"
               :src="media.url"
@@ -123,214 +110,200 @@
               muted
             ></video>
 
-            <button
-              type="button"
-              class="tc-photo-remove"
-              @click="removePhoto(index)"
-            >
-              ×
-            </button>
+            <button type="button" class="tc-photo-remove" @click="removePhoto(index)">×</button>
           </div>
         </div>
       </div>
 
       <p v-if="submitError" class="tc-form-error ds-alert ds-alert--danger ds-alert--compact">
-  {{ submitError }}
-</p>
+        {{ submitError }}
+      </p>
     </div>
 
     <!-- FOOTER -->
-    <template #footer-text>
-      Write a note your future selves will unwrap later.
-    </template>
+    <template #footer-text> Write a note your future selves will unwrap later. </template>
 
     <template #footer-right>
-  <button
-    type="button"
-    class="ds-modal-action-btn ds-modal-action-btn--cancel"
-    :disabled="isSubmitting || isUploading"
-    @click="emitClose"
-  >
-    Cancel
-  </button>
+      <button
+        type="button"
+        class="ds-modal-action-btn ds-modal-action-btn--cancel"
+        :disabled="isSubmitting || isUploading"
+        @click="emitClose"
+      >
+        Cancel
+      </button>
 
-  <button
-    type="button"
-    class="ds-modal-action-btn ds-modal-action-btn--confirm"
-    :disabled="isSubmitting || isUploading"
-    @click="handleSubmit"
-  >
-    <span v-if="isEditMode">
-      {{ isSubmitting ? 'Saving…' : 'Save changes' }}
-    </span>
-    <span v-else>
-      {{ isSubmitting ? 'Creating…' : 'Create capsule' }}
-    </span>
-  </button>
-</template>
+      <button
+        type="button"
+        class="ds-modal-action-btn ds-modal-action-btn--confirm"
+        :disabled="isSubmitting || isUploading"
+        @click="handleSubmit"
+      >
+        <span v-if="isEditMode">
+          {{ isSubmitting ? 'Saving…' : 'Save changes' }}
+        </span>
+        <span v-else>
+          {{ isSubmitting ? 'Creating…' : 'Create capsule' }}
+        </span>
+      </button>
+    </template>
   </BaseCapsuleModal>
 </template>
 
 <script setup>
-  import { computed, ref } from 'vue';
-  import BaseCapsuleModal from './BaseCapsuleModal.vue';
-  
-  const props = defineProps({
-    capsule: {
-      type: Object,
-      default: null, // can be null in "create" mode
-    },
-    fromName: {
-      type: String,
-      default: 'Dani',
-    },
-    partnerName: {
-      type: String,
-      default: 'partner',
-    },
-    isSubmitting: {
-      type: Boolean,
-      default: false,
-    },
-    submitError: {
-      type: String,
-      default: '',
-    },
-    cloudinaryCloudName: {
-      type: String,
-      default: '',
-    },
-    cloudinaryUploadPreset: {
-      type: String,
-      default: '',
-    },
+import { computed, ref } from 'vue';
+import BaseCapsuleModal from './BaseCapsuleModal.vue';
+
+const props = defineProps({
+  capsule: {
+    type: Object,
+    default: null, // can be null in "create" mode
+  },
+  fromName: {
+    type: String,
+    default: 'Dani',
+  },
+  partnerName: {
+    type: String,
+    default: 'partner',
+  },
+  isSubmitting: {
+    type: Boolean,
+    default: false,
+  },
+  submitError: {
+    type: String,
+    default: '',
+  },
+  cloudinaryCloudName: {
+    type: String,
+    default: '',
+  },
+  cloudinaryUploadPreset: {
+    type: String,
+    default: '',
+  },
+});
+
+const emit = defineEmits(['close', 'save']);
+
+const isEditMode = computed(() => !!props.capsule && !!props.capsule.id);
+
+// Local form state
+const title = ref(props.capsule?.title ?? '');
+const message = ref(props.capsule?.message ?? '');
+const unlockAtLocal = ref(props.capsule?.unlockAt ? toLocalInputValue(props.capsule.unlockAt) : '');
+
+// only used in "create" path in parent
+const recipient = ref('partner');
+
+// photos is ALWAYS an array
+const photos = ref(Array.isArray(props.capsule?.photos) ? [...props.capsule.photos] : []);
+
+// this is what appears in the subtitle after "to"
+const recipientLabel = computed(() => {
+  if (recipient.value === 'me') return props.fromName || 'Me';
+  return props.partnerName || 'your partner';
+});
+
+// upload state
+const fileInput = ref(null);
+const isUploading = ref(false);
+const uploadError = ref('');
+
+function toLocalInputValue(isoString) {
+  if (!isoString) return '';
+  const d = new Date(isoString);
+  if (Number.isNaN(d.getTime())) return '';
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  const hours = String(d.getHours()).padStart(2, '0');
+  const minutes = String(d.getMinutes()).padStart(2, '0');
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+}
+
+function emitClose() {
+  emit('close');
+}
+
+function handleSubmit() {
+  emit('save', {
+    title: title.value,
+    message: message.value,
+    unlockAtLocal: unlockAtLocal.value,
+    recipient: recipient.value,
+    photos: photos.value,
   });
-  
-  const emit = defineEmits(['close', 'save']);
-  
-  const isEditMode = computed(() => !!props.capsule && !!props.capsule.id);
-  
-  // Local form state
-  const title = ref(props.capsule?.title ?? '');
-  const message = ref(props.capsule?.message ?? '');
-  const unlockAtLocal = ref(
-    props.capsule?.unlockAt ? toLocalInputValue(props.capsule.unlockAt) : ''
-  );
-  
-  // only used in "create" path in parent
-  const recipient = ref('partner');
-  
-  // photos is ALWAYS an array
-  const photos = ref(
-    Array.isArray(props.capsule?.photos) ? [...props.capsule.photos] : []
-  );
-  
-  // this is what appears in the subtitle after "to"
-  const recipientLabel = computed(() => {
-    if (recipient.value === 'me') return props.fromName || 'Me';
-    return props.partnerName || 'your partner';
-  });
-  
-  // upload state
-  const fileInput = ref(null);
-  const isUploading = ref(false);
-  const uploadError = ref('');
-  
-  function toLocalInputValue(isoString) {
-    if (!isoString) return '';
-    const d = new Date(isoString);
-    if (Number.isNaN(d.getTime())) return '';
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    const hours = String(d.getHours()).padStart(2, '0');
-    const minutes = String(d.getMinutes()).padStart(2, '0');
-    return `${year}-${month}-${day}T${hours}:${minutes}`;
+}
+
+function triggerFilePicker() {
+  uploadError.value = '';
+  if (fileInput.value) {
+    fileInput.value.click();
   }
-  
-  function emitClose() {
-    emit('close');
+}
+
+async function onFilesSelected(event) {
+  const files = Array.from(event.target.files || []);
+  if (!files.length) return;
+
+  if (!props.cloudinaryCloudName || !props.cloudinaryUploadPreset) {
+    uploadError.value = 'Media upload is not configured.';
+    event.target.value = '';
+    return;
   }
-  
-  function handleSubmit() {
-    emit('save', {
-      title: title.value,
-      message: message.value,
-      unlockAtLocal: unlockAtLocal.value,
-      recipient: recipient.value,
-      photos: photos.value,
-    });
-  }
-  
-  function triggerFilePicker() {
-    uploadError.value = '';
-    if (fileInput.value) {
-      fileInput.value.click();
-    }
-  }
-  
-  async function onFilesSelected(event) {
-    const files = Array.from(event.target.files || []);
-    if (!files.length) return;
-  
-    if (!props.cloudinaryCloudName || !props.cloudinaryUploadPreset) {
-      uploadError.value = 'Media upload is not configured.';
-      event.target.value = '';
-      return;
-    }
-  
-    isUploading.value = true;
-    uploadError.value = '';
-  
-    try {
-      for (const file of files) {
-        const isVideo = file.type && file.type.startsWith('video');
-        const resourceType = isVideo ? 'video' : 'image';
-  
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('upload_preset', props.cloudinaryUploadPreset);
-  
-        const endpoint = `https://api.cloudinary.com/v1_1/${props.cloudinaryCloudName}/${resourceType}/upload`;
-  
-        const res = await fetch(endpoint, {
-          method: 'POST',
-          body: formData,
-        });
-  
-        if (!res.ok) {
-          let msg = 'Upload failed';
-          try {
-            const errJson = await res.json();
-            msg = errJson?.error?.message || msg;
-          } catch {
-            // ignore parse
-          }
-          throw new Error(msg);
+
+  isUploading.value = true;
+  uploadError.value = '';
+
+  try {
+    for (const file of files) {
+      const isVideo = file.type && file.type.startsWith('video');
+      const resourceType = isVideo ? 'video' : 'image';
+
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('upload_preset', props.cloudinaryUploadPreset);
+
+      const endpoint = `https://api.cloudinary.com/v1_1/${props.cloudinaryCloudName}/${resourceType}/upload`;
+
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!res.ok) {
+        let msg = 'Upload failed';
+        try {
+          const errJson = await res.json();
+          msg = errJson?.error?.message || msg;
+        } catch {
+          // ignore parse
         }
-  
-        const data = await res.json();
-  
-        photos.value.push({
-          url: data.secure_url || data.url,
-          resource_type: data.resource_type || resourceType,
-        });
+        throw new Error(msg);
       }
-    } catch (e) {
-      console.error('[TimeCapsuleFormModal] upload failed:', e);
-      uploadError.value =
-        e?.message || 'Failed to upload media. Please try again.';
-    } finally {
-      isUploading.value = false;
-      if (event.target) event.target.value = '';
+
+      const data = await res.json();
+
+      photos.value.push({
+        url: data.secure_url || data.url,
+        resource_type: data.resource_type || resourceType,
+      });
     }
+  } catch (e) {
+    console.error('[TimeCapsuleFormModal] upload failed:', e);
+    uploadError.value = e?.message || 'Failed to upload media. Please try again.';
+  } finally {
+    isUploading.value = false;
+    if (event.target) event.target.value = '';
   }
-  
-  function removePhoto(index) {
-    photos.value.splice(index, 1);
-  }
-  </script>
-  
+}
+
+function removePhoto(index) {
+  photos.value.splice(index, 1);
+}
+</script>
 
 <style scoped>
 /* Main vertical layout */
@@ -368,7 +341,6 @@
 }
 
 /* Recipient toggle */
-
 
 /* Upload row */
 .tc-upload-row {
@@ -438,7 +410,6 @@
   box-shadow: 0 0 0.35rem rgba(0, 0, 0, 0.8);
 }
 
-
 /* Buttons */
 .tc-btn {
   border-radius: 999rem;
@@ -461,7 +432,6 @@
   box-shadow: 0 0 0.6rem rgba(0, 255, 255, 0.6);
   transform: translateY(-0.06rem);
 }
-
 
 .tc-btn:disabled {
   opacity: 0.55;

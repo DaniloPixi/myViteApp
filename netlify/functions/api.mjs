@@ -68,7 +68,9 @@ try {
       const { api_key, api_secret } = JSON.parse(fs.readFileSync(credsPath, 'utf8'));
       cloudinaryConfig = { cloud_name: 'dknmcj1qj', api_key, api_secret };
     } else {
-      console.warn('Cloudinary credentials not found for local development. Deletion will be skipped.');
+      console.warn(
+        'Cloudinary credentials not found for local development. Deletion will be skipped.'
+      );
     }
   }
   if (cloudinaryConfig.api_key) {
@@ -85,14 +87,18 @@ app.use(bodyParser.json());
 // --- Middleware ---
 const checkDb = (req, res, next) => {
   if (!db) {
-    return res.status(503).json({ success: false, message: 'DATABASE NOT CONNECTED. Check server logs.' });
+    return res
+      .status(503)
+      .json({ success: false, message: 'DATABASE NOT CONNECTED. Check server logs.' });
   }
   next();
 };
 
 const authenticateToken = async (req, res, next) => {
   if (admin.apps.length === 0) {
-    return res.status(503).json({ success: false, message: 'Server config error: Firebase not initialized.' });
+    return res
+      .status(503)
+      .json({ success: false, message: 'Server config error: Firebase not initialized.' });
   }
   const idToken = req.headers.authorization?.split('Bearer ')[1];
   if (!idToken) {
@@ -103,7 +109,9 @@ const authenticateToken = async (req, res, next) => {
     req.user = { uid: decodedToken.uid, name: decodedToken.name, email: decodedToken.email };
     next();
   } catch (error) {
-    return res.status(403).json({ success: false, message: `Forbidden: Invalid token. (${error.code})` });
+    return res
+      .status(403)
+      .json({ success: false, message: `Forbidden: Invalid token. (${error.code})` });
   }
 };
 
@@ -155,17 +163,17 @@ async function sendPushNotification(title, body, link = '/', excludeUid, data = 
     console.log(`Found ${allTokens.length} total tokens in DB.`);
 
     const isDevish =
-  process.env.NETLIFY_DEV === 'true' ||
-  (process.env.CONTEXT && process.env.CONTEXT !== 'production') ||
-  process.env.NODE_ENV !== 'production';
+      process.env.NETLIFY_DEV === 'true' ||
+      (process.env.CONTEXT && process.env.CONTEXT !== 'production') ||
+      process.env.NODE_ENV !== 'production';
 
-console.log(`Running in dev-ish mode: ${isDevish} (CONTEXT=${process.env.CONTEXT || 'n/a'})`);
+    console.log(`Running in dev-ish mode: ${isDevish} (CONTEXT=${process.env.CONTEXT || 'n/a'})`);
 
-// In dev-ish mode: send to everyone (including yourself) so you can test easily.
-// In production: exclude the sender (if excludeUid is provided).
-const recipientTokens = isDevish
-  ? allTokens.map((t) => t.token)
-  : allTokens.filter((t) => t.uid !== excludeUid).map((t) => t.token);
+    // In dev-ish mode: send to everyone (including yourself) so you can test easily.
+    // In production: exclude the sender (if excludeUid is provided).
+    const recipientTokens = isDevish
+      ? allTokens.map((t) => t.token)
+      : allTokens.filter((t) => t.uid !== excludeUid).map((t) => t.token);
 
     console.log(`Found ${recipientTokens.length} tokens to send to.`);
 
@@ -269,7 +277,9 @@ app.post('/api/register', authenticateToken, checkDb, async (req, res) => {
     res.status(200).json({ success: true, message: 'Token registered successfully.' });
   } catch (error) {
     console.error('Error in /api/register:', error);
-    res.status(500).json({ success: false, message: 'Internal server error.', details: error.message });
+    res
+      .status(500)
+      .json({ success: false, message: 'Internal server error.', details: error.message });
   }
 });
 
@@ -285,10 +295,14 @@ app.post('/api/send-love', authenticateToken, checkDb, async (req, res) => {
       url,
     });
 
-    res.status(200).json({ success: true, message: '"I love you" notification sent successfully.' });
+    res
+      .status(200)
+      .json({ success: true, message: '"I love you" notification sent successfully.' });
   } catch (error) {
     console.error('Error in /api/send-love:', error);
-    res.status(500).json({ success: false, message: 'Internal server error while sending notification.' });
+    res
+      .status(500)
+      .json({ success: false, message: 'Internal server error while sending notification.' });
   }
 });
 

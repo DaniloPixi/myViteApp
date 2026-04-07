@@ -1,32 +1,21 @@
 <template>
   <div class="modal-overlay ds-modal-overlay" @click.self="onClose">
     <div
-  class="modal-content tc-modal-shell ds-modal-surface"
-  role="dialog"
-  :aria-labelledby="titleId || undefined"
-  aria-modal="true"
->
+      class="modal-content tc-modal-shell ds-modal-surface"
+      role="dialog"
+      :aria-labelledby="titleId || undefined"
+      aria-modal="true"
+    >
       <!-- Close icon -->
-      <button
-        v-if="showCloseIcon"
-        type="button"
-        class="tc-modal-close"
-        @click="onClose"
-      >
-        ×
-      </button>
+      <button v-if="showCloseIcon" type="button" class="tc-modal-close" @click="onClose">×</button>
 
       <!-- HEADER -->
       <header class="tc-modal-header">
         <div v-if="$slots.label" class="tc-modal-label ds-label ds-label--meta">
-  <slot name="label" />
-</div>
+          <slot name="label" />
+        </div>
 
-        <h2
-          v-if="$slots.title"
-          :id="titleId || null"
-          class="tc-modal-title ds-modal-title"
-        >
+        <h2 v-if="$slots.title" :id="titleId || null" class="tc-modal-title ds-modal-title">
           <slot name="title" />
         </h2>
 
@@ -82,9 +71,9 @@ function onClose() {
   position: relative;
 }
 
-
 @keyframes tc-modal-glow {
-  0%, 100% {
+  0%,
+  100% {
     border-color: rgba(255, 0, 255, 0.32);
     box-shadow:
       inset 0 2px 4px rgba(0, 0, 0, 0.4),
@@ -115,7 +104,10 @@ function onClose() {
   padding: 0.1rem 0.35rem;
   line-height: 1;
   border-radius: 999px;
-  transition: color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
+  transition:
+    color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.15s ease;
 }
 
 .tc-modal-close:hover {
@@ -201,7 +193,6 @@ function onClose() {
   flex: 1;
   margin-top: 0.1rem;
   padding: 0.1rem 0;
- 
 }
 
 /* FOOTER */
@@ -252,5 +243,4 @@ function onClose() {
     justify-content: flex-end;
   }
 }
-
 </style>

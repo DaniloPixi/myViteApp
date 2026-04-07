@@ -8,10 +8,7 @@ export function usePresence() {
 
   const setFirestoreStatus = async (uid, status, lastChanged) => {
     try {
-      await db.collection('userPresence').doc(uid).set(
-        { status, lastChanged },
-        { merge: true }
-      );
+      await db.collection('userPresence').doc(uid).set({ status, lastChanged }, { merge: true });
     } catch (e) {
       console.warn('Failed to mirror presence to Firestore:', e);
     }
@@ -35,10 +32,13 @@ export function usePresence() {
       };
 
       // Ensure offline is set if tab/browser disconnects unexpectedly
-      userStatusRef.onDisconnect().set(offlineState).then(async () => {
-        await userStatusRef.set(onlineState);
-        await setFirestoreStatus(uid, 'online', Date.now());
-      });
+      userStatusRef
+        .onDisconnect()
+        .set(offlineState)
+        .then(async () => {
+          await userStatusRef.set(onlineState);
+          await setFirestoreStatus(uid, 'online', Date.now());
+        });
     });
   };
 

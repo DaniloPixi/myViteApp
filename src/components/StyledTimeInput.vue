@@ -1,6 +1,6 @@
 <template>
   <div class="styled-time-input-wrapper">
-    <input 
+    <input
       type="time"
       :value="modelValue"
       @input="$emit('update:modelValue', $event.target.value)"
@@ -10,8 +10,8 @@
 </template>
 
 <script setup>
-  defineProps(['modelValue']);
-  defineEmits(['update:modelValue']);
+defineProps(['modelValue']);
+defineEmits(['update:modelValue']);
 </script>
 
 <style scoped>
@@ -31,7 +31,9 @@
   font-size: 0.9em;
   font-family: inherit;
   text-align: center;
-  box-shadow: inset 0 0 5px rgba(64, 224, 208, 0.5), 0 0 5px rgba(64, 224, 208, 0.5);
+  box-shadow:
+    inset 0 0 5px rgba(64, 224, 208, 0.5),
+    0 0 5px rgba(64, 224, 208, 0.5);
   transition: box-shadow 0.3s ease;
   -webkit-appearance: none; /* Remove default styling */
   -moz-appearance: textfield; /* Firefox */
@@ -39,7 +41,9 @@
 
 .styled-time-input:focus {
   outline: none;
-  box-shadow: inset 0 0 8px rgba(64, 224, 208, 0.8), 0 0 8px rgba(64, 224, 208, 0.8);
+  box-shadow:
+    inset 0 0 8px rgba(64, 224, 208, 0.8),
+    0 0 8px rgba(64, 224, 208, 0.8);
 }
 
 /* Style the clock icon */

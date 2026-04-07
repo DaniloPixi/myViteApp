@@ -1,57 +1,58 @@
 <template>
   <div class="plans-view" @click="handleOutsideClick">
-
     <!-- Create Plan Button -->
     <section class="create-plan-button-section">
-  <button
-    @click="openCreateModal"
-    class="add-plan-button"
-    type="button"
-    aria-label="Create a new adventure"
-  >
-    <span class="add-plan-button__title">{{ createButtonTitle }}</span>
-  </button>
-</section>
+      <button
+        @click="openCreateModal"
+        class="add-plan-button"
+        type="button"
+        aria-label="Create a new adventure"
+      >
+        <span class="add-plan-button__title">{{ createButtonTitle }}</span>
+      </button>
+    </section>
 
     <!-- Plan Display List -->
     <section class="plan-list-section">
       <h1>Our Upcoming Plans</h1>
       <div v-if="isLoading" class="loading-state ds-state">
-  <p class="ds-state-copy">Loading plans...</p>
-</div>
+        <p class="ds-state-copy">Loading plans...</p>
+      </div>
 
-<div v-else-if="fetchError" class="error-message ds-state ds-state--error">
-  <p class="ds-state-copy">{{ fetchError }}</p>
-</div>
+      <div v-else-if="fetchError" class="error-message ds-state ds-state--error">
+        <p class="ds-state-copy">{{ fetchError }}</p>
+      </div>
 
-<div v-else-if="!plans.length" class="empty-state ds-state">
-  <p class="ds-state-copy">No plans yet. Let's create one!</p>
-</div>
+      <div v-else-if="!plans.length" class="empty-state ds-state">
+        <p class="ds-state-copy">No plans yet. Let's create one!</p>
+      </div>
 
-<div v-else-if="!filteredPlans.length" class="empty-state ds-state">
-  <p class="ds-state-copy">No plans match your current filters.</p>
-</div>
+      <div v-else-if="!filteredPlans.length" class="empty-state ds-state">
+        <p class="ds-state-copy">No plans match your current filters.</p>
+      </div>
       <div v-else class="plan-cards-container" @mousemove="handleMousemove">
-        <div 
+        <div
           v-for="(plan, index) in filteredPlans"
           :key="plan.id"
           class="plan-card"
-          :data-plan-id="plan.id" 
-          :class="{ 
-            'expanded': expandedPlanId === plan.id, 
-            'hovered': hoveredPlanId === plan.id && expandedPlanId !== plan.id,
-            'focused': isTouchDevice && focusedPlanId === plan.id && expandedPlanId !== plan.id
+          :data-plan-id="plan.id"
+          :class="{
+            expanded: expandedPlanId === plan.id,
+            hovered: hoveredPlanId === plan.id && expandedPlanId !== plan.id,
+            focused: isTouchDevice && focusedPlanId === plan.id && expandedPlanId !== plan.id,
           }"
           :style="getPlanBubbleStyle(plan, index)"
-          @click.stop="toggleExpand(plan.id)" 
+          @click.stop="toggleExpand(plan.id)"
           @mouseover="setHovered(plan.id)"
-          @mouseleave="clearHovered">
-
+          @mouseleave="clearHovered"
+        >
           <!-- Expanded Content -->
           <div v-if="expandedPlanId === plan.id" class="expanded-content">
             <h3>{{ plan.text }}</h3>
             <p class="plan-detail"><strong>Date:</strong> {{ formatDate(plan.date) }}</p>
-            <p v-if="plan.time" class="plan-detail"><strong>Time:</strong> {{ formatTime(plan.time) }}</p>
+            <p v-if="plan.time" class="plan-detail">
+              <strong>Time:</strong> {{ formatTime(plan.time) }}
+            </p>
             <p class="plan-detail"><strong>Location:</strong> {{ plan.location }}</p>
             <div v-if="plan.hashtags && plan.hashtags.length" class="hashtags-container">
               <span v-for="tag in plan.hashtags" :key="tag" class="hashtag">{{ tag }}</span>
@@ -60,14 +61,17 @@
             <div class="card-footer">
               <p class="creator-info">By: {{ plan.createdBy }}</p>
               <div class="card-actions">
-                  <button @click.stop="openEditModal(plan)" class="edit-button">edit</button>
-                  <button @click.stop="promptDelete(plan.id)" class="delete-button">delete</button>
+                <button @click.stop="openEditModal(plan)" class="edit-button">edit</button>
+                <button @click.stop="promptDelete(plan.id)" class="delete-button">delete</button>
               </div>
             </div>
           </div>
 
           <!-- Hovered or Focused Content (Title + Time) -->
-          <div v-else-if="hoveredPlanId === plan.id || (isTouchDevice && focusedPlanId === plan.id)" class="hover-content">
+          <div
+            v-else-if="hoveredPlanId === plan.id || (isTouchDevice && focusedPlanId === plan.id)"
+            class="hover-content"
+          >
             <h4 class="plan-title">{{ plan.text }}</h4>
             <p v-if="plan.time">{{ formatTime(plan.time) }}</p>
           </div>
@@ -76,7 +80,6 @@
           <div v-else class="default-content">
             <h4 class="plan-title">{{ plan.text }}</h4>
           </div>
-
         </div>
       </div>
     </section>
@@ -98,12 +101,10 @@
       @confirm="handleDelete"
       @close="isDeleteModalVisible = false"
     />
-
   </div>
 </template>
 <script setup>
-
-import { ref, onMounted, onUnmounted, computed, watch , nextTick } from 'vue';
+import { ref, onMounted, onUnmounted, computed, watch, nextTick } from 'vue';
 import { getFirestore, collection, query, orderBy, onSnapshot } from 'firebase/firestore';
 import PlanFormModal from '../components/PlanFormModal.vue';
 import ConfirmDeleteModal from '../components/ConfirmDeleteModal.vue';
@@ -173,8 +174,8 @@ const isTouchDevice = ref(false);
 
 // ---------- visual styling ----------
 const colorPalette = [
-  { inner: 'rgba(255, 3, 220, 0.5)', outer: 'rgba(255, 3, 220, 0.3)', color: 'magenta' },   // Magenta
-  { inner: 'rgba(3, 220, 255, 0.5)',  outer: 'rgba(3, 220, 255, 0.3)',  color: 'turquoise' } // Turquoise
+  { inner: 'rgba(255, 3, 220, 0.5)', outer: 'rgba(255, 3, 220, 0.3)', color: 'magenta' }, // Magenta
+  { inner: 'rgba(3, 220, 255, 0.5)', outer: 'rgba(3, 220, 255, 0.3)', color: 'turquoise' }, // Turquoise
 ];
 
 const getPlanBubbleStyle = (plan, index) => {
@@ -273,7 +274,7 @@ const handleMousemove = (event) => {
 };
 
 const updatePlanRects = () => {
-  plans.value.forEach(plan => {
+  plans.value.forEach((plan) => {
     const el = document.querySelector(`[data-plan-id="${plan.id}"]`);
     if (el) {
       plan.rect = el.getBoundingClientRect();
@@ -318,18 +319,16 @@ const filteredPlans = computed(() => {
   const timeFilter = props.timeFilter;
   const durationFilter = props.durationFilter || [];
 
-  return plans.value.filter(plan => {
+  return plans.value.filter((plan) => {
     // location
     const locationMatch =
-      !locationFilter ||
-      (plan.location && plan.location.toLowerCase().includes(locationFilter));
+      !locationFilter || (plan.location && plan.location.toLowerCase().includes(locationFilter));
 
     // hashtags
     const normalizedHashtags = Array.isArray(plan.hashtags)
       ? plan.hashtags.map(normalizeHashtag)
       : [];
-    const hashtagMatch =
-      !hashtagFilter || normalizedHashtags.includes(hashtagFilter);
+    const hashtagMatch = !hashtagFilter || normalizedHashtags.includes(hashtagFilter);
 
     // date (plan.date is assumed to be 'YYYY-MM-DD')
     const dateMatch = !dateFilter || plan.date === dateFilter;
@@ -350,8 +349,7 @@ const filteredPlans = computed(() => {
     // duration: durationFilter is e.g. ['All day', 'All night']
     // and you encode duration inside plan.time text (e.g. '18:00, All night')
     const durationMatch =
-      !durationFilter.length ||
-      (plan.time && durationFilter.some(d => plan.time.includes(d)));
+      !durationFilter.length || (plan.time && durationFilter.some((d) => plan.time.includes(d)));
 
     return locationMatch && hashtagMatch && dateMatch && timeMatch && durationMatch;
   });
@@ -364,7 +362,7 @@ const focusedPlanId = computed(() => {
   let minDistance = Infinity;
   const viewportCenterY = window.innerHeight / 2;
 
-  filteredPlans.value.forEach(plan => {
+  filteredPlans.value.forEach((plan) => {
     if (plan.rect) {
       const cardCenterY = plan.rect.top + plan.rect.height / 2;
       const distance = Math.abs(viewportCenterY - cardCenterY);
@@ -400,7 +398,7 @@ const subscribeToPlans = () => {
     unsubscribeFromPlans = onSnapshot(
       plansQuery,
       (snapshot) => {
-        plans.value = snapshot.docs.map(doc => {
+        plans.value = snapshot.docs.map((doc) => {
           const data = doc.data();
           const date = new Date(data.date);
           if (data.time) {
@@ -504,14 +502,17 @@ const formatDate = (dateString) => {
   if (!dateString) return '';
   const options = { year: 'numeric', month: 'long', day: 'numeric' };
   const date = new Date(dateString);
-  return new Date(date.getTime() + date.getTimezoneOffset() * 60000).toLocaleDateString(undefined, options);
+  return new Date(date.getTime() + date.getTimezoneOffset() * 60000).toLocaleDateString(
+    undefined,
+    options
+  );
 };
 
 const formatTime = (timeString) => {
   if (!timeString) return '';
   const parts = timeString.split(', ');
-  const timePart = parts.find(p => /^\d{2}:\d{2}$/.test(p));
-  const durationPart = parts.find(p => ['All day', 'All night', 'Indetermined'].includes(p));
+  const timePart = parts.find((p) => /^\d{2}:\d{2}$/.test(p));
+  const durationPart = parts.find((p) => ['All day', 'All night', 'Indetermined'].includes(p));
   let formattedTime = '';
   if (timePart) {
     const [hours, minutes] = timePart.split(':');
@@ -565,10 +566,16 @@ watch(
 );
 </script>
 
-
 <style scoped>
-.plans-view { max-width: 1200px; margin: 0 auto; padding: 1rem; }
-.plan-list-section { margin-bottom: 2.5rem; text-align: center;}
+.plans-view {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+.plan-list-section {
+  margin-bottom: 2.5rem;
+  text-align: center;
+}
 
 .plan-cards-container {
   display: flex;
@@ -582,14 +589,18 @@ watch(
     0 0 16px rgba(0, 255, 255, 0.7),
     0 0 22px rgba(255, 0, 255, 0.6);
   transform: translateY(-2px) scale(1.01);
-  transition: box-shadow 0.2s ease, transform 0.2s ease;
+  transition:
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
 }
 
 .plan-card {
   position: relative;
   backdrop-filter: blur(8px);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), box-shadow 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  transition:
+    transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1),
+    box-shadow 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
   cursor: pointer;
   color: #fff;
   width: 180px;
@@ -601,13 +612,18 @@ watch(
   text-align: center;
   padding: 1rem;
   background-color: transparent;
-  box-shadow: inset 0 0 10px var(--bubble-inner-shadow-color), 0 0 15px var(--bubble-outer-shadow-color);
+  box-shadow:
+    inset 0 0 10px var(--bubble-inner-shadow-color),
+    0 0 15px var(--bubble-outer-shadow-color);
   will-change: transform;
   backface-visibility: hidden;
 }
 
-.plan-card.hovered, .plan-card.focused {
-  box-shadow: inset 0 0 25px var(--bubble-inner-shadow-color), 0 0 25px var(--bubble-outer-shadow-color);
+.plan-card.hovered,
+.plan-card.focused {
+  box-shadow:
+    inset 0 0 25px var(--bubble-inner-shadow-color),
+    0 0 25px var(--bubble-outer-shadow-color);
 }
 
 .plan-card.expanded {
@@ -619,7 +635,9 @@ watch(
   align-items: stretch;
   padding: 2rem;
   cursor: default;
-  box-shadow: inset 0 0 20px var(--bubble-inner-shadow-color), 0 0 30px var(--bubble-outer-shadow-color);
+  box-shadow:
+    inset 0 0 20px var(--bubble-inner-shadow-color),
+    0 0 30px var(--bubble-outer-shadow-color);
   transform: scale(1) !important; /* Override scaling when expanded */
 }
 
@@ -660,8 +678,13 @@ watch(
   hyphens: auto;
 }
 
-.plan-detail { margin: 0.5rem 0; color: #ddd; }
-.plan-detail strong { color: #aaa; }
+.plan-detail {
+  margin: 0.5rem 0;
+  color: #ddd;
+}
+.plan-detail strong {
+  color: #aaa;
+}
 
 .create-plan-button-section {
   display: flex;
@@ -689,7 +712,11 @@ watch(
   box-shadow:
     0 0 20px rgba(255, 0, 255, 0.18),
     0 0 28px rgba(0, 255, 255, 0.14);
-  transition: transform 0.24s ease, box-shadow 0.24s ease, border-color 0.24s ease, color 0.24s ease;
+  transition:
+    transform 0.24s ease,
+    box-shadow 0.24s ease,
+    border-color 0.24s ease,
+    color 0.24s ease;
 }
 
 .add-plan-button:hover,
@@ -711,8 +738,9 @@ watch(
   color: currentColor;
 }
 
-
-.hashtags-container { margin-top: 1rem; }
+.hashtags-container {
+  margin-top: 1rem;
+}
 .hashtag {
   display: inline-block;
   background-color: #000000;

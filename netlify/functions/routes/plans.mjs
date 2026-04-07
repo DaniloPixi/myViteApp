@@ -35,7 +35,7 @@ export default function (db, sendPushNotification) {
 
   router.post('/', async (req, res) => {
     try {
-      const { text, date, time, location,locationCoords, hashtags } = req.body;
+      const { text, date, time, location, locationCoords, hashtags } = req.body;
       const { uid, name, email } = req.user;
       const createdBy = name || email || 'Someone';
 
@@ -62,10 +62,10 @@ export default function (db, sendPushNotification) {
         snippet && when
           ? `“${snippet}” · ${when}`
           : snippet
-          ? `“${snippet}”`
-          : when
-          ? `Something planned for ${when}`
-          : 'A new plan was added.';
+            ? `“${snippet}”`
+            : when
+              ? `Something planned for ${when}`
+              : 'A new plan was added.';
 
       await sendPushNotification(
         notifTitle,
@@ -118,10 +118,10 @@ export default function (db, sendPushNotification) {
         snippet && when
           ? `“${snippet}” · ${when} is off`
           : snippet
-          ? `“${snippet}” was cancelled`
-          : when
-          ? `Plan on ${when} was cancelled`
-          : 'A plan was cancelled.';
+            ? `“${snippet}” was cancelled`
+            : when
+              ? `Plan on ${when} was cancelled`
+              : 'A plan was cancelled.';
 
       await sendPushNotification(
         notifTitle,
@@ -152,7 +152,7 @@ export default function (db, sendPushNotification) {
     try {
       const { planId } = req.params;
       const { uid } = req.user;
-      const { text, date, time, location,locationCoords, hashtags } = req.body;
+      const { text, date, time, location, locationCoords, hashtags } = req.body;
 
       const updateData = {
         text,
@@ -174,10 +174,10 @@ export default function (db, sendPushNotification) {
         snippet && when
           ? `“${snippet}” · ${when}`
           : snippet
-          ? `“${snippet}” was updated`
-          : when
-          ? `Plan on ${when} was updated`
-          : 'A plan was updated.';
+            ? `“${snippet}” was updated`
+            : when
+              ? `Plan on ${when} was updated`
+              : 'A plan was updated.';
 
       await sendPushNotification(
         notifTitle,

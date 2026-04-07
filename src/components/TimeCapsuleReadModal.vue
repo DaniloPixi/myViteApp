@@ -1,12 +1,6 @@
 <template>
-  <BaseCapsuleModal
-    title-id="tc-read-title"
-    :show-close-icon="false"
-    @close="emitClose"
-  >
-    <template #label>
-      Time capsule
-    </template>
+  <BaseCapsuleModal title-id="tc-read-title" :show-close-icon="false" @close="emitClose">
+    <template #label> Time capsule </template>
 
     <template #title>
       {{ capsule.title || 'Untitled capsule' }}
@@ -14,9 +8,7 @@
 
     <template #subtitle>
       From {{ fromLabel }}
-      <span v-if="recipientLabel">
-        · To {{ recipientLabel }}
-      </span>
+      <span v-if="recipientLabel"> · To {{ recipientLabel }} </span>
     </template>
 
     <!-- BODY -->
@@ -27,24 +19,21 @@
     </div>
 
     <!-- Media gallery -->
-    <div
-      v-if="capsule.photos && capsule.photos.length"
-      class="tc-read-media-gallery"
-    >
+    <div v-if="capsule.photos && capsule.photos.length" class="tc-read-media-gallery">
       <div
         v-for="(media, index) in capsule.photos"
         :key="index"
         class="tc-read-media-item"
         @click="openMediaViewer(index)"
       >
-      <img
-  v-if="media.resource_type === 'image' || !media.resource_type"
-  :src="getImageUrlByPreset(media.url, 'card')"
-  class="tc-read-media-img"
-  alt="Time capsule image"
-  width="600"
-  height="420"
-/>
+        <img
+          v-if="media.resource_type === 'image' || !media.resource_type"
+          :src="getImageUrlByPreset(media.url, 'card')"
+          class="tc-read-media-img"
+          alt="Time capsule image"
+          width="600"
+          height="420"
+        />
         <video
           v-else-if="media.resource_type === 'video'"
           :src="media.url"
@@ -67,14 +56,10 @@
     </div>
 
     <!-- FOOTER -->
-    <template #footer-text>
-      Saved in your shared galaxy of memories.
-    </template>
+    <template #footer-text> Saved in your shared galaxy of memories. </template>
 
     <template #footer-right>
-      <button class="tc-btn tc-btn-ghost" @click="emitClose">
-        Close
-      </button>
+      <button class="tc-btn tc-btn-ghost" @click="emitClose">Close</button>
     </template>
   </BaseCapsuleModal>
 
@@ -88,57 +73,54 @@
 </template>
 
 <script setup>
-  import { ref, computed } from 'vue';
-  import BaseCapsuleModal from './BaseCapsuleModal.vue';
-  import ImageModal from './ImageModal.vue';
-  import { usePhotoUtils } from '../composables/usePhotoUtils';
+import { ref, computed } from 'vue';
+import BaseCapsuleModal from './BaseCapsuleModal.vue';
+import ImageModal from './ImageModal.vue';
+import { usePhotoUtils } from '../composables/usePhotoUtils';
 
 const { getImageUrlByPreset } = usePhotoUtils();
-  const props = defineProps({
-    capsule: { type: Object, required: true },
-    isMine: { type: Boolean, default: false },
-    recipientLabel: { type: String, default: '' },
-    partnerName: { type: String, default: 'partner' },
-    fromName: { type: String, default: 'Dani' },
+const props = defineProps({
+  capsule: { type: Object, required: true },
+  isMine: { type: Boolean, default: false },
+  recipientLabel: { type: String, default: '' },
+  partnerName: { type: String, default: 'partner' },
+  fromName: { type: String, default: 'Dani' },
+});
+
+const emit = defineEmits(['close']);
+
+function emitClose() {
+  emit('close');
+}
+
+function formatDate(raw) {
+  if (!raw) return 'Unknown';
+  const d = new Date(raw);
+  if (Number.isNaN(d.getTime())) return 'Unknown';
+  return d.toLocaleString(undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
   });
-  
-  const emit = defineEmits(['close']);
-  
-  function emitClose() {
-    emit('close');
-  }
-  
-  function formatDate(raw) {
-    if (!raw) return 'Unknown';
-    const d = new Date(raw);
-    if (Number.isNaN(d.getTime())) return 'Unknown';
-    return d.toLocaleString(undefined, {
-      year: 'numeric',
-      month: 'short',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  }
-  
-  // If it's "my" capsule → fromName, otherwise → partnerName
-  const fromLabel = computed(() =>
-    props.isMine ? props.fromName : props.partnerName
-  );
-  
-  const isMediaViewerVisible = ref(false);
-  const mediaViewerIndex = ref(0);
-  
-  function openMediaViewer(index) {
-    mediaViewerIndex.value = index || 0;
-    isMediaViewerVisible.value = true;
-  }
-  
-  function closeMediaViewer() {
-    isMediaViewerVisible.value = false;
-  }
-  </script>
-  
+}
+
+// If it's "my" capsule → fromName, otherwise → partnerName
+const fromLabel = computed(() => (props.isMine ? props.fromName : props.partnerName));
+
+const isMediaViewerVisible = ref(false);
+const mediaViewerIndex = ref(0);
+
+function openMediaViewer(index) {
+  mediaViewerIndex.value = index || 0;
+  isMediaViewerVisible.value = true;
+}
+
+function closeMediaViewer() {
+  isMediaViewerVisible.value = false;
+}
+</script>
 
 <style scoped>
 .tc-read-message-wrap {
@@ -266,7 +248,7 @@ const { getImageUrlByPreset } = usePhotoUtils();
   width: 100%;
   height: 120px;
   object-fit: contain;
-  background: var(--ds-gradient-glass)
+  background: var(--ds-gradient-glass);
 }
 
 @media (max-width: 700px) {
@@ -325,7 +307,11 @@ const { getImageUrlByPreset } = usePhotoUtils();
   height: 6px;
   border-radius: var(--ds-radius-pill);
   transform: translateY(-50%);
-  background: radial-gradient(circle, var(--ds-color-accent-cyan) 0%, var(--ds-color-accent-magenta) 70%);
+  background: radial-gradient(
+    circle,
+    var(--ds-color-accent-cyan) 0%,
+    var(--ds-color-accent-magenta) 70%
+  );
   box-shadow:
     0 0 6px rgba(0, 247, 255, 0.65),
     0 0 8px rgba(255, 79, 233, 0.5);

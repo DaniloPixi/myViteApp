@@ -50,11 +50,11 @@ const handleRegister = async () => {
 
   try {
     const userCredential = await auth.createUserWithEmailAndPassword(email.value, password.value);
-    await userCredential.user.updateProfile({ 
-      displayName: nickname.value 
+    await userCredential.user.updateProfile({
+      displayName: nickname.value,
     });
   } catch (err) {
-    console.error("Error during registration:", err);
+    console.error('Error during registration:', err);
     switch (err.code) {
       case 'auth/email-already-in-use':
         error.value = 'This email address is already in use.';
@@ -93,7 +93,9 @@ const switchToLogin = () => {
   background-color: rgba(0, 0, 0, 0.7);
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 3, 220, 0.2);
-  box-shadow: 0 0 20px rgba(255, 3, 220, 0.5), inset 0 0 15px rgba(3, 220, 255, 0.4);
+  box-shadow:
+    0 0 20px rgba(255, 3, 220, 0.5),
+    inset 0 0 15px rgba(3, 220, 255, 0.4);
   width: 100%;
   max-width: 420px;
   text-align: center;
@@ -125,10 +127,12 @@ input {
   padding: 0.8em 1em;
   border-radius: 8px;
   border: 1px solid magenta;
-  background-color: rgba(0,0,0,0.4);
+  background-color: rgba(0, 0, 0, 0.4);
   color: #fff;
   font-size: 1em;
-  transition: box-shadow 0.3s ease, border-color 0.3s ease;
+  transition:
+    box-shadow 0.3s ease,
+    border-color 0.3s ease;
 }
 
 input:focus {
@@ -148,12 +152,16 @@ button {
   font-weight: 500;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: inset 0 0 8px rgba(255, 0, 255, 0.5), 0 0 8px rgba(255, 0, 255, 0.5);
+  box-shadow:
+    inset 0 0 8px rgba(255, 0, 255, 0.5),
+    0 0 8px rgba(255, 0, 255, 0.5);
 }
 
 button:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: inset 0 0 12px rgba(255, 0, 255, 0.8), 0 0 12px rgba(255, 0, 255, 0.8);
+  box-shadow:
+    inset 0 0 12px rgba(255, 0, 255, 0.8),
+    0 0 12px rgba(255, 0, 255, 0.8);
 }
 
 .error-message {
@@ -169,7 +177,7 @@ button:disabled {
 }
 
 .switch-form {
-  font-family:'Great Vibes', cursive;
+  font-family: 'Great Vibes', cursive;
   font-weight: 800;
   font-size: 2rem;
   margin-top: 2rem;
@@ -180,7 +188,9 @@ button:disabled {
   color: turquoise;
   text-decoration: none;
   font-weight: 600;
-  transition: color 0.3s ease, text-shadow 0.3s ease;
+  transition:
+    color 0.3s ease,
+    text-shadow 0.3s ease;
 }
 
 .switch-form a:hover {

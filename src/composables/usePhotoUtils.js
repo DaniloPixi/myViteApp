@@ -42,11 +42,7 @@ export function usePhotoUtils() {
   /**
    * Preset-based helper.
    */
-  const getImageUrlByPreset = (
-    originalUrl,
-    preset = 'thumbnail',
-    overrides = {}
-  ) => {
+  const getImageUrlByPreset = (originalUrl, preset = 'thumbnail', overrides = {}) => {
     const presetOptions = MEDIA_PRESETS[preset] || MEDIA_PRESETS.thumbnail;
     return getImageUrl(originalUrl, { ...presetOptions, ...overrides });
   };

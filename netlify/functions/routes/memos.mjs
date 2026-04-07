@@ -42,7 +42,7 @@ export default function (db, cloudinary, extractPublicId, sendPushNotification) 
   });
 
   router.post('/', async (req, res) => {
-    const { description, date, location,locationCoords, hashtags, photos } = req.body;
+    const { description, date, location, locationCoords, hashtags, photos } = req.body;
     const { uid, name, email } = req.user;
 
     try {
@@ -95,7 +95,7 @@ export default function (db, cloudinary, extractPublicId, sendPushNotification) 
   router.put('/:memoId', async (req, res) => {
     const { memoId } = req.params;
     const { uid } = req.user;
-    const { description, date, location,locationCoords, hashtags, photos } = req.body;
+    const { description, date, location, locationCoords, hashtags, photos } = req.body;
 
     try {
       const memoRef = db.collection('memos').doc(memoId);
@@ -116,7 +116,14 @@ export default function (db, cloudinary, extractPublicId, sendPushNotification) 
         }
       }
 
-      const updateData = { description, date, location, locationCoords: locationCoords || null, hashtags, photos };
+      const updateData = {
+        description,
+        date,
+        location,
+        locationCoords: locationCoords || null,
+        hashtags,
+        photos,
+      };
       await memoRef.set(updateData, { merge: true });
 
       const snippet = getDescriptionSnippet(description);

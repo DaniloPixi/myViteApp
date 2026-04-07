@@ -22,7 +22,7 @@ export function useCalendarData() {
       },
       (err) => {
         console.error('Error fetching memos for calendar:', err);
-      },
+      }
     );
 
     const plansQuery = query(collection(db, 'plans'), orderBy('date', 'desc'));
@@ -50,7 +50,7 @@ export function useCalendarData() {
       },
       (err) => {
         console.error('Error fetching plans for calendar:', err);
-      },
+      }
     );
   };
 

@@ -38,32 +38,25 @@
         </button>
 
         <!-- Media Slider -->
-        <div
-          class="image-slider"
-          :style="{ transform: `translateX(-${currentIndex * 100}%)` }"
-        >
-          <div
-            v-for="(item, index) in mediaItems"
-            :key="index"
-            class="slide"
-          >
+        <div class="image-slider" :style="{ transform: `translateX(-${currentIndex * 100}%)` }">
+          <div v-for="(item, index) in mediaItems" :key="index" class="slide">
             <div class="image-container">
               <video
-  v-if="item.resource_type === 'video'"
-  :src="getOptimizedUrl(item.url, { width: 1200 })"
-  controls
-  autoplay
-  loop
-  playsinline
-></video>
+                v-if="item.resource_type === 'video'"
+                :src="getOptimizedUrl(item.url, { width: 1200 })"
+                controls
+                autoplay
+                loop
+                playsinline
+              ></video>
 
-<img
-  v-else
-  :src="getImageUrlByPreset(item.url, 'modal')"
-  alt="Enlarged media"
-  width="1400"
-  height="1400"
-/>
+              <img
+                v-else
+                :src="getImageUrlByPreset(item.url, 'modal')"
+                alt="Enlarged media"
+                width="1400"
+                height="1400"
+              />
             </div>
           </div>
         </div>
@@ -108,9 +101,7 @@ const touchStartX = ref(0);
 // Computed properties
 const hasMultipleMedia = computed(() => props.mediaItems.length > 1);
 const isFirstMedia = computed(() => currentIndex.value === 0);
-const isLastMedia = computed(
-  () => currentIndex.value === props.mediaItems.length - 1
-);
+const isLastMedia = computed(() => currentIndex.value === props.mediaItems.length - 1);
 
 // Watch modal visibility: init index, focus, lock scroll
 watch(
@@ -118,10 +109,7 @@ watch(
   (newValue) => {
     if (newValue) {
       const maxIndex = Math.max(0, props.mediaItems.length - 1);
-      const safeStart = Math.min(
-        Math.max(props.startIndex, 0),
-        maxIndex
-      );
+      const safeStart = Math.min(Math.max(props.startIndex, 0), maxIndex);
       currentIndex.value = safeStart;
 
       // lock body scroll
@@ -285,7 +273,9 @@ const handleTouchEnd = (event) => {
   font-size: 30px;
   cursor: pointer;
   z-index: 5;
-  transition: background 0.3s ease, transform 0.2s ease;
+  transition:
+    background 0.3s ease,
+    transform 0.2s ease;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -341,7 +331,9 @@ const handleTouchEnd = (event) => {
   border: none;
   padding: 0;
   background: rgba(255, 255, 255, 0.35);
-  transition: transform 0.3s ease, background-color 0.3s ease;
+  transition:
+    transform 0.3s ease,
+    background-color 0.3s ease;
   cursor: pointer;
 }
 
@@ -369,12 +361,14 @@ const handleTouchEnd = (event) => {
   font-size: 1.5rem;
   font-weight: 500;
   transition: all 0.2s ease;
-  box-shadow: inset 0 0 8px rgba(255, 0, 255, 0.5),
+  box-shadow:
+    inset 0 0 8px rgba(255, 0, 255, 0.5),
     0 0 8px rgba(255, 0, 255, 0.5);
 }
 
 .close-btn-bottom:hover {
-  box-shadow: inset 0 0 12px rgba(255, 0, 255, 0.8),
+  box-shadow:
+    inset 0 0 12px rgba(255, 0, 255, 0.8),
     0 0 12px rgba(255, 0, 255, 0.8);
 }
 

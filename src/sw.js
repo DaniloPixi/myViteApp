@@ -69,13 +69,22 @@ function sameOriginPath(input, fallbackPath) {
   }
 }
 
-
 function defaultActionForType(type) {
-  if (type === 'planCreated' || type === 'planUpdated' || type === 'planDeleted' || type === 'planAnniversary') {
+  if (
+    type === 'planCreated' ||
+    type === 'planUpdated' ||
+    type === 'planDeleted' ||
+    type === 'planAnniversary'
+  ) {
     return { action: 'open-plan', title: 'Open plan' };
   }
 
-  if (type === 'memoCreated' || type === 'memoUpdated' || type === 'memoDeleted' || type === 'memoAnniversary') {
+  if (
+    type === 'memoCreated' ||
+    type === 'memoUpdated' ||
+    type === 'memoDeleted' ||
+    type === 'memoAnniversary'
+  ) {
     return { action: 'open-memos', title: 'Open moments' };
   }
 
@@ -161,12 +170,12 @@ messaging.onBackgroundMessage((payload) => {
   // --- Detect whether Chrome/FCM is likely to auto-display ---
   // These signals mean: "this message isn't pure data-only"
   const looksAuto =
-    !!payload?.notification ||                 // classic FCM notification
-    !!payload?.fcmMessage?.notification ||     // some wrappers
-    typeof payload?.icon === 'string' ||       // top-level icon is a big hint
-    typeof payload?.image === 'string' ||      // top-level image hint
-    typeof payload?.title === 'string' ||      // top-level title hint
-    typeof payload?.body === 'string';         // top-level body hint
+    !!payload?.notification || // classic FCM notification
+    !!payload?.fcmMessage?.notification || // some wrappers
+    typeof payload?.icon === 'string' || // top-level icon is a big hint
+    typeof payload?.image === 'string' || // top-level image hint
+    typeof payload?.title === 'string' || // top-level title hint
+    typeof payload?.body === 'string'; // top-level body hint
 
   // Debug to your app (no console needed)
   broadcast({
@@ -193,18 +202,15 @@ messaging.onBackgroundMessage((payload) => {
   const body = data.body || '';
 
   const clickUrl =
-    data.url ||
-    payload?.fcmOptions?.link ||
-    payload?.webpush?.fcm_options?.link ||
-    '/';
+    data.url || payload?.fcmOptions?.link || payload?.webpush?.fcm_options?.link || '/';
 
-  const icon = (typeof data.icon === 'string' && data.icon.startsWith('/'))
-    ? data.icon
-    : '/icons/manifest-icon-192.png';
+  const icon =
+    typeof data.icon === 'string' && data.icon.startsWith('/')
+      ? data.icon
+      : '/icons/manifest-icon-192.png';
 
-  const badge = (typeof data.badge === 'string' && data.badge.startsWith('/'))
-    ? data.badge
-    : '/badge-96.png';
+  const badge =
+    typeof data.badge === 'string' && data.badge.startsWith('/') ? data.badge : '/badge-96.png';
 
   const actions = buildNotificationActions(data);
 
@@ -226,8 +232,6 @@ messaging.onBackgroundMessage((payload) => {
     });
   }
 });
-
-
 
 // --- Notification Click Handler ---
 self.addEventListener('notificationclick', (event) => {

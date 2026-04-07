@@ -51,25 +51,25 @@ const progress = computed(() => {
 });
 
 const progressTextMessage = computed(() => {
-    const end = new Date(props.endDate).getTime();
-    const currentTime = now.value.getTime();
-    const difference = end - currentTime;
-    const percentage = progress.value.toFixed(0);
+  const end = new Date(props.endDate).getTime();
+  const currentTime = now.value.getTime();
+  const difference = end - currentTime;
+  const percentage = progress.value.toFixed(0);
 
-    if (difference <= 0) {
-        return `${percentage}% | Time's up!`;
-    }
+  if (difference <= 0) {
+    return `${percentage}% | Time's up!`;
+  }
 
-    const days = Math.floor(difference / (1000 * 60 * 60 * 24));
-    const hours = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-    const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
+  const days = Math.floor(difference / (1000 * 60 * 60 * 24));
+  const hours = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
 
-    let timeLeftStr = 'Time left: ';
-    if (days > 0) timeLeftStr += `${days}d `;
-    if (hours > 0) timeLeftStr += `${hours}h `;
-    if (minutes > 0) timeLeftStr += `${minutes}m`;
+  let timeLeftStr = 'Time left: ';
+  if (days > 0) timeLeftStr += `${days}d `;
+  if (hours > 0) timeLeftStr += `${hours}h `;
+  if (minutes > 0) timeLeftStr += `${minutes}m`;
 
-    return `${percentage}% | ${timeLeftStr.trim()}`;
+  return `${percentage}% | ${timeLeftStr.trim()}`;
 });
 </script>
 
@@ -83,7 +83,6 @@ const progressTextMessage = computed(() => {
   margin-top: 10px;
   border: 0.01px #f700c1;
   box-shadow: 0 0 8px rgba(5, 136, 243, 0.7);
-
 }
 
 .progress-bar {
@@ -94,13 +93,13 @@ const progressTextMessage = computed(() => {
 }
 
 .progress-text {
-    position: absolute;
-    width: 100%;
-    text-align: center;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    color: white;
-    font-size: 12px;
+  position: absolute;
+  width: 100%;
+  text-align: center;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  font-size: 12px;
 }
 </style>

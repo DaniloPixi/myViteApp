@@ -11,11 +11,7 @@
     </p>
 
     <div class="dq-footer">
-      <button
-        class="dq-btn"
-        :disabled="loading"
-        @click="completeQuest"
-      >
+      <button class="dq-btn" :disabled="loading" @click="completeQuest">
         <span v-if="loading">Working...</span>
         <span v-else>Mark as completed</span>
       </button>
@@ -28,18 +24,14 @@
       </span>
       <span v-if="monthDayIndex > 0" class="dq-month">
         This month: {{ monthCompletedCount }} / {{ monthDayIndex }} quests
-        <span v-if="allDoneSoFar" class="dq-month-flag">
-          – perfect so far 💫
-        </span>
+        <span v-if="allDoneSoFar" class="dq-month-flag"> – perfect so far 💫 </span>
       </span>
     </div>
   </div>
 
   <!-- COMPLETED STATE: minimal pill -->
   <div v-else class="daily-quest-completed">
-    <span class="dq-completed-pill">
-      Quest completed ✨
-    </span>
+    <span class="dq-completed-pill"> Quest completed ✨ </span>
 
     <!-- Stats & progress even when completed -->
     <div class="dq-stats" v-if="statsReady">
@@ -48,9 +40,7 @@
       </span>
       <span v-if="monthDayIndex > 0" class="dq-month">
         This month: {{ monthCompletedCount }} / {{ monthDayIndex }} quests
-        <span v-if="allDoneSoFar" class="dq-month-flag">
-          – perfect so far 💫
-        </span>
+        <span v-if="allDoneSoFar" class="dq-month-flag"> – perfect so far 💫 </span>
       </span>
     </div>
   </div>
@@ -97,7 +87,7 @@ const formattedDate = computed(() =>
     year: 'numeric',
     month: 'short',
     day: '2-digit',
-  }),
+  })
 );
 
 // local helper: same date formatting as composable
@@ -113,10 +103,7 @@ function dateKeyLocal(date) {
 function getCurrentUserIdentity() {
   const user = auth.currentUser;
   const uid = user?.uid || props.currentUserId || null;
-  const userName =
-    user?.displayName ||
-    user?.email ||
-    null;
+  const userName = user?.displayName || user?.email || null;
 
   return { uid, userName };
 }
@@ -147,11 +134,7 @@ function computeStats(uid) {
   all.forEach((q) => {
     if (!q.date || !q.completed) return;
     const d = new Date(q.date);
-    if (
-      d.getFullYear() === year &&
-      d.getMonth() === month &&
-      d.getDate() <= todayDay
-    ) {
+    if (d.getFullYear() === year && d.getMonth() === month && d.getDate() <= todayDay) {
       monthlyCompletedKeys.add(dateKeyLocal(d));
     }
   });
@@ -175,10 +158,7 @@ function computeStats(uid) {
 }
 
 const allDoneSoFar = computed(() => {
-  return (
-    monthDayIndex.value > 0 &&
-    monthCompletedCount.value === monthDayIndex.value
-  );
+  return monthDayIndex.value > 0 && monthCompletedCount.value === monthDayIndex.value;
 });
 
 async function loadQuest() {
@@ -192,11 +172,7 @@ async function loadQuest() {
       return;
     }
 
-    const q = await getOrCreateQuestForDate(
-      parsedDate.value,
-      uid,
-      userName,
-    );
+    const q = await getOrCreateQuestForDate(parsedDate.value, uid, userName);
 
     quest.value = q;
     emit('quest-updated', q);
@@ -223,11 +199,7 @@ async function completeQuest() {
     }
 
     // 1) Update Firestore
-    const updated = await markQuestCompleted(
-      parsedDate.value,
-      uid,
-      userName,
-    );
+    const updated = await markQuestCompleted(parsedDate.value, uid, userName);
 
     quest.value = updated;
     emit('quest-completed', updated);
@@ -245,9 +217,7 @@ async function completeQuest() {
     try {
       const user = auth.currentUser;
       if (!user) {
-        console.warn(
-          '[DailyQuestWidget] No authenticated user, cannot notify backend',
-        );
+        console.warn('[DailyQuestWidget] No authenticated user, cannot notify backend');
       } else {
         const idToken = await user.getIdToken();
 
@@ -261,17 +231,11 @@ async function completeQuest() {
         });
 
         if (!res.ok) {
-          console.warn(
-            '[DailyQuestWidget] /api/quests failed:',
-            await res.text(),
-          );
+          console.warn('[DailyQuestWidget] /api/quests failed:', await res.text());
         }
       }
     } catch (notifyError) {
-      console.warn(
-        '[DailyQuestWidget] Failed to call /api/quests:',
-        notifyError,
-      );
+      console.warn('[DailyQuestWidget] Failed to call /api/quests:', notifyError);
     }
   } catch (e) {
     console.warn('[DailyQuestWidget] Failed to complete quest', e);
@@ -288,7 +252,7 @@ watch(
   () => props.date,
   () => {
     loadQuest();
-  },
+  }
 );
 </script>
 
@@ -298,9 +262,10 @@ watch(
   padding: 14px 18px 16px;
   border-radius: 14px;
   border: 1px solid rgba(255, 0, 255, 0.5);
-  background: radial-gradient(circle at 10% 0%, rgba(0, 255, 255, 0.1), transparent 55%),
-              radial-gradient(circle at 90% 100%, rgba(255, 0, 255, 0.12), transparent 55%),
-              rgba(0, 0, 0, 0.75);
+  background:
+    radial-gradient(circle at 10% 0%, rgba(0, 255, 255, 0.1), transparent 55%),
+    radial-gradient(circle at 90% 100%, rgba(255, 0, 255, 0.12), transparent 55%),
+    rgba(0, 0, 0, 0.75);
   box-shadow:
     0 0 18px rgba(255, 0, 255, 0.35),
     0 0 26px rgba(0, 255, 255, 0.25);
@@ -411,9 +376,10 @@ watch(
   letter-spacing: 0.02em;
   color: #00f7ff;
   border: 1px solid rgba(0, 255, 255, 0.7);
-  background: radial-gradient(circle at 0% 0%, rgba(0, 255, 255, 0.18), transparent 55%),
-              radial-gradient(circle at 100% 100%, rgba(255, 0, 255, 0.22), transparent 55%),
-              rgba(0, 0, 0, 0.7);
+  background:
+    radial-gradient(circle at 0% 0%, rgba(0, 255, 255, 0.18), transparent 55%),
+    radial-gradient(circle at 100% 100%, rgba(255, 0, 255, 0.22), transparent 55%),
+    rgba(0, 0, 0, 0.7);
   box-shadow:
     0 0 10px rgba(0, 255, 255, 0.5),
     0 0 14px rgba(255, 0, 255, 0.35);

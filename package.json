@@ -7,7 +7,11 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "generate:pwa-icons": "node scripts/generate-pwa-icons.mjs"
+    "generate:pwa-icons": "node scripts/generate-pwa-icons.mjs",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier . --write",
+    "format:check": "prettier . --check"
   },
   "dependencies": {
     "@popperjs/core": "^2.11.8",
@@ -31,10 +35,18 @@
     "vue": "^3.5.18"
   },
   "devDependencies": {
+    "@babel/eslint-parser": "^7.28.6",
+    "@eslint/js": "^9.39.4",
     "@vitejs/plugin-vue": "^6.0.1",
+    "eslint": "^9.39.4",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-vue": "^10.8.0",
+    "globals": "^17.4.0",
+    "prettier": "^3.8.1",
     "sharp": "^0.34.5",
     "vite": "^7.1.2",
     "vite-plugin-pwa": "^1.0.3",
-    "vite-plugin-vue-inspector": "^5.3.2"
+    "vite-plugin-vue-inspector": "^5.3.2",
+    "vue-eslint-parser": "^10.4.0"
   }
 }

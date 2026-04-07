@@ -26,7 +26,7 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  background-color: black /* Subtle gradient for the glass effect */
+  background-color: black; /* Subtle gradient for the glass effect */
 }
 
 #app {
@@ -37,8 +37,8 @@ body {
 }
 html,
 body {
-  scrollbar-width: none;      /* Firefox */
-  -ms-overflow-style: none;   /* IE / old Edge */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE / old Edge */
 }
 
 html::-webkit-scrollbar,
@@ -79,18 +79,18 @@ button:hover {
 }
 
 /* --- Form Input Styles --- */
-input[type="text"], 
-input[type="email"], 
-input[type="password"] {
-    width: 100%;
-    padding: 0.8em 1em;
-    margin-bottom: 1em;
-    border-radius: 8px;
-    border: 1px solid #444;
-    background-color: #1a1a1a;
-    color: #fff;
-    font-family: inherit;
-    box-sizing: border-box;
+input[type='text'],
+input[type='email'],
+input[type='password'] {
+  width: 100%;
+  padding: 0.8em 1em;
+  margin-bottom: 1em;
+  border-radius: 8px;
+  border: 1px solid #444;
+  background-color: #1a1a1a;
+  color: #fff;
+  font-family: inherit;
+  box-sizing: border-box;
 }
 
 .card {
@@ -106,7 +106,6 @@ input[type="password"] {
   max-width: none;
   padding: 0;
 }
-
 
 /* --- Shared Card Styles --- */
 .card-footer {
@@ -129,7 +128,8 @@ input[type="password"] {
   gap: 1rem;
 }
 
-.edit-button, .delete-button {
+.edit-button,
+.delete-button {
   background: none;
   border: none;
   color: #888;
@@ -140,7 +140,8 @@ input[type="password"] {
   transition: color 0.2s ease-in-out;
 }
 
-.edit-button:hover, .delete-button:hover {
+.edit-button:hover,
+.delete-button:hover {
   text-decoration: underline;
 }
 

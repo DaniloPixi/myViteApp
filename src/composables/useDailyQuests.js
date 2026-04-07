@@ -15,20 +15,20 @@ import {
 
 const QUEST_POOL = [
   "Send each other a photo that captures today's mood.",
-  "Write one thing you deeply appreciate about the other.",
-  "Share a song that reminds you of us and say why.",
-  "Tell the other a small memory that still makes you smile.",
-  "Plan one tiny thing to do together this week.",
-  "Send a random voice message saying something sweet.",
+  'Write one thing you deeply appreciate about the other.',
+  'Share a song that reminds you of us and say why.',
+  'Tell the other a small memory that still makes you smile.',
+  'Plan one tiny thing to do together this week.',
+  'Send a random voice message saying something sweet.',
   "Share something you're worried about and listen without fixing.",
-  "Pick one future date idea and write it down.",
-  "Send a selfie right now, no matter how you look.",
+  'Pick one future date idea and write it down.',
+  'Send a selfie right now, no matter how you look.',
   "Give the other a sincere compliment that's oddly specific.",
-  "Describe our relationship using only metaphors.",
+  'Describe our relationship using only metaphors.',
   "Choose one thing to take off each other's mental load this week.",
-  "Spicy selfie",
-  "A visual memory of the last sex",
-  "A fantasy for the next sex"
+  'Spicy selfie',
+  'A visual memory of the last sex',
+  'A fantasy for the next sex',
 ];
 
 export const questVersion = ref(0);
@@ -76,10 +76,7 @@ async function fetchAllQuestsFromFirestore(userId) {
 
   questCache.value.loading = true;
   try {
-    const q = query(
-      collection(db, 'dailyQuests'),
-      where('userId', '==', userId),
-    );
+    const q = query(collection(db, 'dailyQuests'), where('userId', '==', userId));
     const snap = await getDocs(q);
     const list = [];
     snap.forEach((docSnap) => {
@@ -114,11 +111,7 @@ async function ensureQuestsLoaded(userId) {
 // PUBLIC: get or create quest for a given date FOR A SPECIFIC USER
 // ⬇️ now takes userName too, provided by the caller
 // PUBLIC: get or create quest for a given date FOR A SPECIFIC USER
-export async function getOrCreateQuestForDate(
-  date = new Date(),
-  userId,
-  userName,
-) {
+export async function getOrCreateQuestForDate(date = new Date(), userId, userName) {
   if (!userId) {
     throw new Error('[useDailyQuests] userId is required for getOrCreateQuestForDate');
   }
@@ -162,15 +155,10 @@ export async function getOrCreateQuestForDate(
   return { id: docId, ...snap.data() };
 }
 
-
 // PUBLIC: mark quest completed for a given date FOR A SPECIFIC USER
 // ⬇️ now takes userName too
 // PUBLIC: mark quest completed for a given date FOR A SPECIFIC USER
-export async function markQuestCompleted(
-  date = new Date(),
-  userId,
-  userName,
-) {
+export async function markQuestCompleted(date = new Date(), userId, userName) {
   if (!userId) {
     throw new Error('[useDailyQuests] userId is required for markQuestCompleted');
   }
@@ -207,7 +195,7 @@ export async function markQuestCompleted(
         userName: data.userName || userName || null,
         text: data.text || pickRandomQuestText(),
       },
-      { merge: true },
+      { merge: true }
     );
   }
 
@@ -226,7 +214,6 @@ export async function markQuestCompleted(
     ...snap.data(),
   };
 }
-
 
 // PUBLIC: get all quests for a given user (from cache)
 export function getAllQuests(userId) {
@@ -270,11 +257,8 @@ function attachCalendarListenerOnce() {
       bumpQuestVersion();
     },
     (err) => {
-      console.warn(
-        '[useDailyQuests] onSnapshot failed for calendar quests',
-        err,
-      );
-    },
+      console.warn('[useDailyQuests] onSnapshot failed for calendar quests', err);
+    }
   );
 }
 
@@ -296,5 +280,3 @@ export async function forceReloadCalendarQuests() {
   calendarQuestCache.value.ready = false;
   attachCalendarListenerOnce();
 }
-
-

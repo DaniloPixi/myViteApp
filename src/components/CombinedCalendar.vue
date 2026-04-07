@@ -6,7 +6,6 @@
       :attributes="attributes"
       view="monthly"
       title-position="left"
-    
       class="custom-calendar"
     >
       <template #day-content="{ day, attributes }">
@@ -17,34 +16,37 @@
           <!-- quest bars: ONLY if that user's quest is completed -->
           <div
             class="quest-bar quest-bar-left"
-            v-if="attributes.some(a =>
-              a.customData?.type === 'quest' &&
-              a.customData.side === 'left' &&
-              a.customData.completed
-            )"
+            v-if="
+              attributes.some(
+                (a) =>
+                  a.customData?.type === 'quest' &&
+                  a.customData.side === 'left' &&
+                  a.customData.completed
+              )
+            "
           ></div>
 
           <div
             class="quest-bar quest-bar-right"
-            v-if="attributes.some(a =>
-              a.customData?.type === 'quest' &&
-              a.customData.side === 'right' &&
-              a.customData.completed
-            )"
+            v-if="
+              attributes.some(
+                (a) =>
+                  a.customData?.type === 'quest' &&
+                  a.customData.side === 'right' &&
+                  a.customData.completed
+              )
+            "
           ></div>
 
           <!-- custom dots row for memos & plans -->
           <div class="custom-day-dots">
             <span
-              v-for="(attr, idx) in attributes.filter(a =>
-                a.customData?.type === 'memo' ||
-                a.customData?.type === 'plan'
+              v-for="(attr, idx) in attributes.filter(
+                (a) => a.customData?.type === 'memo' || a.customData?.type === 'plan'
               )"
               :key="idx"
               class="custom-day-dot"
-              :class="[
-                attr.customData.type === 'memo' ? 'memo-dot' : 'plan-dot'
-              ]"
+              :class="[attr.customData.type === 'memo' ? 'memo-dot' : 'plan-dot']"
             ></span>
           </div>
         </div>
@@ -53,33 +55,19 @@
 
     <!-- Centered Modal with Animation -->
     <Transition name="modal">
-      <div
-        v-if="isModalVisible"
-        class="modal-overlay"
-        @click="closeModal"
-      >
-        <div
-          class="modal-content"
-          @click.stop
-          :style="modalStyle"
-        >
+      <div v-if="isModalVisible" class="modal-overlay" @click="closeModal">
+        <div class="modal-content" @click.stop :style="modalStyle">
           <button @click="closeModal" class="close-button">&times;</button>
 
           <div v-for="attr in modalAttributes" :key="attr.key">
             <!-- MEMO -->
-            <p
-              v-if="attr.customData && attr.customData.type === 'memo'"
-              class="memo-text"
-            >
+            <p v-if="attr.customData && attr.customData.type === 'memo'" class="memo-text">
               <span class="event-title">Memo: </span>
               {{ attr.customData.text }}
             </p>
 
             <!-- PLAN -->
-            <p
-              v-else-if="attr.customData && attr.customData.type === 'plan'"
-              class="plan-text"
-            >
+            <p v-else-if="attr.customData && attr.customData.type === 'plan'" class="plan-text">
               <span class="event-title">Plan: </span>
               {{ attr.customData.text }}
             </p>
@@ -94,8 +82,8 @@
                 {{ attr.customData.userName || 'Unknown' }}
                 –
                 <span class="quest-status">
-  {{ questStatusFor(attr.customData) }}
-</span>
+                  {{ questStatusFor(attr.customData) }}
+                </span>
               </p>
               <p class="quest-text">
                 {{ attr.customData.text }}
@@ -108,12 +96,10 @@
   </div>
 </template>
 
-
 <script setup>
 import { ref, computed } from 'vue';
 import { Calendar } from 'v-calendar';
-import { questVersion,
-  getQuestsForCalendar, } from '../composables/useDailyQuests';
+import { questVersion, getQuestsForCalendar } from '../composables/useDailyQuests';
 const props = defineProps({
   memos: { type: Array, default: () => [] },
   plans: { type: Array, default: () => [] },
@@ -129,7 +115,7 @@ const modalStyle = computed(() => ({
 }));
 
 function openModal(attributes, event) {
-  const eventAttrs = attributes.filter(attr => attr.customData);
+  const eventAttrs = attributes.filter((attr) => attr.customData);
   if (eventAttrs.length > 0) {
     modalAttributes.value = eventAttrs;
     animOrigin.value = `${event.clientX}px ${event.clientY}px`;
@@ -212,17 +198,17 @@ const attributes = computed(() => {
     questList.slice(0, 2).forEach((q, idx) => {
       const side = idx === 0 ? 'left' : 'right';
       questAttrs.push({
-  key: `quest-${dateStr}-${q.userId}`,
-  dates: dateStr,
-  customData: {
-    type: 'quest',
-    side,
-    userId: q.userId,
-    userName: q.userName,
-    text: q.text || '',
-    completed: !!q.completed,
-    date: dateStr, // <-- needed for status logic
-  },
+        key: `quest-${dateStr}-${q.userId}`,
+        dates: dateStr,
+        customData: {
+          type: 'quest',
+          side,
+          userId: q.userId,
+          userName: q.userName,
+          text: q.text || '',
+          completed: !!q.completed,
+          date: dateStr, // <-- needed for status logic
+        },
       });
     });
   });
@@ -252,82 +238,79 @@ function questStatusFor(customData) {
 
   return 'not completed';
 }
-
-
 </script>
 
 <style>
 /* --- Keyframes for Calendar Glow Animation --- */
 @keyframes pulse-calendar-glow {
-  0%, 100% {
+  0%,
+  100% {
     box-shadow:
-      inset 0 2px 4px rgba(0,0,0,0.40),
+      inset 0 2px 4px rgba(0, 0, 0, 0.4),
       inset 0 0 10px rgba(255, 0, 255, 0.45),
       -50px 0px 80px -30px rgba(255, 0, 255, 0.45),
-       50px 0px 80px -30px rgba(0, 255, 255, 0.45);
+      50px 0px 80px -30px rgba(0, 255, 255, 0.45);
   }
 
   12.5% {
     box-shadow:
-      inset 0 2px 4px rgba(0,0,0,0.40),
+      inset 0 2px 4px rgba(0, 0, 0, 0.4),
       inset 0 0 10px rgba(220, 40, 255, 0.48),
       -53px 0px 84px -32px rgba(220, 40, 255, 0.48),
-       53px 0px 84px -32px rgba(40, 220, 255, 0.48);
+      53px 0px 84px -32px rgba(40, 220, 255, 0.48);
   }
 
   25% {
     box-shadow:
-      inset 0 2px 4px rgba(0,0,0,0.40),
-      inset 0 0 10px rgba(140, 120, 255, 0.50),
+      inset 0 2px 4px rgba(0, 0, 0, 0.4),
+      inset 0 0 10px rgba(140, 120, 255, 0.5),
       -56px 0px 88px -34px rgba(140, 120, 255, 0.52),
-       56px 0px 88px -34px rgba(120, 255, 255, 0.50);
+      56px 0px 88px -34px rgba(120, 255, 255, 0.5);
   }
 
   37.5% {
     box-shadow:
-      inset 0 2px 4px rgba(0,0,0,0.40),
+      inset 0 2px 4px rgba(0, 0, 0, 0.4),
       inset 0 0 10px rgba(60, 210, 255, 0.52),
-      -58px 0px 92px -36px rgba(60, 210, 255, 0.60),
-       58px 0px 92px -36px rgba(255, 60, 235, 0.56);
+      -58px 0px 92px -36px rgba(60, 210, 255, 0.6),
+      58px 0px 92px -36px rgba(255, 60, 235, 0.56);
   }
 
   50% {
     box-shadow:
-      inset 0 2px 4px rgba(0,0,0,0.40),
+      inset 0 2px 4px rgba(0, 0, 0, 0.4),
       inset 0 0 10px rgba(0, 255, 255, 0.52),
-      -60px 0px 95px -38px rgba(0, 255, 255, 0.70),
-       60px 0px 95px -38px rgba(255, 0, 255, 0.70);
+      -60px 0px 95px -38px rgba(0, 255, 255, 0.7),
+      60px 0px 95px -38px rgba(255, 0, 255, 0.7);
   }
 
   62.5% {
     box-shadow:
-      inset 0 2px 4px rgba(0,0,0,0.40),
+      inset 0 2px 4px rgba(0, 0, 0, 0.4),
       inset 0 0 10px rgba(60, 210, 255, 0.52),
       -58px 0px 92px -36px rgba(0, 255, 255, 0.58),
-       58px 0px 92px -36px rgba(255, 80, 230, 0.62);
+      58px 0px 92px -36px rgba(255, 80, 230, 0.62);
   }
 
   75% {
     box-shadow:
-      inset 0 2px 4px rgba(0,0,0,0.40),
-      inset 0 0 10px rgba(140, 120, 255, 0.50),
+      inset 0 2px 4px rgba(0, 0, 0, 0.4),
+      inset 0 0 10px rgba(140, 120, 255, 0.5),
       -56px 0px 88px -34px rgba(255, 70, 235, 0.52),
-       56px 0px 88px -34px rgba(70, 235, 255, 0.52);
+      56px 0px 88px -34px rgba(70, 235, 255, 0.52);
   }
 
   87.5% {
     box-shadow:
-      inset 0 2px 4px rgba(0,0,0,0.40),
+      inset 0 2px 4px rgba(0, 0, 0, 0.4),
       inset 0 0 10px rgba(220, 40, 255, 0.48),
       -53px 0px 84px -32px rgba(255, 35, 245, 0.48),
-       53px 0px 84px -32px rgba(35, 245, 255, 0.48);
+      53px 0px 84px -32px rgba(35, 245, 255, 0.48);
   }
 }
 
-
-
 /* --- Calendar Styles (Unchanged) --- */
-.custom-calendar.vc-container { 
+.custom-calendar.vc-container {
   --vc-bg: #000;
   --vc-font-family: var(--ds-font-body);
   --vc-title-color: var(--ds-color-accent-magenta);
@@ -374,16 +357,24 @@ function questStatusFor(customData) {
   font-style: italic;
   font-size: 1.4em;
 }
-.custom-calendar .vc-dots { display:none }
-.custom-calendar .vc-dot.memo-dot { background: magenta !important; }
-.custom-calendar .vc-dot.plan-dot { background: turquoise !important; }
---vc-nav-container { background-color: transparent; }
+.custom-calendar .vc-dots {
+  display: none;
+}
+.custom-calendar .vc-dot.memo-dot {
+  background: magenta !important;
+}
+.custom-calendar .vc-dot.plan-dot {
+  background: turquoise !important;
+}
+--vc-nav-container {
+  background-color: transparent;
+}
 
 /* --- Nav Arrow Styles --- */
 .custom-calendar .vc-arrow {
   background: transparent;
   border: 1px solid transparent;
-  border-radius: 50%  !important;
+  border-radius: 50% !important;
   width: 32px;
   height: 32px;
   color: magenta !important;
@@ -397,7 +388,19 @@ function questStatusFor(customData) {
 }
 
 /* --- Modal Base Styles (No Transitions Here) --- */
-.modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(0, 0, 0, 0.7); backdrop-filter: blur(2px); display: flex; justify-content: center; align-items: center; z-index: 1000; }
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(2px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
 .modal-content {
   background: #00000050;
   border: 1px solid rgba(255, 79, 233, 0.65);
@@ -420,10 +423,18 @@ function questStatusFor(customData) {
   font-size: 24px;
   cursor: pointer;
 }
-.modal-content p { margin: 8px 0; }
-.modal-content .event-title { font-weight: bold; }
-.modal-content .memo-text { color: magenta; }
-.modal-content .plan-text { color: turquoise; }
+.modal-content p {
+  margin: 8px 0;
+}
+.modal-content .event-title {
+  font-weight: bold;
+}
+.modal-content .memo-text {
+  color: magenta;
+}
+.modal-content .plan-text {
+  color: turquoise;
+}
 
 /* --- SLOWER ANIMATION --- */
 
@@ -445,7 +456,7 @@ function questStatusFor(customData) {
 
 /* starry halo behind the modal */
 .modal-content::before {
-  content: "";
+  content: '';
   position: absolute;
   inset: -45%;
   background:
@@ -503,14 +514,29 @@ function questStatusFor(customData) {
 
 /* halo fade/settle animation */
 @keyframes fade-halo-in {
-  0%   { opacity: 0; transform: scale(0.7); }
-  50%  { opacity: 1; transform: scale(1.1); }
-  100% { opacity: 0.65; transform: scale(1); }
+  0% {
+    opacity: 0;
+    transform: scale(0.7);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+  100% {
+    opacity: 0.65;
+    transform: scale(1);
+  }
 }
 
 @keyframes fade-halo-out {
-  0%   { opacity: 0.65; transform: scale(1); }
-  100% { opacity: 0; transform: scale(0.85); }
+  0% {
+    opacity: 0.65;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.85);
+  }
 }
 
 /* hook animations into Vue's transition classes */

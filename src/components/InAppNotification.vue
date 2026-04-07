@@ -38,7 +38,6 @@ const emit = defineEmits(['update:visible', 'click']);
 const dismiss = () => {
   emit('update:visible', false);
 };
-
 </script>
 
 <style scoped>
@@ -60,8 +59,7 @@ const dismiss = () => {
   padding: 0.85rem 1.6rem;
   border-radius: 18px;
   background:
-    radial-gradient(circle at 0% 0%, rgba(255, 255, 255, 0.08), transparent 65%),
-    rgba(0, 0, 0, 0.9);
+    radial-gradient(circle at 0% 0%, rgba(255, 255, 255, 0.08), transparent 65%), rgba(0, 0, 0, 0.9);
   border: 1px solid rgba(255, 0, 255, 0.75);
   box-shadow:
     0 0 20px rgba(255, 0, 255, 0.7),
@@ -162,11 +160,7 @@ const dismiss = () => {
   letter-spacing: 0.02em;
   white-space: pre-line;
 
-  background: linear-gradient(
-    120deg,
-    rgba(255, 0, 255, 0.95),
-    rgba(0, 255, 255, 0.95)
-  );
+  background: linear-gradient(120deg, rgba(255, 0, 255, 0.95), rgba(0, 255, 255, 0.95));
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;

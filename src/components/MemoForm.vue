@@ -29,13 +29,7 @@
 
           <div class="form-group">
             <label class="ds-label" for="date">Date</label>
-            <input
-              id="date"
-              v-model="formData.date"
-              class="ds-input"
-              type="date"
-              required
-            />
+            <input id="date" v-model="formData.date" class="ds-input" type="date" required />
           </div>
         </div>
 
@@ -63,16 +57,10 @@
             :disabled="isUploading"
             class="file-input-hidden"
           />
-          <label
-            for="file-upload"
-            class="file-upload-label"
-            :class="{ disabled: isUploading }"
-          >
+          <label for="file-upload" class="file-upload-label" :class="{ disabled: isUploading }">
             + Add Media
           </label>
-          <div v-if="isUploading" class="upload-status">
-            Uploading... {{ uploadProgress }}%
-          </div>
+          <div v-if="isUploading" class="upload-status">Uploading... {{ uploadProgress }}%</div>
         </div>
 
         <div v-if="mediaPreviews.length > 0" class="media-previews">
@@ -141,7 +129,18 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'memo-saved']);
 
-const availableHashtags = ref(['date', 'party', 'food', '18+', 'travel', 'weekend', 'chill', 'friends', 'love', 'random']);
+const availableHashtags = ref([
+  'date',
+  'party',
+  'food',
+  '18+',
+  'travel',
+  'weekend',
+  'chill',
+  'friends',
+  'love',
+  'random',
+]);
 const isEditing = computed(() => !!props.memo);
 const formData = ref({ hashtags: [] });
 const selectedLocationCoords = ref(null);
@@ -151,27 +150,38 @@ const isSubmitting = ref(false);
 const uploadProgress = ref(0);
 const error = ref(null);
 
-watch(() => props.memo, (newMemo) => {
-  if (newMemo) {
-    formData.value = { ...newMemo };
-    selectedLocationCoords.value = newMemo.locationCoords || null;
-    formData.value.hashtags = (newMemo.hashtags || []).map(t => t.startsWith('#') ? t.substring(1) : t);
+watch(
+  () => props.memo,
+  (newMemo) => {
+    if (newMemo) {
+      formData.value = { ...newMemo };
+      selectedLocationCoords.value = newMemo.locationCoords || null;
+      formData.value.hashtags = (newMemo.hashtags || []).map((t) =>
+        t.startsWith('#') ? t.substring(1) : t
+      );
 
-    if (newMemo.photos && Array.isArray(newMemo.photos)) {
-      mediaPreviews.value = newMemo.photos.map(media => ({
-        ...media,
-        resource_type: media.resource_type || 'image',
-        source: 'existing'
-      }));
+      if (newMemo.photos && Array.isArray(newMemo.photos)) {
+        mediaPreviews.value = newMemo.photos.map((media) => ({
+          ...media,
+          resource_type: media.resource_type || 'image',
+          source: 'existing',
+        }));
+      } else {
+        mediaPreviews.value = [];
+      }
     } else {
+      formData.value = {
+        description: '',
+        location: '',
+        date: new Date().toISOString().split('T')[0],
+        hashtags: [],
+      };
+      selectedLocationCoords.value = null;
       mediaPreviews.value = [];
     }
-  } else {
-    formData.value = { description: '', location: '', date: new Date().toISOString().split('T')[0], hashtags: [] };
-    selectedLocationCoords.value = null;
-    mediaPreviews.value = [];
-  }
-}, { immediate: true });
+  },
+  { immediate: true }
+);
 
 const toggleHashtag = (tag) => {
   const index = formData.value.hashtags.indexOf(tag);
@@ -200,7 +210,7 @@ const handleFileChange = (event) => {
       file: file,
       isAdult: false,
       resource_type: resource_type,
-      source: 'new'
+      source: 'new',
     });
   }
   event.target.value = null;
@@ -219,7 +229,7 @@ const uploadFiles = async () => {
   uploadProgress.value = 0;
   const uploadedMedia = [];
 
-  const filesToUpload = mediaPreviews.value.filter(p => p.source === 'new');
+  const filesToUpload = mediaPreviews.value.filter((p) => p.source === 'new');
   if (filesToUpload.length === 0) {
     isUploading.value = false;
     return [];
@@ -242,7 +252,7 @@ const uploadFiles = async () => {
         uploadedMedia.push({
           url: data.secure_url,
           isAdult: preview.isAdult,
-          resource_type: data.resource_type
+          resource_type: data.resource_type,
         });
         uploadProgress.value = Math.round(((i + 1) / filesToUpload.length) * 100);
       } else {
@@ -270,20 +280,21 @@ const submitForm = async () => {
   }
 
   const existingMedia = mediaPreviews.value
-    .filter(p => p.source === 'existing')
-    .map(({url, isAdult, resource_type}) => ({url, isAdult, resource_type}));
+    .filter((p) => p.source === 'existing')
+    .map(({ url, isAdult, resource_type }) => ({ url, isAdult, resource_type }));
 
   const finalMedia = [...existingMedia, ...newMedia];
   const memoHashtags = new Set(formData.value.hashtags);
-  const hasAdultContent = finalMedia.some(p => p.isAdult);
+  const hasAdultContent = finalMedia.some((p) => p.isAdult);
 
   if (hasAdultContent) memoHashtags.add('18+');
 
   const payload = {
     ...formData.value,
     location: sanitizeLocationLabel(formData.value.location),
-    locationCoords: selectedLocationCoords.value || await geocodeLocationLabel(formData.value.location),
-    hashtags: Array.from(memoHashtags).map(tag => `#${tag}`),
+    locationCoords:
+      selectedLocationCoords.value || (await geocodeLocationLabel(formData.value.location)),
+    hashtags: Array.from(memoHashtags).map((tag) => `#${tag}`),
     photos: finalMedia,
   };
 
@@ -298,7 +309,7 @@ const submitForm = async () => {
       method,
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${idToken}`,
+        Authorization: `Bearer ${idToken}`,
       },
       body: JSON.stringify(payload),
     });
@@ -368,7 +379,9 @@ const submitForm = async () => {
   font-size: clamp(1rem, 0.9rem + 0.45vw, 1.25rem);
   line-height: 1.45;
 }
-.file-input-hidden { display: none; }
+.file-input-hidden {
+  display: none;
+}
 .file-upload-label {
   display: inline-block;
   padding: 0.7em 1.5em;
@@ -380,10 +393,19 @@ const submitForm = async () => {
   font-weight: 600;
   transition: background-color 0.3s;
 }
-.file-upload-label:hover { background-color: turquoise; color:#000; }
-.file-upload-label.disabled { opacity: 0.5; cursor: not-allowed; }
+.file-upload-label:hover {
+  background-color: turquoise;
+  color: #000;
+}
+.file-upload-label.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 
-.upload-status { margin-top: 0.5rem; color: turquoise; }
+.upload-status {
+  margin-top: 0.5rem;
+  color: turquoise;
+}
 
 .media-previews {
   display: grid;
@@ -395,7 +417,8 @@ const submitForm = async () => {
   position: relative;
 }
 
-.preview-item img, .video-preview {
+.preview-item img,
+.video-preview {
   width: 100%;
   height: 80px;
   object-fit: cover;
@@ -428,7 +451,7 @@ const submitForm = async () => {
   position: absolute;
   bottom: 2px;
   right: 2px;
-  background: rgba(0,0,0,0.6);
+  background: rgba(0, 0, 0, 0.6);
   color: white;
   border: 1px solid white;
   border-radius: 4px;
@@ -443,7 +466,8 @@ const submitForm = async () => {
   border-color: #ff6b6b;
 }
 @keyframes memo-modal-glow {
-  0%, 100% {
+  0%,
+  100% {
     border-color: rgba(255, 0, 255, 0.32);
     box-shadow:
       inset 0 2px 4px rgba(0, 0, 0, 0.4),
@@ -462,9 +486,15 @@ const submitForm = async () => {
 }
 
 @keyframes memo-strip-flow {
-  0%   { background-position: 0% 50%; }
-  50%  { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
 }
 
 @media (max-width: 700px) {

@@ -1,13 +1,7 @@
 // src/composables/useTimeCapsules.js
 import { ref, computed, onUnmounted } from 'vue';
 import { auth } from '../firebase';
-import {
-  getFirestore,
-  collection,
-  query,
-  orderBy,
-  onSnapshot,
-} from 'firebase/firestore';
+import { getFirestore, collection, query, orderBy, onSnapshot } from 'firebase/firestore';
 
 const capsules = ref([]);
 const loading = ref(false);
@@ -90,7 +84,7 @@ function startRealtimeSubscription() {
       console.warn('[useTimeCapsules] realtime subscription error:', err);
       error.value = err;
       loading.value = false;
-    },
+    }
   );
 }
 
@@ -152,13 +146,7 @@ const unlockedCapsules = computed(() => {
 
 // --- Mutations via API (backend enforces permissions) ---
 
-export async function createTimeCapsule({
-  toUid,
-  unlockAt,
-  title,
-  message,
-  photos = [],
-}) {
+export async function createTimeCapsule({ toUid, unlockAt, title, message, photos = [] }) {
   const headers = await getAuthHeaders();
 
   const payload = {
@@ -186,12 +174,7 @@ export async function createTimeCapsule({
   return data;
 }
 
-export async function updateTimeCapsule(id, {
-  title,
-  message,
-  unlockAt,
-  photos,
-}) {
+export async function updateTimeCapsule(id, { title, message, unlockAt, photos }) {
   const headers = await getAuthHeaders();
 
   const payload = {};

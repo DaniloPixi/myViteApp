@@ -10,9 +10,7 @@ export default function createQuestsRouter(db, sendPushNotification) {
     const { uid, name, email } = req.user || {};
 
     if (!uid) {
-      return res
-        .status(401)
-        .json({ success: false, message: 'Unauthorized: no user in request.' });
+      return res.status(401).json({ success: false, message: 'Unauthorized: no user in request.' });
     }
 
     if (!date || !text) {
@@ -55,7 +53,7 @@ export default function createQuestsRouter(db, sendPushNotification) {
             date,
             text,
             userName: displayName,
-          },
+          }
         );
       }
 

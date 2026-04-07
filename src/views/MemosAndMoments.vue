@@ -1,12 +1,12 @@
 <template>
-  <div class="memos-moments-view ">
+  <div class="memos-moments-view">
     <!-- Loading and Error States -->
     <div v-if="loading" class="loading-state ds-state">
-  <p class="ds-state-copy">Loading Memos...</p>
-</div>
-<div v-if="error" class="error-state ds-state ds-state--error">
-  <p class="ds-state-copy">{{ error }}</p>
-</div>
+      <p class="ds-state-copy">Loading Memos...</p>
+    </div>
+    <div v-if="error" class="error-state ds-state ds-state--error">
+      <p class="ds-state-copy">{{ error }}</p>
+    </div>
 
     <!-- Main Content -->
     <div v-if="!loading && !error">
@@ -49,14 +49,13 @@
                 class="photo-item"
                 @click="openImageModal(getMemoMedia(memo), index)"
               >
-               
-<img
-  :src="getThumbnailUrl(media)"
-  alt="Memo media"
-  :class="{ 'adult-content-blur': media.isAdult }"
-  width="320"
-  height="320"
-/>
+                <img
+                  :src="getThumbnailUrl(media)"
+                  alt="Memo media"
+                  :class="{ 'adult-content-blur': media.isAdult }"
+                  width="320"
+                  height="320"
+                />
               </div>
             </div>
           </div>
@@ -73,11 +72,13 @@
                       d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"
                     />
                   </svg>
-                  {{ memo.location || "No location" }}
+                  {{ memo.location || 'No location' }}
                 </span>
                 <span class="meta-item">
                   <svg class="meta-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                    <path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20a2 2 0 0 0 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V8h14v12zM7 10h5v5H7z" />
+                    <path
+                      d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20a2 2 0 0 0 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V8h14v12zM7 10h5v5H7z"
+                    />
                   </svg>
                   {{ formatDate(memo.date) }}
                 </span>
@@ -109,7 +110,9 @@
             <button
               @click.stop="nextImage(memo.id)"
               class="gallery-nav next-btn"
-              :class="{ visible: galleryState[memo.id]?.currentIndex < getMemoMedia(memo).length - 1 }"
+              :class="{
+                visible: galleryState[memo.id]?.currentIndex < getMemoMedia(memo).length - 1,
+              }"
             >
               &rsaquo;
             </button>
@@ -127,14 +130,14 @@
 
       <!-- No Memos State -->
       <div v-else class="no-memos-state ds-state">
-  <div v-if="!memos.length">
-    <h2 class="ds-state-title">No Memos Yet</h2>
-    <p class="ds-state-copy">Be the first to share a moment!</p>
-  </div>
-  <div v-else>
-    <h2 class="ds-state-title">No memos match your current filters.</h2>
-  </div>
-</div>
+        <div v-if="!memos.length">
+          <h2 class="ds-state-title">No Memos Yet</h2>
+          <p class="ds-state-copy">Be the first to share a moment!</p>
+        </div>
+        <div v-else>
+          <h2 class="ds-state-title">No memos match your current filters.</h2>
+        </div>
+      </div>
     </div>
 
     <!-- Modals -->
@@ -163,20 +166,20 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, watch, computed, nextTick } from "vue";
-import { getFirestore, collection, query, orderBy, onSnapshot } from "firebase/firestore";
-import { auth } from "../firebase";
-import MemoForm from "../components/MemoForm.vue";
-import ConfirmDeleteModal from "../components/ConfirmDeleteModal.vue";
-import ImageModal from "../components/ImageModal.vue";
-import { usePhotoUtils } from "../composables/usePhotoUtils";
+import { ref, onMounted, onUnmounted, watch, computed, nextTick } from 'vue';
+import { getFirestore, collection, query, orderBy, onSnapshot } from 'firebase/firestore';
+import { auth } from '../firebase';
+import MemoForm from '../components/MemoForm.vue';
+import ConfirmDeleteModal from '../components/ConfirmDeleteModal.vue';
+import ImageModal from '../components/ImageModal.vue';
+import { usePhotoUtils } from '../composables/usePhotoUtils';
 
 const { getImageUrlByPreset } = usePhotoUtils();
 
 const props = defineProps({
-  locationFilter: { type: String, default: "" },
-  hashtagFilter: { type: String, default: "" },
-  dateFilter: { type: String, default: "" },
+  locationFilter: { type: String, default: '' },
+  hashtagFilter: { type: String, default: '' },
+  dateFilter: { type: String, default: '' },
   focusMemoId: { type: String, default: null },
 });
 
@@ -285,9 +288,9 @@ const getMemoCardStyle = (memoId) => {
 
 // ---------- filters ----------
 const normalizeHashtag = (value) => {
-  const trimmed = (value || "").trim().toLowerCase();
-  if (!trimmed) return "";
-  return trimmed.startsWith("#") ? trimmed : `#${trimmed}`;
+  const trimmed = (value || '').trim().toLowerCase();
+  if (!trimmed) return '';
+  return trimmed.startsWith('#') ? trimmed : `#${trimmed}`;
 };
 
 const normalizeFilters = computed(() => ({
@@ -344,7 +347,7 @@ const subscribeToMemos = () => {
 
   try {
     const db = getFirestore();
-    const memosQuery = query(collection(db, "memos"), orderBy("createdAt", "desc"));
+    const memosQuery = query(collection(db, 'memos'), orderBy('createdAt', 'desc'));
     unsubscribeFromMemos = onSnapshot(
       memosQuery,
       async (snapshot) => {
@@ -356,14 +359,14 @@ const subscribeToMemos = () => {
         setTimeout(updateMemoRects, 50);
       },
       (err) => {
-        console.error("Error fetching memos in real-time:", err);
-        error.value = "Failed to load memos. Please check your connection.";
+        console.error('Error fetching memos in real-time:', err);
+        error.value = 'Failed to load memos. Please check your connection.';
         loading.value = false;
       }
     );
   } catch (err) {
-    console.error("Error setting up memos subscription:", err);
-    error.value = "An unexpected error occurred.";
+    console.error('Error setting up memos subscription:', err);
+    error.value = 'An unexpected error occurred.';
     loading.value = false;
   }
 };
@@ -395,18 +398,18 @@ const promptDelete = (memoId) => {
 
 const deleteMemo = async (memoId) => {
   try {
-    if (!auth.currentUser) throw new Error("Authentication required.");
+    if (!auth.currentUser) throw new Error('Authentication required.');
     const idToken = await auth.currentUser.getIdToken();
     const response = await fetch(`/api/memos/${memoId}`, {
-      method: "DELETE",
+      method: 'DELETE',
       headers: { Authorization: `Bearer ${idToken}` },
     });
     if (!response.ok) {
       const errorData = await response.json();
-      throw new Error(errorData.message || "Failed to delete memo.");
+      throw new Error(errorData.message || 'Failed to delete memo.');
     }
   } catch (err) {
-    console.error("Error deleting memo:", err);
+    console.error('Error deleting memo:', err);
     error.value = err.message;
   }
 };
@@ -419,8 +422,8 @@ const handleDelete = async () => {
 
 // ---------- misc ----------
 const formatDate = (dateString) => {
-  if (!dateString) return "No date";
-  const options = { year: "numeric", month: "long", day: "numeric" };
+  if (!dateString) return 'No date';
+  const options = { year: 'numeric', month: 'long', day: 'numeric' };
   return new Date(dateString).toLocaleDateString(undefined, options);
 };
 
@@ -472,11 +475,11 @@ function scrollToMemoWithRetry(id) {
   const tryOnce = () => {
     const el = memoRefs.value[id];
     if (el) {
-      el.scrollIntoView({ behavior: "smooth", block: "center" });
-      el.classList.add("memo-highlight");
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.classList.add('memo-highlight');
 
       setTimeout(() => {
-        el.classList.remove("memo-highlight");
+        el.classList.remove('memo-highlight');
       }, 1500);
 
       return;
@@ -524,14 +527,14 @@ watch(
     await nextTick();
     setTimeout(updateMemoRects, 50);
   },
-  { flush: "post" }
+  { flush: 'post' }
 );
 
 const onScroll = () => scheduleRectsUpdate();
 const onResize = () => scheduleRectsUpdate();
 
 onMounted(async () => {
-  isTouchDevice.value = "ontouchstart" in window || navigator.maxTouchPoints > 0;
+  isTouchDevice.value = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
   subscribeToMemos();
 
@@ -539,8 +542,8 @@ onMounted(async () => {
   setTimeout(updateMemoRects, 50);
 
   if (isTouchDevice.value) {
-    window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onResize, { passive: true });
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onResize, { passive: true });
   }
 });
 
@@ -548,8 +551,8 @@ onUnmounted(() => {
   if (unsubscribeFromMemos) unsubscribeFromMemos();
 
   if (isTouchDevice.value) {
-    window.removeEventListener("scroll", onScroll);
-    window.removeEventListener("resize", onResize);
+    window.removeEventListener('scroll', onScroll);
+    window.removeEventListener('resize', onResize);
   }
 });
 </script>
@@ -603,13 +606,16 @@ onUnmounted(() => {
   min-height: 25rem;
   border-radius: 1.25rem;
   overflow: hidden;
-  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.1),
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.1),
     0 8px 16px rgba(0, 0, 0, 0.3),
     0 4px 8px rgba(0, 0, 0, 0.4);
   border: 1px solid rgba(255, 255, 255, 0.1);
   display: flex;
   flex-direction: column;
-  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease;
   will-change: transform;
   backface-visibility: hidden;
 }
@@ -620,14 +626,16 @@ onUnmounted(() => {
 }
 
 .memo-card:nth-child(odd):hover {
-  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.2),
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.2),
     0 12px 24px rgba(0, 0, 0, 0.4),
     0 8px 12px rgba(0, 0, 0, 0.5),
     0 0 30px 10px rgba(255, 0, 255, 0.5);
 }
 
 .memo-card:nth-child(even):hover {
-  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.2),
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.2),
     0 12px 24px rgba(0, 0, 0, 0.4),
     0 8px 12px rgba(0, 0, 0, 0.5),
     0 0 30px 10px rgba(0, 255, 255, 0.5);
@@ -635,23 +643,28 @@ onUnmounted(() => {
 
 /* Mobile “plans-style” center focus: reuse your fancy hover glow */
 .memo-card.is-active:nth-child(odd) {
-  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.2),
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.2),
     0 12px 24px rgba(0, 0, 0, 0.4),
     0 8px 12px rgba(0, 0, 0, 0.5),
     0 0 30px 10px rgba(255, 0, 255, 0.5);
 }
 .memo-card.is-active:nth-child(even) {
-  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.2),
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.2),
     0 12px 24px rgba(0, 0, 0, 0.4),
     0 8px 12px rgba(0, 0, 0, 0.5),
     0 0 30px 10px rgba(0, 255, 255, 0.5);
 }
 
 .memo-highlight {
-  box-shadow: 0 0 16px rgba(255, 0, 255, 0.7),
+  box-shadow:
+    0 0 16px rgba(255, 0, 255, 0.7),
     0 0 22px rgba(0, 255, 255, 0.6);
   transform: translateY(-2px) scale(1.01);
-  transition: box-shadow 0.2s ease, transform 0.2s ease;
+  transition:
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
 }
 
 .gallery-container {
@@ -761,7 +774,9 @@ onUnmounted(() => {
 
   opacity: 0;
   transform: translateY(-6px);
-  transition: opacity 0.2s ease, transform 0.2s ease;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
 }
 
 .memo-card:hover .memo-description,
@@ -790,7 +805,8 @@ onUnmounted(() => {
   border-radius: 999px;
   font-size: 0.8em;
   color: #fff;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25),
+  box-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.25),
     0 0 10px rgba(255, 255, 255, 0.15);
 }
 
@@ -815,7 +831,8 @@ onUnmounted(() => {
   padding: 0.35rem 0.65rem;
   border-radius: 999px;
   font-size: 0.85em;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25),
+  box-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.25),
     0 0 10px rgba(255, 255, 255, 0.15);
 }
 
@@ -952,4 +969,3 @@ onUnmounted(() => {
   }
 }
 </style>
-

@@ -1,6 +1,7 @@
 # WE App (Vue + Vite + Firebase + Netlify Functions)
 
 A relationship-focused planning app built with Vue 3 that combines:
+
 - **Moments (memos)**
 - **Plans**
 - **Time capsules**

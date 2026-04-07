@@ -46,7 +46,10 @@
                   <span class="spot-location-title">{{ spot.title }}</span>
                   <span class="spot-location-count">{{ spot.count }} item(s)</span>
                 </span>
-                <span class="spot-location-chevron" :class="{ 'spot-location-chevron--open': isSpotExpanded(spot.key) }">
+                <span
+                  class="spot-location-chevron"
+                  :class="{ 'spot-location-chevron--open': isSpotExpanded(spot.key) }"
+                >
                   ▾
                 </span>
               </button>
@@ -189,7 +192,8 @@ function extractCityFromLocation(locationLabel) {
     'united kingdom',
   ]);
 
-  const streetHints = /(street|st\.?|road|rd\.?|gasse|straße|strasse|avenue|ave\.?|boulevard|blvd|lane|ln\.?|drive|dr\.?|way|platz)/i;
+  const streetHints =
+    /(street|st\.?|road|rd\.?|gasse|straße|strasse|avenue|ave\.?|boulevard|blvd|lane|ln\.?|drive|dr\.?|way|platz)/i;
   const numericOrPostal = /^\d+[a-zA-Z-]*$/;
 
   const chunks = locationLabel
@@ -364,7 +368,7 @@ function buildHoverPopupHtml(spot) {
           >
             ${escapeHtml(item.label)}
           </button>
-        </li>`,
+        </li>`
     )
     .join('');
   const planItems = spot.items.plan
@@ -379,7 +383,7 @@ function buildHoverPopupHtml(spot) {
           >
             ${escapeHtml(item.label)}
           </button>
-        </li>`,
+        </li>`
     )
     .join('');
 
@@ -403,7 +407,7 @@ function navigateToLinkedItem(type, id) {
   window.dispatchEvent(
     new CustomEvent('map-spots-open-item', {
       detail: { type, id },
-    }),
+    })
   );
 }
 
@@ -456,7 +460,7 @@ function tuneLabelVisibility(map) {
     (layer) =>
       layer.type === 'symbol' &&
       typeof layer.id === 'string' &&
-      /(label|place|road|street)/i.test(layer.id),
+      /(label|place|road|street)/i.test(layer.id)
   );
 
   for (const layer of labelLayers) {
@@ -466,10 +470,14 @@ function tuneLabelVisibility(map) {
         'interpolate',
         ['linear'],
         ['zoom'],
-        4, 10.5,
-        7, 12.5,
-        10, 14.5,
-        13, 17.5,
+        4,
+        10.5,
+        7,
+        12.5,
+        10,
+        14.5,
+        13,
+        17.5,
       ]);
       map.setPaintProperty(layer.id, 'text-color', '#edf5ff');
       map.setPaintProperty(layer.id, 'text-halo-color', 'rgba(0,0,0,0.9)');
@@ -573,28 +581,17 @@ function renderMarkers() {
       type: 'circle',
       source: SPOT_SOURCE_ID,
       paint: {
-        'circle-radius': [
-          'interpolate',
-          ['linear'],
-          ['get', 'count'],
-          1, 14,
-          3, 16,
-          8, 20,
-          20, 24,
-        ],
+        'circle-radius': ['interpolate', ['linear'], ['get', 'count'], 1, 14, 3, 16, 8, 20, 20, 24],
         'circle-color': [
           'match',
           ['get', 'primaryType'],
-          'memo', '#ff5f7a',
-          'plan', '#33e6dc',
+          'memo',
+          '#ff5f7a',
+          'plan',
+          '#33e6dc',
           '#df6eff',
         ],
-        'circle-opacity': [
-          'case',
-          ['==', ['get', 'isSelected'], true],
-          0.44,
-          0.2,
-        ],
+        'circle-opacity': ['case', ['==', ['get', 'isSelected'], true], 0.44, 0.2],
         'circle-blur': 1,
       },
     });
@@ -605,33 +602,14 @@ function renderMarkers() {
       type: 'circle',
       source: SPOT_SOURCE_ID,
       paint: {
-        'circle-radius': [
-          'interpolate',
-          ['linear'],
-          ['get', 'count'],
-          1, 7,
-          3, 9,
-          8, 12,
-          20, 15,
-        ],
-        'circle-stroke-width': [
-          'case',
-          ['==', ['get', 'isSelected'], true],
-          2.8,
-          2,
-        ],
+        'circle-radius': ['interpolate', ['linear'], ['get', 'count'], 1, 7, 3, 9, 8, 12, 20, 15],
+        'circle-stroke-width': ['case', ['==', ['get', 'isSelected'], true], 2.8, 2],
         'circle-stroke-color': '#ffffff',
         'circle-color': [
           'case',
           ['==', ['get', 'isSelected'], true],
           '#ffd166',
-          [
-            'match',
-            ['get', 'primaryType'],
-            'memo', '#ff5f7a',
-            'plan', '#33e6dc',
-            '#df6eff',
-          ],
+          ['match', ['get', 'primaryType'], 'memo', '#ff5f7a', 'plan', '#33e6dc', '#df6eff'],
         ],
       },
     });
@@ -671,10 +649,7 @@ function renderMarkers() {
         map.easeTo({ center: coords, duration: 550, zoom: Math.max(map.getZoom(), 11.5) });
         if (isTouchDevice.value) {
           const spot = groupedSpots.value.find((entry) => entry.key === key);
-          hoverPopup
-            ?.setLngLat(coords)
-            .setHTML(buildHoverPopupHtml(spot))
-            .addTo(map);
+          hoverPopup?.setLngLat(coords).setHTML(buildHoverPopupHtml(spot)).addTo(map);
         }
       }
       renderMarkers();
@@ -692,10 +667,7 @@ function renderMarkers() {
         const spot = groupedSpots.value.find((entry) => entry.key === key);
 
         if (Array.isArray(coords)) {
-          hoverPopup
-            .setLngLat(coords)
-            .setHTML(buildHoverPopupHtml(spot))
-            .addTo(map);
+          hoverPopup.setLngLat(coords).setHTML(buildHoverPopupHtml(spot)).addTo(map);
         }
       });
 
@@ -726,8 +698,8 @@ function renderMarkers() {
   }
 
   if (!selectedSpotKey.value && groupedSpots.value.length) {
-  selectedSpotKey.value = groupedSpots.value[0].key;
-}
+    selectedSpotKey.value = groupedSpots.value[0].key;
+  }
 }
 
 async function ensureMapReady() {
@@ -745,8 +717,7 @@ async function ensureMapReady() {
 
 onMounted(() => {
   isTouchDevice.value =
-    window.matchMedia('(pointer: coarse)').matches ||
-    window.matchMedia('(hover: none)').matches;
+    window.matchMedia('(pointer: coarse)').matches || window.matchMedia('(hover: none)').matches;
 
   const db = getFirestore();
 
@@ -757,8 +728,8 @@ onMounted(() => {
         memos.value = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
         markListenerReady('memos');
       },
-      (error) => handleSnapshotError(error, 'memos'),
-    ),
+      (error) => handleSnapshotError(error, 'memos')
+    )
   );
 
   unsubscribers.push(
@@ -768,8 +739,8 @@ onMounted(() => {
         plans.value = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
         markListenerReady('plans');
       },
-      (error) => handleSnapshotError(error, 'plans'),
-    ),
+      (error) => handleSnapshotError(error, 'plans')
+    )
   );
 
   try {
@@ -793,7 +764,7 @@ watch(
       mapLoadError.value = 'Map failed to initialize.';
     }
   },
-  { immediate: true },
+  { immediate: true }
 );
 
 watch(groupedSpots, () => {
@@ -856,8 +827,7 @@ onUnmounted(() => {
   border: 1px solid rgba(64, 255, 255, 0.4);
   background:
     radial-gradient(circle at 14% 12%, rgba(64, 255, 255, 0.12), transparent 40%),
-    radial-gradient(circle at 88% 82%, rgba(255, 0, 255, 0.08), transparent 38%),
-    #0d1117;
+    radial-gradient(circle at 88% 82%, rgba(255, 0, 255, 0.08), transparent 38%), #0d1117;
   box-shadow:
     inset 0 0 0 1px rgba(255, 255, 255, 0.05),
     inset 0 0 36px rgba(0, 0, 0, 0.35),

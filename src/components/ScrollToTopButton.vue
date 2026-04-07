@@ -1,6 +1,11 @@
 <template>
   <transition name="fade">
-    <button v-if="isVisible" @click="scrollToTop" class="scroll-to-top-button" aria-label="Scroll to top">
+    <button
+      v-if="isVisible"
+      @click="scrollToTop"
+      class="scroll-to-top-button"
+      aria-label="Scroll to top"
+    >
       ▲
     </button>
   </transition>
@@ -25,7 +30,6 @@ const stopAnimation = () => {
     window.removeEventListener('touchstart', stopAnimation, { passive: true });
   }
 };
-
 
 const scrollToTop = () => {
   // Stop any existing animation before starting a new one
@@ -94,7 +98,11 @@ onUnmounted(() => {
     0 0 7px rgba(0, 255, 255, 0.38),
     0 0 12px rgba(255, 0, 255, 0.22);
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.25);
-  transition: transform 0.24s ease-out, box-shadow 0.24s ease-out, color 0.24s ease-out, opacity 0.24s ease-out;
+  transition:
+    transform 0.24s ease-out,
+    box-shadow 0.24s ease-out,
+    color 0.24s ease-out,
+    opacity 0.24s ease-out;
 }
 
 .scroll-to-top-button:hover {

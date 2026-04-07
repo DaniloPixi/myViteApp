@@ -5,24 +5,18 @@
         <div class="content-inner">
           <!-- Row 1: Location & Hashtags -->
           <div class="filter-row">
-            <div
-              v-if="showLocation"
-              class="filter-group location-group"
-            >
-            <input
-  id="location-filter"
-  class="filter-input"
-  type="text"
-  :value="location"
-  @input="$emit('update:location', $event.target.value)"
-  placeholder="Location..."
-/>
+            <div v-if="showLocation" class="filter-group location-group">
+              <input
+                id="location-filter"
+                class="filter-input"
+                type="text"
+                :value="location"
+                @input="$emit('update:location', $event.target.value)"
+                placeholder="Location..."
+              />
             </div>
 
-            <div
-              v-if="showHashtags"
-              class="filter-group hashtags-group"
-            >
+            <div v-if="showHashtags" class="filter-group hashtags-group">
               <div class="chip-group">
                 <button
                   v-for="tag in availableHashtags"
@@ -40,19 +34,16 @@
 
           <!-- Row 2: Date, Time & Duration -->
           <div class="filter-row">
-            <div
-              v-if="showDate"
-              class="filter-group date-group"
-            >
+            <div v-if="showDate" class="filter-group date-group">
               <div class="input-with-clear">
                 <input
-  id="date-filter"
-  class="filter-input filter-input--compact"
-  type="date"
-  :value="date"
-  @input="$emit('update:date', $event.target.value)"
-  placeholder="Date..."
-/>
+                  id="date-filter"
+                  class="filter-input filter-input--compact"
+                  type="date"
+                  :value="date"
+                  @input="$emit('update:date', $event.target.value)"
+                  placeholder="Date..."
+                />
                 <button
                   v-if="date"
                   type="button"
@@ -65,10 +56,7 @@
               </div>
             </div>
 
-            <div
-              v-if="showTime"
-              class="filter-group time-group"
-            >
+            <div v-if="showTime" class="filter-group time-group">
               <div class="input-with-clear">
                 <StyledTimeInput
                   :modelValue="time"
@@ -86,10 +74,7 @@
               </div>
             </div>
 
-            <div
-              v-if="showDuration"
-              class="filter-group duration-group"
-            >
+            <div v-if="showDuration" class="filter-group duration-group">
               <div class="chip-group">
                 <button
                   v-for="d in availableDurations"
@@ -106,10 +91,7 @@
           </div>
 
           <!-- Row 3: Lock Status -->
-          <div
-            v-if="showLockStatus"
-            class="filter-row"
-          >
+          <div v-if="showLockStatus" class="filter-row">
             <div class="filter-group lock-status-group">
               <div class="chip-group">
                 <button
@@ -229,7 +211,9 @@ const availableDurations = ref(['All day', 'All night', 'Indetermined']);
 const toggleDurationFilter = (d) => {
   const newDurations = Array.isArray(props.duration)
     ? [...props.duration]
-    : (props.duration ? [props.duration] : []);
+    : props.duration
+      ? [props.duration]
+      : [];
 
   const index = newDurations.indexOf(d);
   if (index > -1) {
@@ -292,7 +276,9 @@ const setLockStatus = (value) => {
 .content-inner {
   opacity: 0;
   transform: translateY(-0.9rem);
-  transition: opacity 0.6s ease, transform 0.6s ease;
+  transition:
+    opacity 0.6s ease,
+    transform 0.6s ease;
   pointer-events: none;
 }
 
@@ -322,12 +308,26 @@ const setLockStatus = (value) => {
   justify-content: center;
 }
 
-.location-group { flex-basis: 180px; }
-.hashtags-group { flex-basis: 300px; flex-grow: 2; }
-.date-group { flex-basis: 130px; }
-.time-group { flex-basis: 120px; }
-.duration-group { flex-basis: 220px; flex-grow: 2; }
-.lock-status-group { flex-basis: 200px; }
+.location-group {
+  flex-basis: 180px;
+}
+.hashtags-group {
+  flex-basis: 300px;
+  flex-grow: 2;
+}
+.date-group {
+  flex-basis: 130px;
+}
+.time-group {
+  flex-basis: 120px;
+}
+.duration-group {
+  flex-basis: 220px;
+  flex-grow: 2;
+}
+.lock-status-group {
+  flex-basis: 200px;
+}
 
 .filter-input {
   width: 100%;

@@ -38,11 +38,7 @@ import { useSoundManager } from '../composables/useSoundManager';
 const emit = defineEmits(['confirm', 'close']);
 const { play } = useSoundManager();
 
-const messages = [
-  "We don't need this anymore?",
-  'Trash it?',
-  'Straight to MA48?',
-];
+const messages = ["We don't need this anymore?", 'Trash it?', 'Straight to MA48?'];
 
 const randomMessage = ref('');
 

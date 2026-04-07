@@ -8,11 +8,7 @@
         </header>
 
         <ul class="stack-list">
-          <li
-            v-for="notification in notifications"
-            :key="notification.id"
-            class="stack-item"
-          >
+          <li v-for="notification in notifications" :key="notification.id" class="stack-item">
             <div
               class="stack-item-body"
               :style="itemStyles[notification.id] || ''"
@@ -266,7 +262,9 @@ const openNotification = (id) => {
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: rgba(255, 255, 255, 0.08);
   cursor: pointer;
-  transition: transform 0.15s ease, opacity 0.15s ease;
+  transition:
+    transform 0.15s ease,
+    opacity 0.15s ease;
 }
 
 .stack-item-body h5 {

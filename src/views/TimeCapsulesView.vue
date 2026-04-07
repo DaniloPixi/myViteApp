@@ -2,23 +2,19 @@
   <div class="tc-view">
     <header class="tc-header">
       <div class="tc-header-main">
-        <p class="tc-subtitle">
-          Messages for future hearts. Locked until their time.
-        </p>
+        <p class="tc-subtitle">Messages for future hearts. Locked until their time.</p>
 
-        <button class="tc-new-btn" @click="openCreate">
-  New time capsule 🔮
-</button>
+        <button class="tc-new-btn" @click="openCreate">New time capsule 🔮</button>
       </div>
     </header>
 
     <div v-if="loading" class="tc-status ds-state">
-  <p class="ds-state-copy">Loading capsules...</p>
-</div>
+      <p class="ds-state-copy">Loading capsules...</p>
+    </div>
 
-<div v-else-if="error" class="tc-status tc-status-error ds-state ds-state--error">
-  <p class="ds-state-copy">Failed to load time capsules.</p>
-</div>
+    <div v-else-if="error" class="tc-status tc-status-error ds-state ds-state--error">
+      <p class="ds-state-copy">Failed to load time capsules.</p>
+    </div>
 
     <div v-else class="tc-list">
       <div v-if="displayCapsules.length === 0" class="tc-empty">
@@ -31,11 +27,11 @@
         :key="capsule.id"
         class="tc-card"
         :data-capsule-id="capsule.id"
-         :ref="el => registerCapsuleRef(capsule.id, el)"
+        :ref="(el) => registerCapsuleRef(capsule.id, el)"
         :class="[
           isMine(capsule) ? 'tc-card-mine' : 'tc-card-theirs',
           isLocked(capsule) ? 'tc-card-locked' : 'tc-card-unlocked',
-          isTouchDevice && focusedCapsuleId === capsule.id ? 'tc-card-focused' : ''
+          isTouchDevice && focusedCapsuleId === capsule.id ? 'tc-card-focused' : '',
         ]"
       >
         <div class="tc-card-main">
@@ -45,47 +41,33 @@
             </h2>
 
             <div class="tc-badges">
-              <span
-                class="tc-badge"
-                :class="isMine(capsule) ? 'tc-badge-mine' : 'tc-badge-theirs'"
-              >
+              <span class="tc-badge" :class="isMine(capsule) ? 'tc-badge-mine' : 'tc-badge-theirs'">
                 From {{ nameForUid(capsule.fromUid) }}
               </span>
 
-              <span class="tc-badge tc-badge-target">
-                To {{ nameForUid(capsule.toUid) }}
-              </span>
+              <span class="tc-badge tc-badge-target"> To {{ nameForUid(capsule.toUid) }} </span>
             </div>
           </div>
         </div>
 
         <div class="tc-card-actions">
-          <button
-            v-if="canEdit(capsule)"
-            class="tc-btn tc-btn-ghost"
-            @click="openEdit(capsule)"
-          >
+          <button v-if="canEdit(capsule)" class="tc-btn tc-btn-ghost" @click="openEdit(capsule)">
             Edit
           </button>
 
           <button
-  v-if="canDelete(capsule)"
-  type="button"
-  class="tc-btn tc-btn-danger tc-btn-icon"
-  @click="promptDelete(capsule)"
-  aria-label="Delete capsule"
->
-  <svg
-    class="tc-icon-trash"
-    viewBox="0 0 24 24"
-    aria-hidden="true"
-  >
-    <path
-      d="M9 3.5h6c.55 0 1 .45 1 1v1.5h3.25a.75.75 0 0 1 0 1.5H4.75a.75.75 0 0 1 0-1.5H8V4.5c0-.55.45-1 1-1zm1.5 3h3v-1h-3v1zM7.75 9.5a.75.75 0 0 1 .75.75v7.5a.75.75 0 0 1-1.5 0v-7.5c0-.41.34-.75.75-.75zm4.25 0a.75.75 0 0 1 .75.75v7.5a.75.75 0 0 1-1.5 0v-7.5c0-.41.34-.75.75-.75zm4.25 0a.75.75 0 0 1 .75.75v7.5a.75.75 0 0 1-1.5 0v-7.5c0-.41.34-.75.75-.75zM7 8h10l-.74 9.23A2 2 0 0 1 14.27 19H9.73a2 2 0 0 1-1.99-1.77L7 8z"
-    />
-  </svg>
-</button>
-
+            v-if="canDelete(capsule)"
+            type="button"
+            class="tc-btn tc-btn-danger tc-btn-icon"
+            @click="promptDelete(capsule)"
+            aria-label="Delete capsule"
+          >
+            <svg class="tc-icon-trash" viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M9 3.5h6c.55 0 1 .45 1 1v1.5h3.25a.75.75 0 0 1 0 1.5H4.75a.75.75 0 0 1 0-1.5H8V4.5c0-.55.45-1 1-1zm1.5 3h3v-1h-3v1zM7.75 9.5a.75.75 0 0 1 .75.75v7.5a.75.75 0 0 1-1.5 0v-7.5c0-.41.34-.75.75-.75zm4.25 0a.75.75 0 0 1 .75.75v7.5a.75.75 0 0 1-1.5 0v-7.5c0-.41.34-.75.75-.75zm4.25 0a.75.75 0 0 1 .75.75v7.5a.75.75 0 0 1-1.5 0v-7.5c0-.41.34-.75.75-.75zM7 8h10l-.74 9.23A2 2 0 0 1 14.27 19H9.73a2 2 0 0 1-1.99-1.77L7 8z"
+              />
+            </svg>
+          </button>
 
           <button
             class="tc-btn tc-btn-primary"
@@ -101,35 +83,34 @@
     </div>
 
     <!-- CREATE / EDIT MODAL -->
-  <!-- CREATE / EDIT MODAL -->
-<Transition name="modal">
-  <TimeCapsuleFormModal
-    v-if="isFormModalVisible"
-    :capsule="editingCapsule"
-    :partner-name="partnerName"
-    :from-name="myName"
-    :is-submitting="saving"
-    :submit-error="submitError"
-    cloudinary-cloud-name="dknmcj1qj"
-    cloudinary-upload-preset="memos_and_moments"
-    @close="closeFormModal"
-    @save="handleSaveCapsule"
-  />
-</Transition>
+    <!-- CREATE / EDIT MODAL -->
+    <Transition name="modal">
+      <TimeCapsuleFormModal
+        v-if="isFormModalVisible"
+        :capsule="editingCapsule"
+        :partner-name="partnerName"
+        :from-name="myName"
+        :is-submitting="saving"
+        :submit-error="submitError"
+        cloudinary-cloud-name="dknmcj1qj"
+        cloudinary-upload-preset="memos_and_moments"
+        @close="closeFormModal"
+        @save="handleSaveCapsule"
+      />
+    </Transition>
 
-<!-- READ MODAL -->
-<Transition name="modal">
-  <TimeCapsuleReadModal
-    v-if="showReader && readerCapsule"
-    :capsule="readerCapsule"
-    :is-mine="isMine(readerCapsule)"
-    :recipient-label="readerRecipientLabel"
-    :partner-name="partnerName"
-    :from-name="myName"
-    @close="closeReader"
-  />
-</Transition>
-
+    <!-- READ MODAL -->
+    <Transition name="modal">
+      <TimeCapsuleReadModal
+        v-if="showReader && readerCapsule"
+        :capsule="readerCapsule"
+        :is-mine="isMine(readerCapsule)"
+        :recipient-label="readerRecipientLabel"
+        :partner-name="partnerName"
+        :from-name="myName"
+        @close="closeReader"
+      />
+    </Transition>
 
     <!-- READ MODAL -->
     <Transition name="modal">
@@ -155,20 +136,20 @@
 </template>
 
 <script setup>
-  import { ref, computed, onMounted, onUnmounted,watch, nextTick } from 'vue';
-  import { auth } from '../firebase';
-  import {
-    useTimeCapsules,
-    createTimeCapsule,
-    updateTimeCapsule,
-    openTimeCapsule,
-    deleteTimeCapsule,
-  } from '../composables/useTimeCapsules';
-  import TimeCapsuleFormModal from '../components/TimeCapsuleFormModal.vue';
-  import TimeCapsuleReadModal from '../components/TimeCapsuleReadModal.vue';
-  import ConfirmDeleteModal from '../components/ConfirmDeleteModal.vue';
-  
-  const props = defineProps({
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue';
+import { auth } from '../firebase';
+import {
+  useTimeCapsules,
+  createTimeCapsule,
+  updateTimeCapsule,
+  openTimeCapsule,
+  deleteTimeCapsule,
+} from '../composables/useTimeCapsules';
+import TimeCapsuleFormModal from '../components/TimeCapsuleFormModal.vue';
+import TimeCapsuleReadModal from '../components/TimeCapsuleReadModal.vue';
+import ConfirmDeleteModal from '../components/ConfirmDeleteModal.vue';
+
+const props = defineProps({
   dateFilter: {
     type: String,
     default: '',
@@ -185,103 +166,95 @@
   },
 });
 
-  
-  const isTouchDevice = ref(false);
-  const focusedCapsuleId = ref(null);
-  
-  function updateFocusedCapsule() {
-    if (!isTouchDevice.value) return;
-  
-    const cards = document.querySelectorAll('.tc-card[data-capsule-id]');
-    if (!cards.length) {
-      focusedCapsuleId.value = null;
-      return;
-    }
-  
-    const viewportCenterY = window.innerHeight / 2;
-    let closestId = null;
-    let minDistance = Infinity;
-  
-    cards.forEach((el) => {
-      const rect = el.getBoundingClientRect();
-      const centerY = rect.top + rect.height / 2;
-      const distance = Math.abs(centerY - viewportCenterY);
-  
-      if (distance < minDistance) {
-        minDistance = distance;
-        closestId = el.dataset.capsuleId;
-      }
-    });
-  
-    if (minDistance < 140) {
-      focusedCapsuleId.value = closestId;
-    } else {
-      focusedCapsuleId.value = null;
-    }
+const isTouchDevice = ref(false);
+const focusedCapsuleId = ref(null);
+
+function updateFocusedCapsule() {
+  if (!isTouchDevice.value) return;
+
+  const cards = document.querySelectorAll('.tc-card[data-capsule-id]');
+  if (!cards.length) {
+    focusedCapsuleId.value = null;
+    return;
   }
-  
-  /* ---------- USERS / NAMES ---------- */
-  
-  /**
-   * Your Firebase UID (Dani)
-   */
-  const DANI_UID = 'uuqNmyiBe5Vm2Ap6PwZFzLVO72Q2';
-  
-  /**
-   * Eva's UID – this is the one you already had as PARTNER_UID.
-   * We still need it for toUid when you send capsules to her.
-   */
-  const EVA_UID = '6SXYP6cypwRZSJSL8GjrP0LtzMi1';
-  
-  const DANI_NAME = 'Dani';
-  const EVA_NAME = 'Eva';
-  
-  // --- auth context ---
-  const currentUser = computed(() => auth.currentUser);
-  const currentUid = computed(() => currentUser.value?.uid || null);
-  
-  /**
-   * Name of the *logged in* user:
-   * - if UID === DANI_UID → "Dani"
-   * - otherwise → "Eva"
-   */
-  const myName = computed(() => {
-    if (!currentUid.value) return DANI_NAME; // default when not logged in
-    return currentUid.value === DANI_UID ? DANI_NAME : EVA_NAME;
+
+  const viewportCenterY = window.innerHeight / 2;
+  let closestId = null;
+  let minDistance = Infinity;
+
+  cards.forEach((el) => {
+    const rect = el.getBoundingClientRect();
+    const centerY = rect.top + rect.height / 2;
+    const distance = Math.abs(centerY - viewportCenterY);
+
+    if (distance < minDistance) {
+      minDistance = distance;
+      closestId = el.dataset.capsuleId;
+    }
   });
-  
-  /**
-   * Name of the other person:
-   * - if I'm Dani → partner = Eva
-   * - if I'm Eva → partner = Dani
-   */
-  const partnerName = computed(() => {
-    if (!currentUid.value) return EVA_NAME;
-    return currentUid.value === DANI_UID ? EVA_NAME : DANI_NAME;
-  });
-  
-  /**
-   * Map a stored UID in the capsule to a human name.
-   * Only two users exist: Dani + Eva.
-   */
-  function nameForUid(uid) {
-    if (!uid) return 'Unknown';
-    if (uid === DANI_UID) return DANI_NAME;
-    if (uid === EVA_UID) return EVA_NAME;
-    return 'Unknown';
+
+  if (minDistance < 140) {
+    focusedCapsuleId.value = closestId;
+  } else {
+    focusedCapsuleId.value = null;
   }
-  
-  /* ---------- COMPOSABLE ---------- */
-  
-  const {
-    sortedCapsules,
-    loading,
-    error,
-    fetchTimeCapsules,
-    isLocked,
-    isOpened,
-  } = useTimeCapsules();
-  // Map capsuleId -> DOM element
+}
+
+/* ---------- USERS / NAMES ---------- */
+
+/**
+ * Your Firebase UID (Dani)
+ */
+const DANI_UID = 'uuqNmyiBe5Vm2Ap6PwZFzLVO72Q2';
+
+/**
+ * Eva's UID – this is the one you already had as PARTNER_UID.
+ * We still need it for toUid when you send capsules to her.
+ */
+const EVA_UID = '6SXYP6cypwRZSJSL8GjrP0LtzMi1';
+
+const DANI_NAME = 'Dani';
+const EVA_NAME = 'Eva';
+
+// --- auth context ---
+const currentUser = computed(() => auth.currentUser);
+const currentUid = computed(() => currentUser.value?.uid || null);
+
+/**
+ * Name of the *logged in* user:
+ * - if UID === DANI_UID → "Dani"
+ * - otherwise → "Eva"
+ */
+const myName = computed(() => {
+  if (!currentUid.value) return DANI_NAME; // default when not logged in
+  return currentUid.value === DANI_UID ? DANI_NAME : EVA_NAME;
+});
+
+/**
+ * Name of the other person:
+ * - if I'm Dani → partner = Eva
+ * - if I'm Eva → partner = Dani
+ */
+const partnerName = computed(() => {
+  if (!currentUid.value) return EVA_NAME;
+  return currentUid.value === DANI_UID ? EVA_NAME : DANI_NAME;
+});
+
+/**
+ * Map a stored UID in the capsule to a human name.
+ * Only two users exist: Dani + Eva.
+ */
+function nameForUid(uid) {
+  if (!uid) return 'Unknown';
+  if (uid === DANI_UID) return DANI_NAME;
+  if (uid === EVA_UID) return EVA_NAME;
+  return 'Unknown';
+}
+
+/* ---------- COMPOSABLE ---------- */
+
+const { sortedCapsules, loading, error, fetchTimeCapsules, isLocked, isOpened } = useTimeCapsules();
+// Map capsuleId -> DOM element
 const capsuleRefs = ref({});
 
 function registerCapsuleRef(id, el) {
@@ -331,294 +304,288 @@ watch(
   { immediate: true }
 );
 
-  onMounted(() => {
-    fetchTimeCapsules();
-  
-    isTouchDevice.value =
-      typeof window !== 'undefined' &&
-      ('ontouchstart' in window || navigator.maxTouchPoints > 0);
-  
-    if (isTouchDevice.value) {
-      setTimeout(updateFocusedCapsule, 200);
-      window.addEventListener('scroll', updateFocusedCapsule, { passive: true });
-      window.addEventListener('resize', updateFocusedCapsule);
-    }
-  });
-  
-  onUnmounted(() => {
-    if (isTouchDevice.value) {
-      window.removeEventListener('scroll', updateFocusedCapsule);
-      window.removeEventListener('resize', updateFocusedCapsule);
-    }
-  });
-  
-  /* ---------- FILTERED LIST ---------- */
-  
-  const displayCapsules = computed(() => {
-    let list = sortedCapsules.value || [];
-  
-    if (props.dateFilter) {
-      const target = new Date(props.dateFilter);
-      if (!Number.isNaN(target.getTime())) {
-        const ty = target.getFullYear();
-        const tm = target.getMonth();
-        const td = target.getDate();
-  
-        list = list.filter((capsule) => {
-          const raw = capsule.unlockAt || capsule.createdAt;
-          if (!raw) return false;
-  
-          const d = new Date(raw);
-          if (Number.isNaN(d.getTime())) return false;
-  
-          return (
-            d.getFullYear() === ty &&
-            d.getMonth() === tm &&
-            d.getDate() === td
-          );
-        });
-      }
-    }
-  
-    if (props.lockStatusFilter === 'locked') {
-      list = list.filter((capsule) => isLocked(capsule));
-    } else if (props.lockStatusFilter === 'unlocked') {
-      list = list.filter((capsule) => !isLocked(capsule));
-    }
-  
-    return list;
-  });
-  
-  /* ---------- MODAL STATE ---------- */
-  
-  // create/edit
-  const isFormModalVisible = ref(false);
-  const editingCapsule = ref(null);
-  const saving = ref(false);
-  const submitError = ref('');
-  
-  // reader
-  const showReader = ref(false);
-  const readerCapsule = ref(null);
-  const readerRecipientLabel = ref('');
-  
-  // delete confirm
-  const isDeleteModalVisible = ref(false);
-  const capsulePendingDelete = ref(null);
-  
-  /* ---------- HELPERS ---------- */
-  
-  function isMine(capsule) {
-    if (!capsule || !currentUid.value) return false;
-    return capsule.fromUid === currentUid.value;
+onMounted(() => {
+  fetchTimeCapsules();
+
+  isTouchDevice.value =
+    typeof window !== 'undefined' && ('ontouchstart' in window || navigator.maxTouchPoints > 0);
+
+  if (isTouchDevice.value) {
+    setTimeout(updateFocusedCapsule, 200);
+    window.addEventListener('scroll', updateFocusedCapsule, { passive: true });
+    window.addEventListener('resize', updateFocusedCapsule);
   }
-  
-  // simple recipient label for the reader modal
-  function recipientLabel(capsule) {
-    if (!capsule) return '';
-    return nameForUid(capsule.toUid);
+});
+
+onUnmounted(() => {
+  if (isTouchDevice.value) {
+    window.removeEventListener('scroll', updateFocusedCapsule);
+    window.removeEventListener('resize', updateFocusedCapsule);
   }
-  
-  function canEdit(capsule) {
-    if (!capsule) return false;
-    if (!isMine(capsule)) return false;
-    if (isOpened(capsule)) return false;
-    if (!capsule.unlockAt) return false;
-    const unlockTime = new Date(capsule.unlockAt).getTime();
-    return unlockTime > Date.now();
-  }
-  
-  function canDelete(capsule) {
-    if (!capsule) return false;
-    return isMine(capsule);
-  }
-  
-  /* ---------- EDITOR MODAL OPEN/CLOSE ---------- */
-  
-  function openCreate() {
-    // give form a "blank" capsule, but with safe defaults
-    editingCapsule.value = {
-      id: null,
-      title: '',
-      message: '',
-      unlockAt: null,
-      photos: [],
-      fromUid: currentUid.value || null,
-      toUid: null,
-    };
-    submitError.value = '';
-    isFormModalVisible.value = true;
-  }
-  
-  function openEdit(capsule) {
-    if (!capsule) return;
-    editingCapsule.value = capsule;
-    submitError.value = '';
-    isFormModalVisible.value = true;
-  }
-  
-  function closeFormModal() {
-    isFormModalVisible.value = false;
-    editingCapsule.value = null;
-    submitError.value = '';
-  }
-  
-  /* ---------- CREATE / UPDATE VIA MODAL ---------- */
-  
-  async function handleSaveCapsule(payload) {
-    if (!currentUid.value) {
-      alert('You must be logged in to create a time capsule.');
-      return;
+});
+
+/* ---------- FILTERED LIST ---------- */
+
+const displayCapsules = computed(() => {
+  let list = sortedCapsules.value || [];
+
+  if (props.dateFilter) {
+    const target = new Date(props.dateFilter);
+    if (!Number.isNaN(target.getTime())) {
+      const ty = target.getFullYear();
+      const tm = target.getMonth();
+      const td = target.getDate();
+
+      list = list.filter((capsule) => {
+        const raw = capsule.unlockAt || capsule.createdAt;
+        if (!raw) return false;
+
+        const d = new Date(raw);
+        if (Number.isNaN(d.getTime())) return false;
+
+        return d.getFullYear() === ty && d.getMonth() === tm && d.getDate() === td;
+      });
     }
-  
-    const { title, message, unlockAtLocal, recipient, photos } = payload;
-  
-    if (!unlockAtLocal) {
-      alert('Please choose an unlock date and time.');
-      return;
+  }
+
+  if (props.lockStatusFilter === 'locked') {
+    list = list.filter((capsule) => isLocked(capsule));
+  } else if (props.lockStatusFilter === 'unlocked') {
+    list = list.filter((capsule) => !isLocked(capsule));
+  }
+
+  return list;
+});
+
+/* ---------- MODAL STATE ---------- */
+
+// create/edit
+const isFormModalVisible = ref(false);
+const editingCapsule = ref(null);
+const saving = ref(false);
+const submitError = ref('');
+
+// reader
+const showReader = ref(false);
+const readerCapsule = ref(null);
+const readerRecipientLabel = ref('');
+
+// delete confirm
+const isDeleteModalVisible = ref(false);
+const capsulePendingDelete = ref(null);
+
+/* ---------- HELPERS ---------- */
+
+function isMine(capsule) {
+  if (!capsule || !currentUid.value) return false;
+  return capsule.fromUid === currentUid.value;
+}
+
+// simple recipient label for the reader modal
+function recipientLabel(capsule) {
+  if (!capsule) return '';
+  return nameForUid(capsule.toUid);
+}
+
+function canEdit(capsule) {
+  if (!capsule) return false;
+  if (!isMine(capsule)) return false;
+  if (isOpened(capsule)) return false;
+  if (!capsule.unlockAt) return false;
+  const unlockTime = new Date(capsule.unlockAt).getTime();
+  return unlockTime > Date.now();
+}
+
+function canDelete(capsule) {
+  if (!capsule) return false;
+  return isMine(capsule);
+}
+
+/* ---------- EDITOR MODAL OPEN/CLOSE ---------- */
+
+function openCreate() {
+  // give form a "blank" capsule, but with safe defaults
+  editingCapsule.value = {
+    id: null,
+    title: '',
+    message: '',
+    unlockAt: null,
+    photos: [],
+    fromUid: currentUid.value || null,
+    toUid: null,
+  };
+  submitError.value = '';
+  isFormModalVisible.value = true;
+}
+
+function openEdit(capsule) {
+  if (!capsule) return;
+  editingCapsule.value = capsule;
+  submitError.value = '';
+  isFormModalVisible.value = true;
+}
+
+function closeFormModal() {
+  isFormModalVisible.value = false;
+  editingCapsule.value = null;
+  submitError.value = '';
+}
+
+/* ---------- CREATE / UPDATE VIA MODAL ---------- */
+
+async function handleSaveCapsule(payload) {
+  if (!currentUid.value) {
+    alert('You must be logged in to create a time capsule.');
+    return;
+  }
+
+  const { title, message, unlockAtLocal, recipient, photos } = payload;
+
+  if (!unlockAtLocal) {
+    alert('Please choose an unlock date and time.');
+    return;
+  }
+
+  const unlockAtLocalDate = new Date(unlockAtLocal);
+  if (Number.isNaN(unlockAtLocalDate.getTime())) {
+    alert('Invalid unlock date/time');
+    return;
+  }
+
+  const now = Date.now();
+  const unlockTs = unlockAtLocalDate.getTime();
+  if (unlockTs <= now) {
+    alert('Unlock time must be in the future.');
+    return;
+  }
+
+  const trimmedMessage = (message || '').trim();
+  if (!trimmedMessage) {
+    alert('Message cannot be empty.');
+    return;
+  }
+
+  const unlockAtIso = unlockAtLocalDate.toISOString();
+
+  // who is this capsule for?
+  let toUid;
+
+  // new capsule
+  if (!editingCapsule.value || !editingCapsule.value.id) {
+    if (recipient === 'me') {
+      // send to myself
+      toUid = currentUid.value;
+    } else {
+      // send to the other person
+      toUid = currentUid.value === DANI_UID ? EVA_UID : DANI_UID;
     }
-  
-    const unlockAtLocalDate = new Date(unlockAtLocal);
-    if (Number.isNaN(unlockAtLocalDate.getTime())) {
-      alert('Invalid unlock date/time');
-      return;
-    }
-  
-    const now = Date.now();
-    const unlockTs = unlockAtLocalDate.getTime();
-    if (unlockTs <= now) {
-      alert('Unlock time must be in the future.');
-      return;
-    }
-  
-    const trimmedMessage = (message || '').trim();
-    if (!trimmedMessage) {
-      alert('Message cannot be empty.');
-      return;
-    }
-  
-    const unlockAtIso = unlockAtLocalDate.toISOString();
-  
-    // who is this capsule for?
-    let toUid;
-  
-    // new capsule
+  }
+
+  saving.value = true;
+  submitError.value = '';
+
+  try {
     if (!editingCapsule.value || !editingCapsule.value.id) {
-      if (recipient === 'me') {
-        // send to myself
-        toUid = currentUid.value;
-      } else {
-        // send to the other person
-        toUid = currentUid.value === DANI_UID ? EVA_UID : DANI_UID;
-      }
+      await createTimeCapsule({
+        toUid,
+        unlockAt: unlockAtIso,
+        title: title || '',
+        message: trimmedMessage,
+        photos: photos || [],
+      });
+    } else {
+      await updateTimeCapsule(editingCapsule.value.id, {
+        title: title || '',
+        message: trimmedMessage,
+        unlockAt: unlockAtIso,
+        photos: photos || [],
+      });
     }
-  
-    saving.value = true;
-    submitError.value = '';
-  
+
+    await fetchTimeCapsules();
+    closeFormModal();
+  } catch (e) {
+    console.warn('[TimeCapsulesView] handleSaveCapsule failed:', e);
+    submitError.value = 'Failed to save time capsule.';
+  } finally {
+    saving.value = false;
+  }
+}
+
+/* ---------- READER MODAL ---------- */
+
+function openReader(capsule) {
+  if (!capsule) return;
+  readerCapsule.value = capsule;
+  readerRecipientLabel.value = recipientLabel(capsule);
+  showReader.value = true;
+}
+
+function closeReader() {
+  showReader.value = false;
+  readerCapsule.value = null;
+  readerRecipientLabel.value = '';
+}
+
+/* ---------- OPEN CAPSULE ---------- */
+
+async function handleOpen(capsule) {
+  if (!capsule) return;
+  if (isLocked(capsule)) return;
+
+  openReader(capsule);
+
+  if (!isOpened(capsule)) {
     try {
-      if (!editingCapsule.value || !editingCapsule.value.id) {
-        await createTimeCapsule({
-          toUid,
-          unlockAt: unlockAtIso,
-          title: title || '',
-          message: trimmedMessage,
-          photos: photos || [],
-        });
-      } else {
-        await updateTimeCapsule(editingCapsule.value.id, {
-          title: title || '',
-          message: trimmedMessage,
-          unlockAt: unlockAtIso,
-          photos: photos || [],
-        });
-      }
-  
+      await openTimeCapsule(capsule.id);
       await fetchTimeCapsules();
-      closeFormModal();
     } catch (e) {
-      console.warn('[TimeCapsulesView] handleSaveCapsule failed:', e);
-      submitError.value = 'Failed to save time capsule.';
-    } finally {
-      saving.value = false;
+      console.warn('[TimeCapsulesView] handleOpen failed:', e);
+      alert('Failed to mark time capsule as opened.');
     }
   }
-  
-  /* ---------- READER MODAL ---------- */
-  
-  function openReader(capsule) {
-    if (!capsule) return;
-    readerCapsule.value = capsule;
-    readerRecipientLabel.value = recipientLabel(capsule);
-    showReader.value = true;
+}
+
+/* ---------- DELETE CAPSULE FLOW ---------- */
+
+function promptDelete(capsule) {
+  if (!capsule || !canDelete(capsule)) return;
+  capsulePendingDelete.value = capsule;
+  isDeleteModalVisible.value = true;
+}
+
+function closeDeleteModal() {
+  isDeleteModalVisible.value = false;
+  capsulePendingDelete.value = null;
+}
+
+async function confirmDelete() {
+  const capsule = capsulePendingDelete.value;
+  if (!capsule) {
+    closeDeleteModal();
+    return;
   }
-  
-  function closeReader() {
-    showReader.value = false;
-    readerCapsule.value = null;
-    readerRecipientLabel.value = '';
-  }
-  
-  /* ---------- OPEN CAPSULE ---------- */
-  
-  async function handleOpen(capsule) {
-    if (!capsule) return;
-    if (isLocked(capsule)) return;
-  
-    openReader(capsule);
-  
-    if (!isOpened(capsule)) {
-      try {
-        await openTimeCapsule(capsule.id);
-        await fetchTimeCapsules();
-      } catch (e) {
-        console.warn('[TimeCapsulesView] handleOpen failed:', e);
-        alert('Failed to mark time capsule as opened.');
-      }
+
+  isDeleteModalVisible.value = false;
+  capsulePendingDelete.value = null;
+
+  saving.value = true;
+  submitError.value = '';
+
+  try {
+    await deleteTimeCapsule(capsule.id);
+
+    if (readerCapsule.value && readerCapsule.value.id === capsule.id) {
+      closeReader();
     }
+  } catch (e) {
+    console.warn('[TimeCapsulesView] confirmDelete failed:', e);
+    submitError.value = 'Failed to delete time capsule.';
+  } finally {
+    saving.value = false;
   }
-  
-  /* ---------- DELETE CAPSULE FLOW ---------- */
-  
-  function promptDelete(capsule) {
-    if (!capsule || !canDelete(capsule)) return;
-    capsulePendingDelete.value = capsule;
-    isDeleteModalVisible.value = true;
-  }
-  
-  function closeDeleteModal() {
-    isDeleteModalVisible.value = false;
-    capsulePendingDelete.value = null;
-  }
-  
-  async function confirmDelete() {
-    const capsule = capsulePendingDelete.value;
-    if (!capsule) {
-      closeDeleteModal();
-      return;
-    }
-  
-    isDeleteModalVisible.value = false;
-    capsulePendingDelete.value = null;
-  
-    saving.value = true;
-    submitError.value = '';
-  
-    try {
-      await deleteTimeCapsule(capsule.id);
-  
-      if (readerCapsule.value && readerCapsule.value.id === capsule.id) {
-        closeReader();
-      }
-    } catch (e) {
-      console.warn('[TimeCapsulesView] confirmDelete failed:', e);
-      submitError.value = 'Failed to delete time capsule.';
-    } finally {
-      saving.value = false;
-    }
-  }
-  </script>
-  
+}
+</script>
 
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap');
@@ -680,7 +647,11 @@ watch(
   box-shadow:
     0 0 20px rgba(255, 0, 255, 0.18),
     0 0 28px rgba(0, 255, 255, 0.14);
-  transition: transform 0.24s ease, box-shadow 0.24s ease, border-color 0.24s ease, color 0.24s ease;
+  transition:
+    transform 0.24s ease,
+    box-shadow 0.24s ease,
+    border-color 0.24s ease,
+    color 0.24s ease;
 }
 
 .tc-new-btn:hover,
@@ -732,11 +703,7 @@ watch(
   max-width: 190px;
 
   background:
-    radial-gradient(
-      circle at 10% 0%,
-      var(--tc-card-glow-a, rgba(0, 255, 255, 0)),
-      transparent 60%
-    ),
+    radial-gradient(circle at 10% 0%, var(--tc-card-glow-a, rgba(0, 255, 255, 0)), transparent 60%),
     radial-gradient(
       circle at 90% 100%,
       var(--tc-card-glow-b, rgba(255, 0, 255, 0)),
@@ -784,7 +751,6 @@ watch(
   transform: scale(1.5);
   z-index: 2;
 }
-
 
 /* mine/theirs tweaks */
 
@@ -898,7 +864,6 @@ watch(
   flex-wrap: wrap;
 }
 
-
 /* Buttons */
 
 .tc-btn {
@@ -909,7 +874,10 @@ watch(
   border: 1px solid transparent;
   background: transparent;
   color: #f5f5ff;
-  transition: box-shadow 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+  transition:
+    box-shadow 0.15s ease,
+    border-color 0.15s ease,
+    background 0.15s ease;
   white-space: nowrap;
 }
 /* Icon-style buttons (for delete) */
@@ -933,7 +901,6 @@ watch(
   display: block;
   fill: currentColor; /* <- this is the important line */
 }
-
 
 /* Slight tweak for very small screens so it never overflows */
 @media (max-width: 37.5rem) {
@@ -972,7 +939,7 @@ watch(
   box-shadow:
     inset 0 0 6px rgba(255, 0, 255, 0.6),
     0 0 6px rgba(255, 0, 255, 0.5);
-    flex-basis: 50%;
+  flex-basis: 50%;
 }
 
 .tc-btn-primary:hover:not(:disabled) {

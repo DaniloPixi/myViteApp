@@ -26,8 +26,8 @@ export default defineConfig({
       filename: 'sw.js',
 
       injectManifest: {
-           // Keep precache working even when a compiled chunk temporarily exceeds 2 MiB.
-           maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
+        // Keep precache working even when a compiled chunk temporarily exceeds 2 MiB.
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
       },
 
       workbox: {

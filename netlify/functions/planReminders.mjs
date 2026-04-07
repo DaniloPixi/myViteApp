@@ -183,8 +183,8 @@ export const handler = async () => {
           rule.code === '24h'
             ? '🗓️ Plan tomorrow'
             : rule.code === '1h'
-            ? '⏳ Plan in 1 hour'
-            : '⌛ Plan time is up';
+              ? '⏳ Plan in 1 hour'
+              : '⌛ Plan time is up';
 
         const body =
           rule.code === 'timeUp'

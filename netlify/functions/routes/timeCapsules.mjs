@@ -5,7 +5,7 @@ export default function createTimeCapsulesRouter(
   db,
   cloudinary,
   extractPublicId,
-  sendPushNotification,
+  sendPushNotification
 ) {
   const router = express.Router();
 
@@ -40,11 +40,7 @@ export default function createTimeCapsulesRouter(
   }
 
   async function deleteCloudinaryResources(urls) {
-    if (
-      !cloudinary ||
-      typeof cloudinary.config !== 'function' ||
-      !cloudinary.config().api_key
-    ) {
+    if (!cloudinary || typeof cloudinary.config !== 'function' || !cloudinary.config().api_key) {
       return;
     }
 
@@ -56,9 +52,7 @@ export default function createTimeCapsulesRouter(
 
     if (publicIdsToDelete.length === 0) return;
 
-    console.log(
-      `[timeCapsules] Deleting ${publicIdsToDelete.length} photos from Cloudinary...`,
-    );
+    console.log(`[timeCapsules] Deleting ${publicIdsToDelete.length} photos from Cloudinary...`);
 
     await cloudinary.api.delete_resources(publicIdsToDelete);
   }
@@ -70,9 +64,7 @@ export default function createTimeCapsulesRouter(
   router.get('/', async (req, res) => {
     const { uid } = req.user || {};
     if (!uid) {
-      return res
-        .status(401)
-        .json({ success: false, message: 'Unauthorized: no user in request.' });
+      return res.status(401).json({ success: false, message: 'Unauthorized: no user in request.' });
     }
 
     try {
@@ -118,26 +110,18 @@ export default function createTimeCapsulesRouter(
   router.post('/', async (req, res) => {
     const { uid, name, email } = req.user || {};
     if (!uid) {
-      return res
-        .status(401)
-        .json({ success: false, message: 'Unauthorized: no user in request.' });
+      return res.status(401).json({ success: false, message: 'Unauthorized: no user in request.' });
     }
-  
-    const {
-      toUid,
-      unlockAt: unlockAtRaw,
-      title,
-      message,
-      photos,
-    } = req.body || {};
-  
+
+    const { toUid, unlockAt: unlockAtRaw, title, message, photos } = req.body || {};
+
     if (!toUid || !unlockAtRaw) {
       return res.status(400).json({
         success: false,
         message: 'Missing required fields: toUid and unlockAt',
       });
     }
-  
+
     const unlockAtIso = parseUnlockAt(unlockAtRaw);
     if (!unlockAtIso) {
       return res.status(400).json({
@@ -145,7 +129,7 @@ export default function createTimeCapsulesRouter(
         message: 'Invalid unlockAt date/time format.',
       });
     }
-  
+
     const now = new Date();
     const unlockDate = new Date(unlockAtIso);
     if (unlockDate.getTime() <= now.getTime()) {
@@ -154,12 +138,12 @@ export default function createTimeCapsulesRouter(
         message: 'unlockAt must be in the future.',
       });
     }
-  
+
     const unlockDateKey = dateKeyFromIso(unlockAtIso);
-  
+
     try {
       const displayName = name || email || 'Someone';
-  
+
       const docRef = await db.collection('timeCapsules').add({
         fromUid: uid,
         fromName: displayName,
@@ -173,7 +157,7 @@ export default function createTimeCapsulesRouter(
         openedAt: null,
         opened: false,
       });
-  
+
       // 🔔 Notify the other person that a capsule has been scheduled
       try {
         const deepLinkUrl = `/?view=capsules&capsuleId=${docRef.id}`;
@@ -184,12 +168,12 @@ export default function createTimeCapsulesRouter(
           hour: '2-digit',
           minute: '2-digit',
         });
-  
+
         const notifTitle = '⏳ New time capsule';
         const notifBody = title
           ? `"${title}" will unlock on ${unlockPretty}`
           : `A new capsule will unlock on ${unlockPretty}`;
-  
+
         await sendPushNotification(
           notifTitle,
           notifBody,
@@ -204,12 +188,12 @@ export default function createTimeCapsulesRouter(
             fromUid: uid,
             fromName: displayName,
             toUid,
-          },
+          }
         );
       } catch (notifyError) {
         console.warn('[timeCapsules] Failed to send "capsule created" notification:', notifyError);
       }
-  
+
       return res.status(201).json({
         success: true,
         id: docRef.id,
@@ -223,7 +207,6 @@ export default function createTimeCapsulesRouter(
       });
     }
   });
-  
 
   /**
    * PUT /api/time-capsules/:id
@@ -233,27 +216,18 @@ export default function createTimeCapsulesRouter(
   router.put('/:id', async (req, res) => {
     const { uid } = req.user || {};
     if (!uid) {
-      return res
-        .status(401)
-        .json({ success: false, message: 'Unauthorized: no user in request.' });
+      return res.status(401).json({ success: false, message: 'Unauthorized: no user in request.' });
     }
 
     const { id } = req.params;
-    const {
-      title,
-      message,
-      unlockAt: unlockAtRaw,
-      photos,
-    } = req.body || {};
+    const { title, message, unlockAt: unlockAtRaw, photos } = req.body || {};
 
     try {
       const docRef = db.collection('timeCapsules').doc(id);
       const snap = await docRef.get();
 
       if (!snap.exists) {
-        return res
-          .status(404)
-          .json({ success: false, message: 'Time capsule not found.' });
+        return res.status(404).json({ success: false, message: 'Time capsule not found.' });
       }
 
       const data = snap.data();
@@ -309,13 +283,9 @@ export default function createTimeCapsulesRouter(
           .map((p) => p.url)
           .filter(Boolean);
 
-        const newPhotoUrls = photos
-          .map((p) => p && p.url)
-          .filter(Boolean);
+        const newPhotoUrls = photos.map((p) => p && p.url).filter(Boolean);
 
-        const photosToDelete = originalPhotoUrls.filter(
-          (url) => !newPhotoUrls.includes(url),
-        );
+        const photosToDelete = originalPhotoUrls.filter((url) => !newPhotoUrls.includes(url));
 
         if (photosToDelete.length > 0) {
           try {
@@ -323,7 +293,7 @@ export default function createTimeCapsulesRouter(
           } catch (delErr) {
             console.warn(
               '[timeCapsules] Failed to delete some Cloudinary photos on update:',
-              delErr,
+              delErr
             );
           }
         }
@@ -351,25 +321,21 @@ export default function createTimeCapsulesRouter(
   router.post('/:id/open', async (req, res) => {
     const { uid, name, email } = req.user || {};
     if (!uid) {
-      return res
-        .status(401)
-        .json({ success: false, message: 'Unauthorized: no user in request.' });
+      return res.status(401).json({ success: false, message: 'Unauthorized: no user in request.' });
     }
-  
+
     const { id } = req.params;
-  
+
     try {
       const docRef = db.collection('timeCapsules').doc(id);
       const snap = await docRef.get();
-  
+
       if (!snap.exists) {
-        return res
-          .status(404)
-          .json({ success: false, message: 'Time capsule not found.' });
+        return res.status(404).json({ success: false, message: 'Time capsule not found.' });
       }
-  
+
       const data = snap.data();
-  
+
       // Only the intended recipient (or creator, for self-capsule) can "open"
       if (data.toUid !== uid && data.fromUid !== uid) {
         return res.status(403).json({
@@ -377,7 +343,7 @@ export default function createTimeCapsulesRouter(
           message: 'You are not allowed to open this capsule.',
         });
       }
-  
+
       // Check unlock time
       const now = new Date();
       const unlockDate = new Date(data.unlockAt);
@@ -387,7 +353,7 @@ export default function createTimeCapsulesRouter(
           message: 'This capsule is not unlocked yet.',
         });
       }
-  
+
       // If already opened, just return success (idempotent)
       if (!data.opened) {
         await docRef.set(
@@ -395,19 +361,19 @@ export default function createTimeCapsulesRouter(
             opened: true,
             openedAt: new Date().toISOString(),
           },
-          { merge: true },
+          { merge: true }
         );
-  
+
         // Notify creator that their capsule was opened.
         try {
           const openerName = name || email || 'Someone';
           const deepLinkUrl = `/?view=capsules&capsuleId=${id}`;
-  
+
           const title = 'Your time capsule was opened ✨';
           const body = data.title
             ? `${openerName} just opened "${data.title}".`
             : `${openerName} just opened one of your time capsules.`;
-  
+
           await sendPushNotification(
             title,
             body,
@@ -423,13 +389,13 @@ export default function createTimeCapsulesRouter(
               openedByUid: uid,
               openedByName: openerName,
               capsuleTitle: data.title || '',
-            },
+            }
           );
         } catch (notifyError) {
           console.warn('Failed to send time capsule opened notification:', notifyError);
         }
       }
-  
+
       return res.status(200).json({ success: true });
     } catch (error) {
       console.error('Error in POST /api/time-capsules/:id/open:', error);
@@ -440,7 +406,6 @@ export default function createTimeCapsulesRouter(
       });
     }
   });
-  
 
   /**
    * DELETE /api/time-capsules/:id
@@ -450,9 +415,7 @@ export default function createTimeCapsulesRouter(
   router.delete('/:id', async (req, res) => {
     const { uid } = req.user || {};
     if (!uid) {
-      return res
-        .status(401)
-        .json({ success: false, message: 'Unauthorized: no user in request.' });
+      return res.status(401).json({ success: false, message: 'Unauthorized: no user in request.' });
     }
 
     const { id } = req.params;
@@ -462,9 +425,7 @@ export default function createTimeCapsulesRouter(
       const snap = await docRef.get();
 
       if (!snap.exists) {
-        return res
-          .status(404)
-          .json({ success: false, message: 'Time capsule not found.' });
+        return res.status(404).json({ success: false, message: 'Time capsule not found.' });
       }
 
       const data = snap.data();
@@ -483,10 +444,7 @@ export default function createTimeCapsulesRouter(
         try {
           await deleteCloudinaryResources(photoUrlsToDelete);
         } catch (delErr) {
-          console.warn(
-            '[timeCapsules] Failed to delete some Cloudinary photos on delete:',
-            delErr,
-          );
+          console.warn('[timeCapsules] Failed to delete some Cloudinary photos on delete:', delErr);
         }
       }
 

@@ -7,13 +7,7 @@
       <form @submit.prevent="submitForm" class="plan-form">
         <div class="form-group">
           <label class="ds-label" for="plan-text">What's the plan?</label>
-          <input
-            type="text"
-            id="plan-text"
-            v-model="formData.text"
-            class="ds-input"
-            required
-          />
+          <input type="text" id="plan-text" v-model="formData.text" class="ds-input" required />
         </div>
 
         <div class="form-group">
@@ -33,9 +27,24 @@
           <div class="time-duration-group">
             <StyledTimeInput v-model="specificTime" />
             <div class="duration-buttons">
-              <button @click.prevent="selectDuration('All day')" :class="{ selected: selectedDuration === 'All day' }">All day</button>
-              <button @click.prevent="selectDuration('All night')" :class="{ selected: selectedDuration === 'All night' }">All night</button>
-              <button @click.prevent="selectDuration('Indetermined')" :class="{ selected: selectedDuration === 'Indetermined' }">∞</button>
+              <button
+                @click.prevent="selectDuration('All day')"
+                :class="{ selected: selectedDuration === 'All day' }"
+              >
+                All day
+              </button>
+              <button
+                @click.prevent="selectDuration('All night')"
+                :class="{ selected: selectedDuration === 'All night' }"
+              >
+                All night
+              </button>
+              <button
+                @click.prevent="selectDuration('Indetermined')"
+                :class="{ selected: selectedDuration === 'Indetermined' }"
+              >
+                ∞
+              </button>
             </div>
           </div>
         </div>
@@ -100,7 +109,18 @@ const props = defineProps({ plan: Object, isSubmitting: Boolean, submitError: St
 const emit = defineEmits(['save', 'close']);
 
 const today = new Date().toISOString().split('T')[0];
-const availableHashtags = ref(['date', 'party', 'food', '18+', 'travel', 'weekend', 'chill', 'friends', 'love', 'random']);
+const availableHashtags = ref([
+  'date',
+  'party',
+  'food',
+  '18+',
+  'travel',
+  'weekend',
+  'chill',
+  'friends',
+  'love',
+  'random',
+]);
 const DURATION_OPTIONS = ['All day', 'All night', 'Indetermined'];
 
 const formData = ref({ text: '', date: '', location: '', hashtags: [] });
@@ -108,7 +128,7 @@ const selectedLocationCoords = ref(null);
 const specificTime = ref('');
 const selectedDuration = ref('');
 
-const formTitle = computed(() => props.plan ? 'Edit Plan' : 'Create a New Plan');
+const formTitle = computed(() => (props.plan ? 'Edit Plan' : 'Create a New Plan'));
 
 const setFormState = (plan) => {
   if (plan) {
@@ -116,7 +136,7 @@ const setFormState = (plan) => {
       text: plan.text || '',
       date: plan.date || '',
       location: plan.location || '',
-      hashtags: plan.hashtags ? plan.hashtags.map(t => t.replace('#', '')) : [],
+      hashtags: plan.hashtags ? plan.hashtags.map((t) => t.replace('#', '')) : [],
     };
     selectedLocationCoords.value = plan.locationCoords || null;
 
@@ -125,7 +145,7 @@ const setFormState = (plan) => {
     const timeMatch = timeString.match(timeRegex);
 
     specificTime.value = timeMatch ? timeMatch[0] : '';
-    selectedDuration.value = DURATION_OPTIONS.find(d => timeString.includes(d)) || '';
+    selectedDuration.value = DURATION_OPTIONS.find((d) => timeString.includes(d)) || '';
   } else {
     formData.value = { text: '', date: '', location: '', hashtags: [] };
     selectedLocationCoords.value = null;
@@ -156,8 +176,9 @@ const submitForm = async () => {
   const dataToSave = {
     ...formData.value,
     location: normalizedLocation,
-    locationCoords: selectedLocationCoords.value || await geocodeLocationLabel(normalizedLocation),
-    hashtags: formData.value.hashtags.map(tag => `#${tag}`),
+    locationCoords:
+      selectedLocationCoords.value || (await geocodeLocationLabel(normalizedLocation)),
+    hashtags: formData.value.hashtags.map((tag) => `#${tag}`),
     time: timeParts.join(', '),
   };
 
@@ -217,7 +238,9 @@ const submitForm = async () => {
   color: turquoise;
   cursor: pointer;
   flex-grow: 1;
-  transition: background-color 0.3s, box-shadow 0.3s;
+  transition:
+    background-color 0.3s,
+    box-shadow 0.3s;
 }
 
 .duration-buttons button.selected {
@@ -232,7 +255,8 @@ button:disabled {
 }
 
 @keyframes plan-modal-glow {
-  0%, 100% {
+  0%,
+  100% {
     border-color: rgba(255, 0, 255, 0.32);
     box-shadow:
       inset 0 2px 4px rgba(0, 0, 0, 0.4),
@@ -251,9 +275,15 @@ button:disabled {
 }
 
 @keyframes plan-strip-flow {
-  0%   { background-position: 0% 50%; }
-  50%  { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
 }
 
 @media (max-width: 700px) {

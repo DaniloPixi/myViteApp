@@ -2,18 +2,13 @@
   <P5StarfieldBackground>
     <CursorTrail />
     <div
-  v-if="user"
-  class="presence-floating-wrap"
-  :title="`Partner is ${partnerPresenceStatus}`"
-  aria-label="Partner presence"
->
-  <span
-    class="presence-floating-star"
-    :class="`presence-${partnerPresenceStatus}`"
-  >
-    ✦
-  </span>
-</div>
+      v-if="user"
+      class="presence-floating-wrap"
+      :title="`Partner is ${partnerPresenceStatus}`"
+      aria-label="Partner presence"
+    >
+      <span class="presence-floating-star" :class="`presence-${partnerPresenceStatus}`"> ✦ </span>
+    </div>
     <!-- In-App Notification Banner -->
     <InAppNotification
       :title="inAppNotification.title"
@@ -34,7 +29,10 @@
     />
 
     <!-- Fixed Notification Controls -->
-    <div v-if="user && currentView === 'home' && supportsNotifications" class="notification-control-fixed">
+    <div
+      v-if="user && currentView === 'home' && supportsNotifications"
+      class="notification-control-fixed"
+    >
       <button
         v-if="notificationPermission !== 'granted'"
         @click="enableNotifications"
@@ -62,186 +60,190 @@
       />
       <header class="page-header" v-if="currentView === 'home'">
         <h1 v-if="user" class="bounce-in welcome-line">
-  <span>Welcome, {{ user.displayName || user.email }}</span>
-</h1>
+          <span>Welcome, {{ user.displayName || user.email }}</span>
+        </h1>
         <h1 v-else class="bounce-in">Auth Portal</h1>
       </header>
     </div>
 
     <!-- The main content card -->
     <div class="centered-content-container">
-      <div class="card" :class="{ 'is-full-width': currentView !== 'home', 'home-view-card': currentView === 'home' }">
+      <div
+        class="card"
+        :class="{
+          'is-full-width': currentView !== 'home',
+          'home-view-card': currentView === 'home',
+        }"
+      >
         <main>
           <!-- Logged-in Content -->
           <div v-if="user">
             <!-- View Navigation -->
             <nav class="view-nav">
-  <a
-    @click="switchView('home')"
-    :class="{ active: currentView === 'home' }"
-    :style="getNavStyle('home', 0)"
-  >Home</a>
+              <a
+                @click="switchView('home')"
+                :class="{ active: currentView === 'home' }"
+                :style="getNavStyle('home', 0)"
+                >Home</a
+              >
 
-  <a
-    @click="switchView('memos')"
-    :class="{ active: currentView === 'memos' }"
-    :style="getNavStyle('memos', 1)"
-  >Moments</a>
+              <a
+                @click="switchView('memos')"
+                :class="{ active: currentView === 'memos' }"
+                :style="getNavStyle('memos', 1)"
+                >Moments</a
+              >
 
-  <a
-    @click="switchView('plans')"
-    :class="{ active: currentView === 'plans' }"
-    :style="getNavStyle('plans', 2)"
-  >Plans</a>
+              <a
+                @click="switchView('plans')"
+                :class="{ active: currentView === 'plans' }"
+                :style="getNavStyle('plans', 2)"
+                >Plans</a
+              >
 
-  <a
-    @click="switchView('capsules')"
-    :class="{ active: currentView === 'capsules' }"
-    :style="getNavStyle('capsules', 3)"
-  >
-    Capsules
-  </a>
+              <a
+                @click="switchView('capsules')"
+                :class="{ active: currentView === 'capsules' }"
+                :style="getNavStyle('capsules', 3)"
+              >
+                Capsules
+              </a>
 
-  <button
-    v-if="user"
-    type="button"
-    class="floating-map-nav"
-    :class="{ active: currentView === 'map' }"
-    aria-label="Open map view"
-    @click="switchView('map')"
-  >
-    <!-- your existing SVG unchanged -->
-    <svg
-  class="floating-map-nav-icon"
-  viewBox="0 0 24 24"
-  preserveAspectRatio="xMidYMid meet"
-  aria-hidden="true"
->
-<defs>
-  <linearGradient id="floatingMapPinGradient" x1="20%" y1="16%" x2="82%" y2="86%">
-    <stop offset="0%" stop-color="#8ffcff" stop-opacity="0.62" />
-    <stop offset="100%" stop-color="#ff8be4" stop-opacity="0.55" />
-  </linearGradient>
-</defs>
+              <button
+                v-if="user"
+                type="button"
+                class="floating-map-nav"
+                :class="{ active: currentView === 'map' }"
+                aria-label="Open map view"
+                @click="switchView('map')"
+              >
+                <!-- your existing SVG unchanged -->
+                <svg
+                  class="floating-map-nav-icon"
+                  viewBox="0 0 24 24"
+                  preserveAspectRatio="xMidYMid meet"
+                  aria-hidden="true"
+                >
+                  <defs>
+                    <linearGradient id="floatingMapPinGradient" x1="20%" y1="16%" x2="82%" y2="86%">
+                      <stop offset="0%" stop-color="#8ffcff" stop-opacity="0.62" />
+                      <stop offset="100%" stop-color="#ff8be4" stop-opacity="0.55" />
+                    </linearGradient>
+                  </defs>
 
-<path
-  d="M12 1.5C7.3 1.5 3.5 5.3 3.5 10c0 6 8.5 13.5 8.5 13.5S20.5 16 20.5 10c0-4.7-3.8-8.5-8.5-8.5Z"
-  fill="rgba(143,252,255,0.1)"
-  stroke="url(#floatingMapPinGradient)"
-  stroke-width="1.5"
-  stroke-linecap="round"
-  stroke-linejoin="round"
-/>
-<circle
-  cx="12"
-  cy="10"
-  r="4.2"
-  fill="rgba(10, 20, 34, 0.12)"
-  stroke="url(#floatingMapPinGradient)"
-  stroke-width="1.9"
-/>
-</svg>
-  </button>
+                  <path
+                    d="M12 1.5C7.3 1.5 3.5 5.3 3.5 10c0 6 8.5 13.5 8.5 13.5S20.5 16 20.5 10c0-4.7-3.8-8.5-8.5-8.5Z"
+                    fill="rgba(143,252,255,0.1)"
+                    stroke="url(#floatingMapPinGradient)"
+                    stroke-width="1.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                  <circle
+                    cx="12"
+                    cy="10"
+                    r="4.2"
+                    fill="rgba(10, 20, 34, 0.12)"
+                    stroke="url(#floatingMapPinGradient)"
+                    stroke-width="1.9"
+                  />
+                </svg>
+              </button>
+            </nav>
+            <!-- Floating Sound button -->
+            <button
+              v-if="user"
+              ref="soundButtonRef"
+              type="button"
+              class="floating-sound-nav"
+              :class="{ active: isSoundPanelOpen }"
+              aria-label="Open sound controls"
+              @click="toggleSoundPanel"
+            >
+              <svg
+                class="floating-sound-nav-icon"
+                viewBox="0 0 24 24"
+                preserveAspectRatio="xMidYMid meet"
+                aria-hidden="true"
+              >
+                <defs>
+                  <linearGradient id="floatingSoundGradient" x1="20%" y1="16%" x2="82%" y2="86%">
+                    <stop offset="0%" stop-color="#8ffcff" stop-opacity="0.62" />
+                    <stop offset="100%" stop-color="#ff8be4" stop-opacity="0.55" />
+                  </linearGradient>
+                </defs>
 
-</nav>
-  <!-- Floating Sound button -->
-  <button
-  v-if="user"
-  ref="soundButtonRef"
-  type="button"
-  class="floating-sound-nav"
-  :class="{ active: isSoundPanelOpen }"
-  aria-label="Open sound controls"
-  @click="toggleSoundPanel"
->
-  <svg
-    class="floating-sound-nav-icon"
-    viewBox="0 0 24 24"
-    preserveAspectRatio="xMidYMid meet"
-    aria-hidden="true"
-  >
-    <defs>
-      <linearGradient id="floatingSoundGradient" x1="20%" y1="16%" x2="82%" y2="86%">
-        <stop offset="0%" stop-color="#8ffcff" stop-opacity="0.62" />
-        <stop offset="100%" stop-color="#ff8be4" stop-opacity="0.55" />
-      </linearGradient>
-    </defs>
+                <!-- Speaker body -->
+                <path
+                  d="M4 10.2h3.1l4.3-3.4c.38-.3.92-.03.92.45v9.56c0 .48-.54.75-.92.45l-4.3-3.4H4c-.55 0-1-.45-1-1v-1.62c0-.55.45-1 1-1Z"
+                  fill="rgba(143,252,255,0.1)"
+                  stroke="url(#floatingSoundGradient)"
+                  stroke-width="1.45"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
 
-    <!-- Speaker body -->
-    <path
-      d="M4 10.2h3.1l4.3-3.4c.38-.3.92-.03.92.45v9.56c0 .48-.54.75-.92.45l-4.3-3.4H4c-.55 0-1-.45-1-1v-1.62c0-.55.45-1 1-1Z"
-      fill="rgba(143,252,255,0.1)"
-      stroke="url(#floatingSoundGradient)"
-      stroke-width="1.45"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-    />
+                <!-- Sound waves -->
+                <path
+                  d="M15.2 9.2c1.15.75 1.85 2.06 1.85 3.45s-.7 2.7-1.85 3.45"
+                  fill="none"
+                  stroke="url(#floatingSoundGradient)"
+                  stroke-width="1.55"
+                  stroke-linecap="round"
+                />
+                <path
+                  d="M17.55 7.45c1.72 1.22 2.75 3.18 2.75 5.2s-1.03 3.98-2.75 5.2"
+                  fill="none"
+                  stroke="url(#floatingSoundGradient)"
+                  stroke-width="1.55"
+                  stroke-linecap="round"
+                />
+              </svg>
+            </button>
+            <!-- Floating expandable Sound panel -->
+            <transition name="sound-panel-fade">
+              <aside
+                v-if="user && isSoundPanelOpen"
+                ref="soundPanelRef"
+                class="floating-sound-panel"
+                aria-label="Sound controls"
+                @mouseenter="onSoundPanelPointerEnter"
+                @mouseleave="onSoundPanelPointerLeave"
+                @focusin="onSoundPanelPointerEnter"
+                @focusout="onSoundPanelPointerLeave"
+              >
+                <div class="sound-panel-head">
+                  <h4>Sound</h4>
+                  <label class="sound-toggle-inline">
+                    <input type="checkbox" :checked="soundEnabled" @change="onSoundToggle" />
+                    <span>{{ soundEnabled ? 'On' : 'Off' }}</span>
+                  </label>
+                </div>
 
-    <!-- Sound waves -->
-    <path
-      d="M15.2 9.2c1.15.75 1.85 2.06 1.85 3.45s-.7 2.7-1.85 3.45"
-      fill="none"
-      stroke="url(#floatingSoundGradient)"
-      stroke-width="1.55"
-      stroke-linecap="round"
-    />
-    <path
-      d="M17.55 7.45c1.72 1.22 2.75 3.18 2.75 5.2s-1.03 3.98-2.75 5.2"
-      fill="none"
-      stroke="url(#floatingSoundGradient)"
-      stroke-width="1.55"
-      stroke-linecap="round"
-    />
-  </svg>
-</button>
-<!-- Floating expandable Sound panel -->
-<transition name="sound-panel-fade">
-  <aside
-  v-if="user && isSoundPanelOpen"
-  ref="soundPanelRef"
-  class="floating-sound-panel"
-  aria-label="Sound controls"
-  @mouseenter="onSoundPanelPointerEnter"
-  @mouseleave="onSoundPanelPointerLeave"
-  @focusin="onSoundPanelPointerEnter"
-  @focusout="onSoundPanelPointerLeave"
-  >
-    <div class="sound-panel-head">
-      <h4>Sound</h4>
-      <label class="sound-toggle-inline">
-        <input
-          type="checkbox"
-          :checked="soundEnabled"
-          @change="onSoundToggle"
-        />
-        <span>{{ soundEnabled ? 'On' : 'Off' }}</span>
-      </label>
-    </div>
-
-    <div class="sound-panel-row">
-      <input
-  id="soundVolume"
-  type="range"
-  min="0"
-  max="1"
-  step="0.01"
-  :value="soundVolume"
-  :disabled="!soundEnabled"
-  @input="onSoundVolumeInput"
-  @pointerdown="onSoundSliderPointerDown"
-  @pointerup="onSoundSliderPointerUp"
-  @pointercancel="onSoundSliderPointerUp"
-/>
-      <small>{{ Math.round(soundVolume * 100) }}%</small>
-    </div>
-  </aside>
-</transition>
+                <div class="sound-panel-row">
+                  <input
+                    id="soundVolume"
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.01"
+                    :value="soundVolume"
+                    :disabled="!soundEnabled"
+                    @input="onSoundVolumeInput"
+                    @pointerdown="onSoundSliderPointerDown"
+                    @pointerup="onSoundSliderPointerUp"
+                    @pointercancel="onSoundSliderPointerUp"
+                  />
+                  <small>{{ Math.round(soundVolume * 100) }}%</small>
+                </div>
+              </aside>
+            </transition>
             <!-- Conditional Views -->
             <transition name="slide-fade" mode="out-in">
               <div :key="currentView">
                 <div v-if="currentView === 'home'">
                   <button @click="sendLoveNotification" class="love-button">Send Love</button>
-                  
+
                   <div class="calendar-container">
                     <DailyQuestWidget />
                     <CombinedCalendar :memos="memos" :plans="plans" />
@@ -293,8 +295,8 @@
 </template>
 
 <script setup>
-import { ref, watch, onUnmounted, onMounted, reactive, computed,nextTick } from 'vue';
-import { auth, messaging,db } from './firebase';
+import { ref, watch, onUnmounted, onMounted, reactive, computed, nextTick } from 'vue';
+import { auth, messaging, db } from './firebase';
 import { LogOut } from 'lucide-vue-next';
 // Import child components and views
 import Login from './views/Login.vue';
@@ -351,7 +353,7 @@ const isAdjustingSoundSlider = ref(false);
 const inAppNotification = reactive({
   visible: false,
   title: '',
-  body: ''
+  body: '',
 });
 const notificationStack = ref([]);
 const isNotificationStackVisible = ref(false);
@@ -442,7 +444,8 @@ async function registerDeviceForNotifications() {
     const partnerPresenceStatus = ref('offline'); // online | away | offline
     let unsubscribePartnerPresence = null;
     const currentToken = await messaging.getToken({
-      vapidKey: 'BPACu3jz1Y3_bB4VPwO96LkPua-bJKVXBOioaf75Gc7xQQ-aqZ04a0qBSbxuX6ZW6KcPB1Lcv68zGP5qrM2q9dU',
+      vapidKey:
+        'BPACu3jz1Y3_bB4VPwO96LkPua-bJKVXBOioaf75Gc7xQQ-aqZ04a0qBSbxuX6ZW6KcPB1Lcv68zGP5qrM2q9dU',
       // critical: bind the token to *this* SW registration
       serviceWorkerRegistration: swRegistration,
     });
@@ -565,7 +568,6 @@ function addToNotificationStack(title, body, data) {
   });
 }
 
-
 function dismissStackNotification(notificationId) {
   const target = notificationStack.value.find((notification) => notification.id === notificationId);
   if (!target) return;
@@ -654,8 +656,8 @@ async function sendLoveNotification() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${idToken}`
-      }
+        Authorization: `Bearer ${idToken}`,
+      },
     });
     if (!response.ok) {
       const errorBody = await response.json();
@@ -681,7 +683,7 @@ async function sendTokenToServer(token) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${idToken}`
+        Authorization: `Bearer ${idToken}`,
       },
       body: JSON.stringify({ token: token }),
     });
@@ -705,8 +707,8 @@ function showInAppNotificationFromPayload(payloadLike) {
   let body = data.body || notif.body;
 
   // Fallback titles if none provided
-   // Fallback titles if none provided
-   if (!title) {
+  // Fallback titles if none provided
+  if (!title) {
     if (type === 'questCompleted') {
       title = 'Quest completed 🎉';
     } else if (type === 'love') {
@@ -736,38 +738,28 @@ function showInAppNotificationFromPayload(payloadLike) {
     } else if (type === 'capsuleOpened') {
       // 🔥 NEW
       title = '✨ Time capsule opened';
-    } 
-    else if (type === 'planReminder') {
+    } else if (type === 'planReminder') {
       title = data.reminderCode === '24h' ? '🗓️ Plan tomorrow' : '⏳ Plan soon';
     } else if (type === 'planTimeUp') {
-      title = '⌛ Plan time is up';}
-    else {
+      title = '⌛ Plan time is up';
+    } else {
       title = 'Notification';
     }
   }
 
-
   // Fallback bodies if none provided
-    // Fallback bodies if none provided
-    if (!body) {
+  // Fallback bodies if none provided
+  if (!body) {
     if (type === 'questCompleted') {
       const userName = data.userName || 'Someone';
       const text = data.text || 'a quest';
       body = `${userName} completed: ${text}`;
     } else if (type === 'love') {
       body = 'They just sent you an “I love you”.';
-    } else if (
-      type === 'memoCreated' ||
-      type === 'memoUpdated' ||
-      type === 'memoDeleted'
-    ) {
+    } else if (type === 'memoCreated' || type === 'memoUpdated' || type === 'memoDeleted') {
       const desc = data.description || '';
       body = desc || 'Open Moments to see what changed.';
-    } else if (
-      type === 'planCreated' ||
-      type === 'planUpdated' ||
-      type === 'planDeleted'
-    ) {
+    } else if (type === 'planCreated' || type === 'planUpdated' || type === 'planDeleted') {
       const text = data.text || '';
       const date = data.date || '';
       const time = data.time || '';
@@ -815,19 +807,19 @@ function showInAppNotificationFromPayload(payloadLike) {
       body = capsuleTitle
         ? `${opener} opened "${capsuleTitle}".`
         : `${opener} opened one of your time capsules.`;
-    }
-    else if (type === 'planReminder') {
+    } else if (type === 'planReminder') {
       const text = data.text || 'A plan';
       const dueAt = data.dueAt ? new Date(data.dueAt) : null;
-      const dueLabel = dueAt && !Number.isNaN(dueAt.getTime())
-        ? dueAt.toLocaleString(undefined, {
-            year: 'numeric',
-            month: 'short',
-            day: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit',
-          })
-        : '';
+      const dueLabel =
+        dueAt && !Number.isNaN(dueAt.getTime())
+          ? dueAt.toLocaleString(undefined, {
+              year: 'numeric',
+              month: 'short',
+              day: '2-digit',
+              hour: '2-digit',
+              minute: '2-digit',
+            })
+          : '';
       const timingLabel = data.reminderCode === '24h' ? 'tomorrow' : 'soon';
       body = dueLabel
         ? `“${text}” is ${timingLabel} (${dueLabel}).`
@@ -835,12 +827,10 @@ function showInAppNotificationFromPayload(payloadLike) {
     } else if (type === 'planTimeUp') {
       const text = data.text || 'Your plan';
       body = `“${text}” is due now.`;
-    }
-    else {
+    } else {
       body = '';
     }
   }
-
 
   // 🔥 Instead of showing immediately, enqueue it
   enqueueNotification(title, body, data);
@@ -861,7 +851,6 @@ watch(shouldShowNotificationStackLauncher, (visible) => {
     isNotificationStackVisible.value = false;
   }
 });
-
 
 // --- Foreground Message Handling ---
 const unsubscribeForegroundMessage = messaging.onMessage((payload) => {
@@ -905,8 +894,7 @@ function setPartnerPresenceSubscription(currentUid) {
       }
 
       const status = otherDoc.data()?.status;
-      partnerPresenceStatus.value =
-        status === 'online' || status === 'away' ? status : 'offline';
+      partnerPresenceStatus.value = status === 'online' || status === 'away' ? status : 'offline';
     },
     () => {
       partnerPresenceStatus.value = 'offline';
@@ -931,8 +919,8 @@ onMounted(() => {
   window.addEventListener('pointerdown', handleGlobalPointerDown);
   document.addEventListener('visibilitychange', setTabUnfocused);
   window.addEventListener('map-spots-open-item', handleMapSpotOpenItem);
-    // Unlock Web Audio once (required by browser autoplay policy)
-    window.addEventListener(
+  // Unlock Web Audio once (required by browser autoplay policy)
+  window.addEventListener(
     'pointerdown',
     () => {
       initAudioFromGesture();
@@ -941,9 +929,7 @@ onMounted(() => {
   );
   // --- Notification support + SW message bridge ---
   supportsNotifications.value =
-    typeof window !== 'undefined' &&
-    'Notification' in window &&
-    'serviceWorker' in navigator;
+    typeof window !== 'undefined' && 'Notification' in window && 'serviceWorker' in navigator;
 
   if (supportsNotifications.value) {
     notificationPermission.value = Notification.permission;
@@ -1029,7 +1015,6 @@ function applyDeepLinkFromUrlString(urlString) {
   }
 }
 
-
 function handleInAppNotificationClick() {
   play('tap');
   const data = lastNotificationData.value;
@@ -1042,8 +1027,6 @@ function handleInAppNotificationClick() {
   // Closing the banner will trigger the watcher, which will show the next queued one
   inAppNotification.visible = false;
 }
-
-
 
 onUnmounted(() => {
   if (unsubscribeAuth) {
@@ -1107,7 +1090,9 @@ onUnmounted(() => {
   font-weight: bold;
   outline: none !important;
   cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
   display: block;
   margin: 2rem auto;
 }
@@ -1151,7 +1136,7 @@ onUnmounted(() => {
 
 /* base gradient line (cyan -> magenta) */
 .view-nav::after {
-  content: "";
+  content: '';
   position: absolute;
   left: 0;
   right: 0;
@@ -1160,11 +1145,7 @@ onUnmounted(() => {
   pointer-events: none;
   z-index: 1;
 
-  background: linear-gradient(
-    90deg,
-    rgba(0, 255, 255, 0.95),
-    rgba(255, 0, 255, 0.95)
-  );
+  background: linear-gradient(90deg, rgba(0, 255, 255, 0.95), rgba(255, 0, 255, 0.95));
 
   /* a tiny glow so it reads as “light” */
   filter: drop-shadow(0 0 10px rgba(255, 0, 255, 0.35));
@@ -1172,7 +1153,7 @@ onUnmounted(() => {
 
 /* moving “center” highlight that morphs cyan <-> magenta */
 .view-nav::before {
-  content: "";
+  content: '';
   position: absolute;
   left: 0;
   right: 0;
@@ -1197,8 +1178,8 @@ onUnmounted(() => {
   mix-blend-mode: screen;
 
   animation:
-  navCenterSlide 7.5s ease-in-out infinite alternate,
-  navCenterHue 11s ease-in-out infinite alternate;
+    navCenterSlide 7.5s ease-in-out infinite alternate,
+    navCenterHue 11s ease-in-out infinite alternate;
 }
 .welcome-line {
   display: inline-flex;
@@ -1244,40 +1225,110 @@ onUnmounted(() => {
 /* keep links above everything */
 
 @keyframes navCenterSlide {
-  0%   { background-position: 0% 0%;   background-size: 18% 100%; opacity: 0.55; }
-  10%  { background-position: 8% 0%;   background-size: 22% 100%; opacity: 0.70; }
-  22%  { background-position: 22% 0%;  background-size: 28% 100%; opacity: 0.85; }
-  35%  { background-position: 40% 0%;  background-size: 24% 100%; opacity: 0.72; }
-  50%  { background-position: 58% 0%;  background-size: 30% 100%; opacity: 0.92; }
-  66%  { background-position: 74% 0%;  background-size: 23% 100%; opacity: 0.74; }
-  82%  { background-position: 90% 0%;  background-size: 27% 100%; opacity: 0.88; }
-  100% { background-position: 100% 0%; background-size: 18% 100%; opacity: 0.60; }
+  0% {
+    background-position: 0% 0%;
+    background-size: 18% 100%;
+    opacity: 0.55;
+  }
+  10% {
+    background-position: 8% 0%;
+    background-size: 22% 100%;
+    opacity: 0.7;
+  }
+  22% {
+    background-position: 22% 0%;
+    background-size: 28% 100%;
+    opacity: 0.85;
+  }
+  35% {
+    background-position: 40% 0%;
+    background-size: 24% 100%;
+    opacity: 0.72;
+  }
+  50% {
+    background-position: 58% 0%;
+    background-size: 30% 100%;
+    opacity: 0.92;
+  }
+  66% {
+    background-position: 74% 0%;
+    background-size: 23% 100%;
+    opacity: 0.74;
+  }
+  82% {
+    background-position: 90% 0%;
+    background-size: 27% 100%;
+    opacity: 0.88;
+  }
+  100% {
+    background-position: 100% 0%;
+    background-size: 18% 100%;
+    opacity: 0.6;
+  }
 }
 
 /* Cyan -> Magenta drift, with a little “wobble” in saturation/brightness */
 @keyframes navCenterHue {
-  0%   { filter: blur(0.4px) hue-rotate(0deg)   saturate(1.35) brightness(1.05); }
-  12%  { filter: blur(0.5px) hue-rotate(14deg)  saturate(1.55) brightness(1.10); }
-  26%  { filter: blur(0.4px) hue-rotate(32deg)  saturate(1.40) brightness(1.02); }
-  40%  { filter: blur(0.6px) hue-rotate(55deg)  saturate(1.70) brightness(1.12); }
-  55%  { filter: blur(0.4px) hue-rotate(78deg)  saturate(1.45) brightness(1.04); }
-  72%  { filter: blur(0.6px) hue-rotate(98deg)  saturate(1.80) brightness(1.14); }
-  88%  { filter: blur(0.4px) hue-rotate(112deg) saturate(1.55) brightness(1.06); }
-  100% { filter: blur(0.5px) hue-rotate(120deg) saturate(1.65) brightness(1.10); }
+  0% {
+    filter: blur(0.4px) hue-rotate(0deg) saturate(1.35) brightness(1.05);
+  }
+  12% {
+    filter: blur(0.5px) hue-rotate(14deg) saturate(1.55) brightness(1.1);
+  }
+  26% {
+    filter: blur(0.4px) hue-rotate(32deg) saturate(1.4) brightness(1.02);
+  }
+  40% {
+    filter: blur(0.6px) hue-rotate(55deg) saturate(1.7) brightness(1.12);
+  }
+  55% {
+    filter: blur(0.4px) hue-rotate(78deg) saturate(1.45) brightness(1.04);
+  }
+  72% {
+    filter: blur(0.6px) hue-rotate(98deg) saturate(1.8) brightness(1.14);
+  }
+  88% {
+    filter: blur(0.4px) hue-rotate(112deg) saturate(1.55) brightness(1.06);
+  }
+  100% {
+    filter: blur(0.5px) hue-rotate(120deg) saturate(1.65) brightness(1.1);
+  }
 }
 
 @keyframes navShadowShift {
-  0%   { box-shadow: 0 18px 26px -6px rgba(255,   0, 255, 0.28); } /* magenta */
-  10%  { box-shadow: 0 19px 27px -6px rgba(255,   0, 235, 0.32); }
-  20%  { box-shadow: 0 20px 28px -6px rgba(255,   0, 205, 0.36); }
-  30%  { box-shadow: 0 20px 29px -6px rgba(230,   0, 255, 0.30); } /* violet wobble */
-  40%  { box-shadow: 0 21px 30px -6px rgba(190,   0, 255, 0.38); }
-  50%  { box-shadow: 0 22px 32px -6px rgba(120,  40, 255, 0.34); } /* bridge (blue-ish) */
-  60%  { box-shadow: 0 23px 33px -6px rgba( 40, 140, 255, 0.40); }
-  70%  { box-shadow: 0 24px 34px -6px rgba(  0, 200, 255, 0.36); }
-  80%  { box-shadow: 0 24px 34px -6px rgba(  0, 235, 255, 0.42); }
-  90%  { box-shadow: 0 23px 33px -6px rgba(  0, 255, 235, 0.38); }
-  100% { box-shadow: 0 22px 32px -6px rgba(  0, 255, 255, 0.34); } /* cyan */
+  0% {
+    box-shadow: 0 18px 26px -6px rgba(255, 0, 255, 0.28);
+  } /* magenta */
+  10% {
+    box-shadow: 0 19px 27px -6px rgba(255, 0, 235, 0.32);
+  }
+  20% {
+    box-shadow: 0 20px 28px -6px rgba(255, 0, 205, 0.36);
+  }
+  30% {
+    box-shadow: 0 20px 29px -6px rgba(230, 0, 255, 0.3);
+  } /* violet wobble */
+  40% {
+    box-shadow: 0 21px 30px -6px rgba(190, 0, 255, 0.38);
+  }
+  50% {
+    box-shadow: 0 22px 32px -6px rgba(120, 40, 255, 0.34);
+  } /* bridge (blue-ish) */
+  60% {
+    box-shadow: 0 23px 33px -6px rgba(40, 140, 255, 0.4);
+  }
+  70% {
+    box-shadow: 0 24px 34px -6px rgba(0, 200, 255, 0.36);
+  }
+  80% {
+    box-shadow: 0 24px 34px -6px rgba(0, 235, 255, 0.42);
+  }
+  90% {
+    box-shadow: 0 23px 33px -6px rgba(0, 255, 235, 0.38);
+  }
+  100% {
+    box-shadow: 0 22px 32px -6px rgba(0, 255, 255, 0.34);
+  } /* cyan */
 }
 
 /* Floating partner presence star (left side, glassy) */
@@ -1306,7 +1357,10 @@ onUnmounted(() => {
   font-size: 1.28rem;
   line-height: 1;
   color: rgba(225, 235, 255, 0.45);
-  transition: color 0.25s ease, text-shadow 0.25s ease, transform 0.25s ease;
+  transition:
+    color 0.25s ease,
+    text-shadow 0.25s ease,
+    transform 0.25s ease;
   transform: translateY(-0.5px);
 }
 
@@ -1351,8 +1405,8 @@ onUnmounted(() => {
   padding: 0.35rem 0.95rem;
   border-radius: 999px;
   cursor: pointer;
-  outline:none;
-  border:none !important;
+  outline: none;
+  border: none !important;
   color: #aaa;
   font-family: 'Great Vibes', cursive;
   font-size: 1.65rem;
@@ -1394,10 +1448,9 @@ onUnmounted(() => {
     0 0 6px color-mix(in srgb, var(--active-color) 75%, white 10%),
     0 0 14px color-mix(in srgb, var(--active-color) 35%, magenta 20%);
   box-shadow:
-    0 12px 24px rgba(0, 0, 0, 0.30),
+    0 12px 24px rgba(0, 0, 0, 0.3),
     0 0 18px color-mix(in srgb, var(--active-color) 24%, transparent);
 }
-
 
 .view-nav a.active {
   color: var(--active-color);
@@ -1505,7 +1558,9 @@ onUnmounted(() => {
   justify-content: center;
   cursor: pointer;
   z-index: 1000;
-  transition: transform var(--ds-transition-fast), opacity var(--ds-transition-fast);
+  transition:
+    transform var(--ds-transition-fast),
+    opacity var(--ds-transition-fast);
 }
 
 .floating-map-nav:hover {
@@ -1527,9 +1582,7 @@ onUnmounted(() => {
   width: 2.15rem;
   height: 2.15rem;
   display: block;
-  filter:
-    drop-shadow(0 0 6px rgba(0, 247, 255, 0.28))
-    drop-shadow(0 0 9px rgba(255, 79, 233, 0.22));
+  filter: drop-shadow(0 0 6px rgba(0, 247, 255, 0.28)) drop-shadow(0 0 9px rgba(255, 79, 233, 0.22));
 }
 
 /* Floating sound button (right side) */
@@ -1547,7 +1600,9 @@ onUnmounted(() => {
   justify-content: center;
   cursor: pointer;
   z-index: 1000;
-  transition: transform var(--ds-transition-fast), opacity var(--ds-transition-fast);
+  transition:
+    transform var(--ds-transition-fast),
+    opacity var(--ds-transition-fast);
 }
 
 .floating-sound-nav:hover {
@@ -1569,9 +1624,7 @@ onUnmounted(() => {
   width: 2.15rem;
   height: 2.15rem;
   display: block;
-  filter:
-    drop-shadow(0 0 6px rgba(0, 247, 255, 0.28))
-    drop-shadow(0 0 9px rgba(255, 79, 233, 0.22));
+  filter: drop-shadow(0 0 6px rgba(0, 247, 255, 0.28)) drop-shadow(0 0 9px rgba(255, 79, 233, 0.22));
 }
 
 /* Sound panel — adapted to your design system tokens */
@@ -1637,8 +1690,8 @@ onUnmounted(() => {
   display: grid;
   grid-template-columns: 1fr auto; /* left content + percent */
   grid-template-areas:
-    "label value"
-    "slider slider";
+    'label value'
+    'slider slider';
   align-items: center;
   gap: 0.4rem 0.65rem;
 }
@@ -1660,19 +1713,18 @@ onUnmounted(() => {
 }
 
 .sound-panel-row input[type='range'] {
-  grid-area: slider;          /* now full row width */
+  grid-area: slider; /* now full row width */
   width: 100%;
   -webkit-appearance: none;
   appearance: none;
   height: 6px;
   border-radius: var(--ds-radius-pill);
   outline: none;
-  background:
-    linear-gradient(
-      90deg,
-      color-mix(in srgb, var(--ds-color-accent-cyan) 82%, transparent) 0%,
-      color-mix(in srgb, var(--ds-color-accent-magenta) 82%, transparent) 100%
-    );
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--ds-color-accent-cyan) 82%, transparent) 0%,
+    color-mix(in srgb, var(--ds-color-accent-magenta) 82%, transparent) 100%
+  );
   border: 1px solid var(--ds-color-border);
   box-shadow:
     inset 0 0 10px rgba(0, 0, 0, 0.28),
@@ -1703,12 +1755,11 @@ onUnmounted(() => {
 .sound-panel-row input[type='range']::-moz-range-track {
   height: 6px;
   border-radius: var(--ds-radius-pill);
-  background:
-    linear-gradient(
-      90deg,
-      color-mix(in srgb, var(--ds-color-accent-cyan) 82%, transparent) 0%,
-      color-mix(in srgb, var(--ds-color-accent-magenta) 82%, transparent) 100%
-    );
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--ds-color-accent-cyan) 82%, transparent) 0%,
+    color-mix(in srgb, var(--ds-color-accent-magenta) 82%, transparent) 100%
+  );
   border: 1px solid var(--ds-color-border);
   box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.28);
 }
@@ -1728,7 +1779,9 @@ onUnmounted(() => {
 /* panel transition */
 .sound-panel-fade-enter-active,
 .sound-panel-fade-leave-active {
-  transition: opacity var(--ds-transition-fast), transform var(--ds-transition-fast);
+  transition:
+    opacity var(--ds-transition-fast),
+    transform var(--ds-transition-fast);
 }
 
 .sound-panel-fade-enter-from,

@@ -48,11 +48,7 @@ function parseYmd(ymd) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(String(ymd || ''))) return null;
   const [y, m, d] = String(ymd).split('-').map(Number);
   const dt = new Date(Date.UTC(y, m - 1, d));
-  if (
-    dt.getUTCFullYear() !== y ||
-    dt.getUTCMonth() !== m - 1 ||
-    dt.getUTCDate() !== d
-  ) {
+  if (dt.getUTCFullYear() !== y || dt.getUTCMonth() !== m - 1 || dt.getUTCDate() !== d) {
     return null;
   }
   return dt;

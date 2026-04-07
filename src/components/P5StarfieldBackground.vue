@@ -147,8 +147,7 @@ function fadeInOut(t, m) {
 
 function isMobileLike() {
   return (
-    window.matchMedia?.('(pointer: coarse)')?.matches ||
-    (viewportWidth || window.innerWidth) <= 900
+    window.matchMedia?.('(pointer: coarse)')?.matches || (viewportWidth || window.innerWidth) <= 900
   );
 }
 function mobileFactor() {
@@ -316,7 +315,7 @@ function initParticle(i) {
       particleCache.hue,
       particleCache.depth,
     ],
-    i,
+    i
   );
 }
 
@@ -341,11 +340,7 @@ function updateParticle(i, dt, timeSeconds, parallaxOffsetX, parallaxOffsetY) {
   particleCache.depth = arr[i + 9];
 
   const n =
-    noise3D(
-      particleCache.x * X_OFF,
-      particleCache.y * Y_OFF,
-      timeSeconds * Z_OFF,
-    ) *
+    noise3D(particleCache.x * X_OFF, particleCache.y * Y_OFF, timeSeconds * Z_OFF) *
     NOISE_STEPS *
     TAU;
 
@@ -417,13 +412,7 @@ function updateParticle(i, dt, timeSeconds, parallaxOffsetX, parallaxOffsetY) {
   arr[i + 3] = nextVy;
   arr[i + 4] = nextLife;
 
-  if (
-    nextX > w ||
-    nextX < 0 ||
-    nextY > h ||
-    nextY < 0 ||
-    nextLife > particleCache.ttl
-  ) {
+  if (nextX > w || nextX < 0 || nextY > h || nextY < 0 || nextLife > particleCache.ttl) {
     initParticle(i);
   }
 }
@@ -601,9 +590,7 @@ function draw(now) {
   const w = viewportWidth || canvas.width;
   const h = viewportHeight || canvas.height;
 
-  const parallaxScale = isMobileLike()
-    ? props.parallaxIntensity * 0.55
-    : props.parallaxIntensity;
+  const parallaxScale = isMobileLike() ? props.parallaxIntensity * 0.55 : props.parallaxIntensity;
 
   const parallaxOffsetX = parallaxX * w * parallaxScale;
   const parallaxOffsetY = parallaxY * h * parallaxScale;
@@ -636,7 +623,7 @@ function draw(now) {
     0,
     0,
     canvas.width,
-    canvas.height,
+    canvas.height
   );
   context.restore();
 
@@ -653,7 +640,7 @@ function draw(now) {
     0,
     0,
     canvas.width,
-    canvas.height,
+    canvas.height
   );
   context.restore();
 
@@ -670,7 +657,7 @@ function draw(now) {
     0,
     0,
     canvas.width,
-    canvas.height,
+    canvas.height
   );
   context.restore();
 
@@ -712,7 +699,7 @@ watch(
   () => props.theme,
   (next) => {
     activeTheme.value = next;
-  },
+  }
 );
 
 // Restart cycle if cycle settings change
@@ -720,7 +707,7 @@ watch(
   () => [props.themeCycleEnabled, props.themeCycleSeconds, props.themeCycleMode],
   () => {
     startThemeCycle();
-  },
+  }
 );
 
 /* ------------------------------- Lifecycle -------------------------------- */
