@@ -1,16 +1,15 @@
-// src/main.js
 import { createApp } from 'vue';
 import App from './App.vue';
-import './firebase'; // Import and initialize Firebase
-import './style.css'; // Import global styles
+import './firebase';
+
+// Global styles consolidated here
+import './styles/design-system-default.css';
 
 // Import V-Calendar styles & plugin
-import 'v-calendar/style.css';
-import './styles/design-system-default.css';
 import VCalendar from 'v-calendar';
+import 'v-calendar/style.css';
+
+
 const app = createApp(App);
-
-// Use the V-Calendar plugin
 app.use(VCalendar, {});
-
 app.mount('#app');

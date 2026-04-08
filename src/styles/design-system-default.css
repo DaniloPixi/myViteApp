@@ -779,3 +779,166 @@ body {
     min-width: 0;
   }
 }
+/* -------------------------------------------------------------------------- */
+/* Legacy global styles migrated from src/style.css                            */
+/* -------------------------------------------------------------------------- */
+
+:root {
+  /* Legacy compatibility aliases mapped to DS tokens */
+  --legacy-link: #646cff;
+  --legacy-link-hover: #535bf2;
+  --legacy-root-bg: #1a1a1a;
+  --legacy-input-border: #444;
+  --legacy-muted: #888;
+}
+
+:root {
+  font-family: var(--ds-font-body);
+  line-height: var(--ds-line-height-body);
+  font-weight: 600;
+
+  color-scheme: light dark;
+  color: rgba(255, 255, 255, 0.87);
+  background-color: var(--legacy-root-bg);
+  -webkit-tap-highlight-color: transparent;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background-color: black;
+}
+
+#app {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 1rem;
+  text-align: center;
+}
+
+/* Scrollbar hidden globally (legacy behavior) */
+html,
+body {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}
+
+/* Links */
+a {
+  font-weight: 500;
+  color: var(--legacy-link);
+  text-decoration: inherit;
+}
+a:hover {
+  color: var(--legacy-link-hover);
+}
+
+/* Legacy h1 look kept for compatibility */
+h1 {
+  font-family: var(--ds-font-display);
+  font-size: 3.5em;
+  line-height: 1;
+  color: rgb(255, 0, 255);
+}
+
+/* Generic button baseline (legacy global behavior) */
+button {
+  border-radius: var(--ds-radius-sm);
+  border: 1px solid transparent;
+  padding: 0.6em 1.2em;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: inherit;
+  background-color: var(--legacy-root-bg);
+  cursor: pointer;
+  transition: border-color 0.25s;
+}
+button:hover {
+  border-color: var(--legacy-link);
+}
+
+/* Legacy global auth/basic inputs */
+input[type='text'],
+input[type='email'],
+input[type='password'] {
+  width: 100%;
+  padding: 0.8em 1em;
+  margin-bottom: 1em;
+  border-radius: var(--ds-radius-sm);
+  border: 1px solid var(--legacy-input-border);
+  background-color: var(--legacy-root-bg);
+  color: #fff;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+/* Legacy card + shared action footer classes used in views */
+.card {
+  max-width: 750px;
+  padding: 2.5em;
+  border-radius: var(--ds-radius-xl);
+  background: rgba(0, 0, 0, 0);
+  border: 1px solid rgba(255, 255, 255, 0);
+}
+
+.card.is-full-width {
+  max-width: none;
+  padding: 0;
+}
+
+.card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.card-footer .creator-info {
+  font-size: 0.8em;
+  color: var(--legacy-muted);
+  margin: 0;
+}
+
+.card-actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.edit-button,
+.delete-button {
+  background: none;
+  border: none;
+  color: var(--legacy-muted);
+  cursor: pointer;
+  font-size: 0.8em;
+  text-transform: lowercase;
+  padding: 0;
+  transition: color 0.2s ease-in-out;
+}
+
+.edit-button:hover,
+.delete-button:hover {
+  text-decoration: underline;
+}
+
+.delete-button:hover {
+  color: var(--ds-color-danger);
+}
