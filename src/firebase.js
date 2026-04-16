@@ -19,3 +19,8 @@ const messaging = firebase.messaging();
 const db = firebase.firestore(); // Initialize Firestore
 const rtdb = firebase.database();
 export { firebase, auth, messaging, db, rtdb };
+if (typeof window !== 'undefined') {
+  window.__fb = firebase;
+}
+console.log('Firebase project in use:', firebase.app().options.projectId);
+console.log('Firebase authDomain in use:', firebase.app().options.authDomain);

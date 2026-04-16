@@ -145,7 +145,7 @@
       v-if="showForm"
       :memo="selectedMemo"
       :cloudinary-cloud-name="'dknmcj1qj'"
-      :cloudinary-upload-preset="'memos_and_moments'"
+      :cloudinary-upload-preset="'memos_staging'"
       @close="closeForm"
       @memo-saved="handleMemoSaved"
     />

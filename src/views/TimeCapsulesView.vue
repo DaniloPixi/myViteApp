@@ -93,7 +93,7 @@
         :is-submitting="saving"
         :submit-error="submitError"
         cloudinary-cloud-name="dknmcj1qj"
-        cloudinary-upload-preset="memos_and_moments"
+        cloudinary-upload-preset="memos_staging""
         @close="closeFormModal"
         @save="handleSaveCapsule"
       />
