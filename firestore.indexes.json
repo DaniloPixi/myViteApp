@@ -1,4 +1,19 @@
 {
-  "indexes": [],
+  "indexes": [{
+    "collectionGroup": "timeCapsules",
+    "queryScope": "COLLECTION",
+    "fields": [
+      { "fieldPath": "fromUid", "order": "ASCENDING" },
+      { "fieldPath": "unlockAt", "order": "ASCENDING" }
+    ]
+  },
+  {
+    "collectionGroup": "timeCapsules",
+    "queryScope": "COLLECTION",
+    "fields": [
+      { "fieldPath": "toUid", "order": "ASCENDING" },
+      { "fieldPath": "unlockAt", "order": "ASCENDING" }
+    ]
+  }],
   "fieldOverrides": []
 }

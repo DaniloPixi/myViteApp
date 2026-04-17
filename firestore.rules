@@ -15,10 +15,11 @@ service cloud.firestore {
         && request.resource.data.userId == request.auth.uid;
     }
 
-    match /timeCapsules/{id} {
-      allow read: if request.auth != null; // staging unblock
-      allow create, update, delete: if false;
-    }
+match /timeCapsules/{id} {
+  allow read: if request.auth != null
+    && (resource.data.fromUid == request.auth.uid || resource.data.toUid == request.auth.uid);
+  allow create, update, delete: if false;
+}
 
     match /userPresence/{uid} {
       allow read: if request.auth != null;
