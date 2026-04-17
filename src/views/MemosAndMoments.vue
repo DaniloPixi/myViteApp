@@ -144,8 +144,8 @@
     <MemoForm
       v-if="showForm"
       :memo="selectedMemo"
-      :cloudinary-cloud-name="'dknmcj1qj'"
-      :cloudinary-upload-preset="'memos_staging'"
+      :cloudinary-cloud-name="cloudinaryCloudName"
+      :cloudinary-upload-preset="cloudinaryUploadPreset"
       @close="closeForm"
       @memo-saved="handleMemoSaved"
     />
@@ -198,6 +198,10 @@ const selectedImageIndex = ref(0);
 
 const galleryState = ref({});
 let unsubscribeFromMemos = null;
+
+
+const cloudinaryCloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+const cloudinaryUploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
 
 // --------- refs + “plans-style” scroll focus ----------
 const memoRefs = ref({});

@@ -440,11 +440,9 @@ async function registerDeviceForNotifications() {
     } catch (err) {
       console.warn('Failed to bind messaging to custom service worker:', err);
     }
-    const partnerPresenceStatus = ref('offline'); // online | away | offline
-    let unsubscribePartnerPresence = null;
     const currentToken = await messaging.getToken({
       vapidKey:
-        'BHDokhmG-hiTDUdVBLxc86d9VL42Z-GIA4D_6bmMOQ6o9pnvcjVZNuAWTM5nUjch4ZebNEwo18t61MwtxVH2rrM',
+      import.meta.env.VITE_FIREBASE_VAPID_KEY,
       // critical: bind the token to *this* SW registration
       serviceWorkerRegistration: swRegistration,
     });
