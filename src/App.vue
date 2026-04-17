@@ -444,7 +444,7 @@ async function registerDeviceForNotifications() {
     let unsubscribePartnerPresence = null;
     const currentToken = await messaging.getToken({
       vapidKey:
-        'BPACu3jz1Y3_bB4VPwO96LkPua-bJKVXBOioaf75Gc7xQQ-aqZ04a0qBSbxuX6ZW6KcPB1Lcv68zGP5qrM2q9dU',
+        'BHDokhmG-hiTDUdVBLxc86d9VL42Z-GIA4D_6bmMOQ6o9pnvcjVZNuAWTM5nUjch4ZebNEwo18t61MwtxVH2rrM',
       // critical: bind the token to *this* SW registration
       serviceWorkerRegistration: swRegistration,
     });
