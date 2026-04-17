@@ -136,8 +136,8 @@ const props = defineProps({
 });
 
 /* ---------- runtime config ---------- */
-const cloudinaryCloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME
-const cloudinaryUploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET
+const cloudinaryCloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || 'dknmcj1qj';
+const cloudinaryUploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || 'memos_dev';
 
 /* ---------- auth / identity ---------- */
 const currentUserRef = ref(auth.currentUser || null);
