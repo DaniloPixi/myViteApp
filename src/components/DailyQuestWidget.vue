@@ -261,7 +261,6 @@ watch(
   position: relative;
   padding: 14px 18px 16px;
   border-radius: 14px;
-  border: 1px solid rgba(255, 0, 255, 0.5);
   background:
     radial-gradient(circle at 10% 0%, rgba(0, 255, 255, 0.1), transparent 55%),
     radial-gradient(circle at 90% 100%, rgba(255, 0, 255, 0.12), transparent 55%),

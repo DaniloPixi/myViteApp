@@ -144,8 +144,8 @@
     <MemoForm
       v-if="showForm"
       :memo="selectedMemo"
-      :cloudinary-cloud-name="'dknmcj1qj'"
-      :cloudinary-upload-preset="'memos_and_moments'"
+      :cloudinary-cloud-name="cloudinaryCloudName"
+      :cloudinary-upload-preset="cloudinaryUploadPreset"
       @close="closeForm"
       @memo-saved="handleMemoSaved"
     />
@@ -198,6 +198,10 @@ const selectedImageIndex = ref(0);
 
 const galleryState = ref({});
 let unsubscribeFromMemos = null;
+
+
+const cloudinaryCloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || 'dknmcj1qj';
+const cloudinaryUploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || 'memos_dev';
 
 // --------- refs + “plans-style” scroll focus ----------
 const memoRefs = ref({});
@@ -501,15 +505,18 @@ watch(
   { immediate: true }
 );
 
+let unsubscribeAuth = null;
+
+const onScroll = () => scheduleRectsUpdate();
+const onResize = () => scheduleRectsUpdate();
+
 watch(
-  () => auth.currentUser,
-  (currentUser) => {
-    if (currentUser) subscribeToMemos();
-    else {
-      if (unsubscribeFromMemos) unsubscribeFromMemos();
-      memos.value = [];
-    }
-  }
+  () => props.focusMemoId,
+  (id) => {
+    if (!id) return;
+    scrollToMemoWithRetry(id);
+  },
+  { immediate: true }
 );
 
 watch(
@@ -530,13 +537,23 @@ watch(
   { flush: 'post' }
 );
 
-const onScroll = () => scheduleRectsUpdate();
-const onResize = () => scheduleRectsUpdate();
-
 onMounted(async () => {
   isTouchDevice.value = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
-  subscribeToMemos();
+  // Subscribe only after auth is ready
+  unsubscribeAuth = auth.onAuthStateChanged((currentUser) => {
+    if (currentUser) {
+      subscribeToMemos();
+    } else {
+      if (unsubscribeFromMemos) {
+        unsubscribeFromMemos();
+        unsubscribeFromMemos = null;
+      }
+      memos.value = [];
+      loading.value = false;
+      error.value = null;
+    }
+  });
 
   await nextTick();
   setTimeout(updateMemoRects, 50);
@@ -548,7 +565,15 @@ onMounted(async () => {
 });
 
 onUnmounted(() => {
-  if (unsubscribeFromMemos) unsubscribeFromMemos();
+  if (unsubscribeFromMemos) {
+    unsubscribeFromMemos();
+    unsubscribeFromMemos = null;
+  }
+
+  if (unsubscribeAuth) {
+    unsubscribeAuth();
+    unsubscribeAuth = null;
+  }
 
   if (isTouchDevice.value) {
     window.removeEventListener('scroll', onScroll);

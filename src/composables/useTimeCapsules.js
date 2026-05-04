@@ -1,7 +1,7 @@
 // src/composables/useTimeCapsules.js
 import { ref, computed, onUnmounted } from 'vue';
 import { auth } from '../firebase';
-import { getFirestore, collection, query, orderBy, onSnapshot } from 'firebase/firestore';
+import { getFirestore, collection, query, orderBy, onSnapshot, where } from 'firebase/firestore';
 
 const capsules = ref([]);
 const loading = ref(false);
@@ -67,25 +67,55 @@ function startRealtimeSubscription() {
   const db = getFirestore();
   const colRef = collection(db, 'timeCapsules');
 
-  const q = query(colRef, orderBy('unlockAt'));
-
-  unsubscribe = onSnapshot(
-    q,
+  const sentQuery = query(colRef, where('fromUid', '==', user.uid), orderBy('unlockAt'));
+  const receivedQuery = query(colRef, where('toUid', '==', user.uid), orderBy('unlockAt'));
+  
+  let sent = [];
+  let received = [];
+  
+  const sync = () => {
+    const mergedMap = new Map();
+    [...sent, ...received].forEach((item) => mergedMap.set(item.id, item));
+    capsules.value = Array.from(mergedMap.values()).sort((a, b) => {
+      const ta = a.unlockAt ? new Date(a.unlockAt).getTime() : 0;
+      const tb = b.unlockAt ? new Date(b.unlockAt).getTime() : 0;
+      return ta - tb;
+    });
+    loading.value = false;
+    error.value = null;
+    initialized = true;
+  };
+  
+  const unsubSent = onSnapshot(
+    sentQuery,
     (snapshot) => {
-      capsules.value = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...(doc.data() || {}),
-      }));
-      loading.value = false;
-      error.value = null;
-      initialized = true;
+      sent = snapshot.docs.map((doc) => ({ id: doc.id, ...(doc.data() || {}) }));
+      sync();
     },
     (err) => {
-      console.warn('[useTimeCapsules] realtime subscription error:', err);
+      console.warn('[useTimeCapsules] sent subscription error:', err);
       error.value = err;
       loading.value = false;
     }
   );
+  
+  const unsubReceived = onSnapshot(
+    receivedQuery,
+    (snapshot) => {
+      received = snapshot.docs.map((doc) => ({ id: doc.id, ...(doc.data() || {}) }));
+      sync();
+    },
+    (err) => {
+      console.warn('[useTimeCapsules] received subscription error:', err);
+      error.value = err;
+      loading.value = false;
+    }
+  );
+  
+  unsubscribe = () => {
+    unsubSent();
+    unsubReceived();
+  };
 }
 
 /**
