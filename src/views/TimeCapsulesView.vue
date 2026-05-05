@@ -35,16 +35,18 @@
       >
         <div class="tc-card-main">
           <div class="tc-card-text">
-            <h2 class="tc-card-title">{{ capsule.title || 'Untitled capsule' }}</h2>
+  <h2 class="tc-card-title">{{ capsule.title || 'Untitled capsule' }}</h2>
 
-            <div class="tc-badges">
-              <span class="tc-badge" :class="isMine(capsule) ? 'tc-badge-mine' : 'tc-badge-theirs'">
-                From {{ nameForUid(capsule.fromUid) }}
-              </span>
+  <div class="tc-badges">
+    <span class="tc-badge" :class="isMine(capsule) ? 'tc-badge-mine' : 'tc-badge-theirs'">
+      From {{ nameForUid(capsule.fromUid) }}
+    </span>
 
-              <span class="tc-badge tc-badge-target">To {{ nameForUid(capsule.toUid) }}</span>
-            </div>
-          </div>
+    <span class="tc-badge tc-badge-target">To {{ nameForUid(capsule.toUid) }}</span>
+  </div>
+
+  <p class="tc-open-at">Open at {{ formatOpenAt(capsule.unlockAt || capsule.createdAt) }}</p>
+</div>
         </div>
 
         <div class="tc-card-actions">
@@ -313,7 +315,18 @@ watch(
   },
   { immediate: true }
 );
-
+function formatOpenAt(value) {
+  if (!value) return '—';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return '—';
+  return d.toLocaleString(undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
 /* ---------- lifecycle ---------- */
 onMounted(() => {
   fetchTimeCapsules();
@@ -664,7 +677,6 @@ async function confirmDelete() {
   position: relative;
   backdrop-filter: blur(8px);
   border-radius: 999px;
-  border: 2px solid rgba(255, 255, 255, 0.1);
   color: #fff;
   padding: 0.55rem 0.7rem;
 
@@ -825,7 +837,14 @@ async function confirmDelete() {
 .tc-badge-target {
   opacity: 0.85;
 }
-
+.tc-open-at {
+  margin: 1.15rem 0 0;
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.8);
+  text-align: center;
+}
 /* Actions */
 
 .tc-card-actions {
@@ -834,7 +853,7 @@ async function confirmDelete() {
   justify-content: center;
   gap: 0.3rem;
   margin-top: 0.3rem;
-  width: 100%;
+  width: 70%;
 
   /* NEW: allow wrapping so buttons go on two rows instead of overflowing */
   flex-wrap: wrap;
