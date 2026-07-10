@@ -45,7 +45,9 @@
     <span class="tc-badge tc-badge-target">To {{ nameForUid(capsule.toUid) }}</span>
   </div>
 
-  <p class="tc-open-at">Open at {{ formatOpenAt(capsule.unlockAt || capsule.createdAt) }}</p>
+  <p class="tc-open-at">
+    {{ isOpened(capsule) ? 'Opened' : `Open at ${formatOpenAt(capsule.unlockAt || capsule.createdAt)}` }}
+  </p>
 </div>
         </div>
 

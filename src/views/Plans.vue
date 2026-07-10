@@ -531,7 +531,6 @@ onMounted(() => {
   isTouchDevice.value = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
   const titles = [
     "What's on your mind, beautiful?",
-    'What shall we do, my love?',
     'Create a new adventure...',
   ];
   createButtonTitle.value = titles[Math.floor(Math.random() * titles.length)];
