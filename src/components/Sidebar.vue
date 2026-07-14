@@ -3,8 +3,30 @@
     <div class="filter-wrapper">
       <div class="filter-content" :class="{ expanded: isExpanded }">
         <div class="content-inner">
-          <!-- Row 1: Location & Hashtags -->
+          <!-- Row 1: Title, Location & Hashtags -->
           <div class="filter-row">
+            <div v-if="showTitle" class="filter-group title-group">
+              <div class="input-with-clear">
+                <input
+                  id="title-filter"
+                  class="filter-input"
+                  type="text"
+                  :value="title"
+                  @input="$emit('update:title', $event.target.value)"
+                  placeholder="Title..."
+                />
+                <button
+                  v-if="title"
+                  type="button"
+                  class="clear-btn"
+                  title="Clear filter"
+                  @click="$emit('update:title', '')"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+
             <div v-if="showLocation" class="filter-group location-group">
               <input
                 id="location-filter"
@@ -143,6 +165,10 @@ import StyledTimeInput from './StyledTimeInput.vue';
 const isExpanded = ref(false);
 
 const props = defineProps({
+  title: {
+    type: String,
+    default: '',
+  },
   location: {
     type: String,
     default: '',
@@ -169,11 +195,12 @@ const props = defineProps({
   },
   enabledFilters: {
     type: Array,
-    default: () => ['location', 'hashtags', 'date', 'time', 'duration'],
+    default: () => ['title', 'location', 'hashtags', 'date', 'time', 'duration'],
   },
 });
 
 const emit = defineEmits([
+  'update:title',
   'update:location',
   'update:hashtags',
   'update:date',
@@ -182,6 +209,7 @@ const emit = defineEmits([
   'update:lockStatus',
 ]);
 
+const showTitle = computed(() => props.enabledFilters.includes('title'));
 const showLocation = computed(() => props.enabledFilters.includes('location'));
 const showHashtags = computed(() => props.enabledFilters.includes('hashtags'));
 const showDate = computed(() => props.enabledFilters.includes('date'));
@@ -308,23 +336,32 @@ const setLockStatus = (value) => {
   justify-content: center;
 }
 
+.title-group {
+  flex-basis: 180px;
+}
+
 .location-group {
   flex-basis: 180px;
 }
+
 .hashtags-group {
   flex-basis: 300px;
   flex-grow: 2;
 }
+
 .date-group {
   flex-basis: 130px;
 }
+
 .time-group {
   flex-basis: 120px;
 }
+
 .duration-group {
   flex-basis: 220px;
   flex-grow: 2;
 }
+
 .lock-status-group {
   flex-basis: 200px;
 }

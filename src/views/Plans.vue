@@ -115,6 +115,10 @@ const props = defineProps({
     type: Object,
     required: true,
   },
+  titleFilter: {
+    type: String,
+    default: '',
+  },
   locationFilter: {
     type: String,
     default: '',
@@ -312,7 +316,12 @@ const normalizeHashtag = (value) => {
   return v.startsWith('#') ? v : `#${v}`;
 };
 
+const getPlanSearchTitle = (plan) => {
+  return [plan.title, plan.text].filter(Boolean).join(' ').toLowerCase();
+};
+
 const filteredPlans = computed(() => {
+  const titleFilter = props.titleFilter.trim().toLowerCase();
   const locationFilter = props.locationFilter.trim().toLowerCase();
   const hashtagFilter = normalizeHashtag(props.hashtagFilter);
   const dateFilter = props.dateFilter;
@@ -320,6 +329,9 @@ const filteredPlans = computed(() => {
   const durationFilter = props.durationFilter || [];
 
   return plans.value.filter((plan) => {
+    // title / text
+    const titleMatch = !titleFilter || getPlanSearchTitle(plan).includes(titleFilter);
+
     // location
     const locationMatch =
       !locationFilter || (plan.location && plan.location.toLowerCase().includes(locationFilter));
@@ -351,7 +363,7 @@ const filteredPlans = computed(() => {
     const durationMatch =
       !durationFilter.length || (plan.time && durationFilter.some((d) => plan.time.includes(d)));
 
-    return locationMatch && hashtagMatch && dateMatch && timeMatch && durationMatch;
+    return titleMatch && locationMatch && hashtagMatch && dateMatch && timeMatch && durationMatch;
   });
 });
 

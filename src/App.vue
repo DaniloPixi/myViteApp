@@ -49,15 +49,16 @@
 
     <div class="sticky-header">
       <Sidebar
-        v-if="currentView === 'plans' || currentView === 'memos' || currentView === 'capsules'"
-        v-model:location="locationFilter"
-        v-model:hashtags="hashtagFilter"
-        v-model:date="dateFilter"
-        v-model:time="timeFilter"
-        v-model:duration="durationFilter"
-        v-model:lockStatus="lockStatusFilter"
-        :enabled-filters="enabledFilters"
-      />
+  v-if="currentView === 'plans' || currentView === 'memos' || currentView === 'capsules'"
+  v-model:title="titleFilter"
+  v-model:location="locationFilter"
+  v-model:hashtags="hashtagFilter"
+  v-model:date="dateFilter"
+  v-model:time="timeFilter"
+  v-model:duration="durationFilter"
+  v-model:lockStatus="lockStatusFilter"
+  :enabled-filters="enabledFilters"
+/>
       <header class="page-header" v-if="currentView === 'home'">
         <h1 v-if="user" class="bounce-in welcome-line">
           <span>Welcome, {{ user.displayName || user.email }}</span>
@@ -251,23 +252,25 @@
                 </div>
 
                 <MemosAndMoments
-                  v-if="currentView === 'memos'"
-                  :location-filter="locationFilter"
-                  :hashtag-filter="hashtagFilter"
-                  :date-filter="dateFilter"
-                  :focus-memo-id="focusMemoId"
-                />
+  v-if="currentView === 'memos'"
+  :title-filter="titleFilter"
+  :location-filter="locationFilter"
+  :hashtag-filter="hashtagFilter"
+  :date-filter="dateFilter"
+  :focus-memo-id="focusMemoId"
+/>
 
-                <Plans
-                  v-if="currentView === 'plans'"
-                  :user="user"
-                  :location-filter="locationFilter"
-                  :hashtag-filter="hashtagFilter"
-                  :date-filter="dateFilter"
-                  :time-filter="timeFilter"
-                  :duration-filter="durationFilter"
-                  :focus-plan-id="focusPlanId"
-                />
+<Plans
+  v-if="currentView === 'plans'"
+  :user="user"
+  :title-filter="titleFilter"
+  :location-filter="locationFilter"
+  :hashtag-filter="hashtagFilter"
+  :date-filter="dateFilter"
+  :time-filter="timeFilter"
+  :duration-filter="durationFilter"
+  :focus-plan-id="focusPlanId"
+/>
 
                 <TimeCapsulesView
                   v-if="currentView === 'capsules'"
@@ -382,6 +385,7 @@ function switchView(view) {
 }
 const {
   currentView,
+  titleFilter,
   locationFilter,
   hashtagFilter,
   dateFilter,
