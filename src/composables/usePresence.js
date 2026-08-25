@@ -2,24 +2,73 @@ import { onMounted, onUnmounted } from 'vue';
 import { auth, rtdb, db, firebase } from '../firebase';
 
 export function usePresence() {
+  const HEARTBEAT_INTERVAL_MS = 5000;
+
   let connectedRef = null;
   let userStatusRef = null;
   let unsubAuth = null;
+  let heartbeatTimer = null;
 
   const setFirestoreStatus = async (uid, status, lastChanged) => {
     try {
-      await db.collection('userPresence').doc(uid).set({ status, lastChanged }, { merge: true });
-    } catch (e) {
-      console.warn('Failed to mirror presence to Firestore:', e);
+      await db.collection('userPresence').doc(uid).set(
+        {
+          status,
+          lastChanged,
+        },
+        {
+          merge: true,
+        }
+      );
+    } catch (error) {
+      console.warn('Failed to mirror presence to Firestore:', error);
     }
+  };
+
+  const stopHeartbeat = () => {
+    if (heartbeatTimer !== null) {
+      window.clearInterval(heartbeatTimer);
+      heartbeatTimer = null;
+    }
+  };
+
+  const writeStatus = async (status) => {
+    const currentUser = auth.currentUser;
+
+    if (!currentUser || !userStatusRef) {
+      return;
+    }
+
+    await userStatusRef.set({
+      status,
+      lastChanged: firebase.database.ServerValue.TIMESTAMP,
+    });
+
+    await setFirestoreStatus(
+      currentUser.uid,
+      status,
+      Date.now()
+    );
+  };
+
+  const startHeartbeat = () => {
+    stopHeartbeat();
+
+    heartbeatTimer = window.setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        writeStatus('online');
+      }
+    }, HEARTBEAT_INTERVAL_MS);
   };
 
   const attachPresenceForUser = (uid) => {
     connectedRef = rtdb.ref('.info/connected');
     userStatusRef = rtdb.ref(`/status/${uid}`);
 
-    connectedRef.on('value', async (snap) => {
-      if (snap.val() === false) return;
+    connectedRef.on('value', async (snapshot) => {
+      if (snapshot.val() === false) {
+        return;
+      }
 
       const offlineState = {
         status: 'offline',
@@ -31,59 +80,86 @@ export function usePresence() {
         lastChanged: firebase.database.ServerValue.TIMESTAMP,
       };
 
-      // Ensure offline is set if tab/browser disconnects unexpectedly
-      userStatusRef
-        .onDisconnect()
-        .set(offlineState)
-        .then(async () => {
-          await userStatusRef.set(onlineState);
-          await setFirestoreStatus(uid, 'online', Date.now());
-        });
+      // Firebase applies this automatically if the PWA, browser,
+      // device, or network disconnects unexpectedly.
+      await userStatusRef.onDisconnect().set(offlineState);
+
+      await userStatusRef.set(onlineState);
+      await setFirestoreStatus(uid, 'online', Date.now());
+
+      startHeartbeat();
     });
   };
 
   const detachPresence = () => {
-    if (connectedRef) connectedRef.off();
+    stopHeartbeat();
+
+    if (connectedRef) {
+      connectedRef.off();
+    }
+
     connectedRef = null;
     userStatusRef = null;
   };
 
   const setFocusedState = async (isFocused) => {
-    const user = auth.currentUser;
-    if (!user || !userStatusRef) return;
+    if (isFocused) {
+      startHeartbeat();
+      await writeStatus('online');
+      return;
+    }
 
-    const status = isFocused ? 'online' : 'away';
-    const payload = {
-      status,
-      lastChanged: firebase.database.ServerValue.TIMESTAMP,
-    };
-
-    await userStatusRef.set(payload);
-    await setFirestoreStatus(user.uid, status, Date.now());
+    stopHeartbeat();
+    await writeStatus('away');
   };
 
-  const handleFocus = () => setFocusedState(true);
-  const handleBlurOrHidden = () => setFocusedState(false);
+  const handleFocus = () => {
+    setFocusedState(true);
+  };
+
+  const handleBlur = () => {
+    setFocusedState(false);
+  };
+
+  const handleVisibilityChange = () => {
+    if (document.visibilityState === 'visible') {
+      setFocusedState(true);
+    } else {
+      setFocusedState(false);
+    }
+  };
 
   onMounted(() => {
     unsubAuth = auth.onAuthStateChanged((user) => {
       detachPresence();
-      if (!user) return;
+
+      if (!user) {
+        return;
+      }
+
       attachPresenceForUser(user.uid);
     });
 
     window.addEventListener('focus', handleFocus);
-    window.addEventListener('blur', handleBlurOrHidden);
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible') handleFocus();
-      else handleBlurOrHidden();
-    });
+    window.addEventListener('blur', handleBlur);
+    document.addEventListener(
+      'visibilitychange',
+      handleVisibilityChange
+    );
   });
 
   onUnmounted(() => {
-    if (typeof unsubAuth === 'function') unsubAuth();
+    if (typeof unsubAuth === 'function') {
+      unsubAuth();
+    }
+
     detachPresence();
+
     window.removeEventListener('focus', handleFocus);
-    window.removeEventListener('blur', handleBlurOrHidden);
+    window.removeEventListener('blur', handleBlur);
+    document.removeEventListener(
+      'visibilitychange',
+      handleVisibilityChange
+    );
   });
 }
