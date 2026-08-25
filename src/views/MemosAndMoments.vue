@@ -177,6 +177,7 @@ import { usePhotoUtils } from '../composables/usePhotoUtils';
 const { getImageUrlByPreset } = usePhotoUtils();
 
 const props = defineProps({
+  titleFilter: { type: String, default: '' },
   locationFilter: { type: String, default: '' },
   hashtagFilter: { type: String, default: '' },
   dateFilter: { type: String, default: '' },
@@ -289,7 +290,6 @@ const getMemoCardStyle = (memoId) => {
     transform: `translateY(${lift}px) scale(${scale})`,
   };
 };
-
 // ---------- filters ----------
 const normalizeHashtag = (value) => {
   const trimmed = (value || '').trim().toLowerCase();
@@ -298,20 +298,27 @@ const normalizeHashtag = (value) => {
 };
 
 const normalizeFilters = computed(() => ({
+  title: props.titleFilter.trim().toLowerCase(),
   location: props.locationFilter.trim().toLowerCase(),
   hashtag: normalizeHashtag(props.hashtagFilter),
   date: props.dateFilter,
 }));
 
+const getMemoSearchTitle = (memo) => {
+  return [memo.title, memo.description].filter(Boolean).join(' ').toLowerCase();
+};
+
 const filteredMemos = computed(() => {
-  const { location, hashtag, date } = normalizeFilters.value;
+  const { title, location, hashtag, date } = normalizeFilters.value;
 
   return memos.value.filter((memo) => {
+    const titleMatch = !title || getMemoSearchTitle(memo).includes(title);
     const locationMatch = !location || memo.location?.toLowerCase().includes(location);
     const normalizedHashtags = memo.hashtags?.map(normalizeHashtag) || [];
     const hashtagMatch = !hashtag || normalizedHashtags.includes(hashtag);
     const dateMatch = !date || memo.date === date;
-    return locationMatch && hashtagMatch && dateMatch;
+
+    return titleMatch && locationMatch && hashtagMatch && dateMatch;
   });
 });
 

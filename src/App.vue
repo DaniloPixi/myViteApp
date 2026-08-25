@@ -49,15 +49,16 @@
 
     <div class="sticky-header">
       <Sidebar
-        v-if="currentView === 'plans' || currentView === 'memos' || currentView === 'capsules'"
-        v-model:location="locationFilter"
-        v-model:hashtags="hashtagFilter"
-        v-model:date="dateFilter"
-        v-model:time="timeFilter"
-        v-model:duration="durationFilter"
-        v-model:lockStatus="lockStatusFilter"
-        :enabled-filters="enabledFilters"
-      />
+  v-if="currentView === 'plans' || currentView === 'memos' || currentView === 'capsules'"
+  v-model:title="titleFilter"
+  v-model:location="locationFilter"
+  v-model:hashtags="hashtagFilter"
+  v-model:date="dateFilter"
+  v-model:time="timeFilter"
+  v-model:duration="durationFilter"
+  v-model:lockStatus="lockStatusFilter"
+  :enabled-filters="enabledFilters"
+/>
       <header class="page-header" v-if="currentView === 'home'">
         <h1 v-if="user" class="bounce-in welcome-line">
           <span>Welcome, {{ user.displayName || user.email }}</span>
@@ -242,7 +243,7 @@
             <transition name="slide-fade" mode="out-in">
               <div :key="currentView">
                 <div v-if="currentView === 'home'">
-                  <button @click="sendLoveNotification" class="love-button">Send Love</button>
+                  <button @click="sendLoveNotification" ref="loveBtnRef" class="love-button">Send Love</button>
 
                   <div class="calendar-container">
                     <DailyQuestWidget />
@@ -251,23 +252,25 @@
                 </div>
 
                 <MemosAndMoments
-                  v-if="currentView === 'memos'"
-                  :location-filter="locationFilter"
-                  :hashtag-filter="hashtagFilter"
-                  :date-filter="dateFilter"
-                  :focus-memo-id="focusMemoId"
-                />
+  v-if="currentView === 'memos'"
+  :title-filter="titleFilter"
+  :location-filter="locationFilter"
+  :hashtag-filter="hashtagFilter"
+  :date-filter="dateFilter"
+  :focus-memo-id="focusMemoId"
+/>
 
-                <Plans
-                  v-if="currentView === 'plans'"
-                  :user="user"
-                  :location-filter="locationFilter"
-                  :hashtag-filter="hashtagFilter"
-                  :date-filter="dateFilter"
-                  :time-filter="timeFilter"
-                  :duration-filter="durationFilter"
-                  :focus-plan-id="focusPlanId"
-                />
+<Plans
+  v-if="currentView === 'plans'"
+  :user="user"
+  :title-filter="titleFilter"
+  :location-filter="locationFilter"
+  :hashtag-filter="hashtagFilter"
+  :date-filter="dateFilter"
+  :time-filter="timeFilter"
+  :duration-filter="durationFilter"
+  :focus-plan-id="focusPlanId"
+/>
 
                 <TimeCapsulesView
                   v-if="currentView === 'capsules'"
@@ -367,7 +370,7 @@ const unreadStackNotifications = computed(() =>
     .filter((notification) => notification.status === 'unread')
     .sort((a, b) => b.createdAt - a.createdAt)
 );
-
+const loveBtnRef = ref(null);
 const shouldShowNotificationStackLauncher = computed(() => {
   const unreadCount = unreadStackNotifications.value.length;
   if (isMobileDevice.value) return unreadCount > 0;
@@ -382,6 +385,7 @@ function switchView(view) {
 }
 const {
   currentView,
+  titleFilter,
   locationFilter,
   hashtagFilter,
   dateFilter,
@@ -553,7 +557,49 @@ async function enableNotifications() {
     console.log('Notification permission dismissed.');
   }
 }
+function triggerHeartBursts() {
+  const btn = loveBtnRef.value;
+  if (!btn) return;
 
+  const rect = btn.getBoundingClientRect();
+  const originX = rect.left + rect.width / 2;
+  const originY = rect.top + rect.height / 2;
+
+  const COUNT = 18;
+  const LAYERS = ['cyan', 'magenta', 'gradient'];
+
+  for (let i = 0; i < COUNT; i++) {
+    const heart = document.createElement('span');
+    heart.className = 'love-heart-burst';
+
+    const angle = (Math.PI * 2 * i) / COUNT + (Math.random() - 0.5) * 0.75;
+    const distance = 58 + Math.random() * 160;
+    const dx = Math.cos(angle) * distance;
+    const dy = Math.sin(angle) * distance - (45 + Math.random() * 130);
+    const rotate = -45 + Math.random() * 90;
+    const delay = Math.random() * 320;
+    const duration = 1200 + Math.random() * 900;
+
+    const scale = 0.58 + Math.random() * 1.05;
+    const size = 9 + Math.random() * 18;
+    const drift = (Math.random() - 0.5) * 38;
+
+    heart.dataset.layer = LAYERS[Math.floor(Math.random() * LAYERS.length)];
+    heart.style.left = `${originX}px`;
+    heart.style.top = `${originY}px`;
+    heart.style.setProperty('--hb-dx', `${dx.toFixed(2)}px`);
+    heart.style.setProperty('--hb-dy', `${dy.toFixed(2)}px`);
+    heart.style.setProperty('--hb-rot', `${rotate.toFixed(2)}deg`);
+    heart.style.setProperty('--hb-delay', `${delay.toFixed(0)}ms`);
+    heart.style.setProperty('--hb-dur', `${duration.toFixed(0)}ms`);
+    heart.style.setProperty('--hb-scale', `${scale.toFixed(2)}`);
+    heart.style.setProperty('--hb-size', `${size.toFixed(2)}px`);
+    heart.style.setProperty('--hb-drift', `${drift.toFixed(2)}px`);
+
+    document.body.appendChild(heart);
+    heart.addEventListener('animationend', () => heart.remove(), { once: true });
+  }
+}
 function addToNotificationStack(title, body, data) {
   notificationStack.value.push({
     id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -652,11 +698,11 @@ async function sendLoveNotification() {
       const errorBody = await response.json();
       throw new Error(errorBody.message || `Server responded with ${response.status}`);
     }
-    const result = await response.json();
     inAppNotification.title = 'Message Sent!';
     inAppNotification.body = "You've sent an 'I love you' notification.";
     inAppNotification.visible = true;
     play('success');
+    triggerHeartBursts();
   } catch (error) {
     console.error('Error sending "I love you" notification:', error);
     play('error');
@@ -1054,7 +1100,122 @@ onUnmounted(() => {
   /* Or any other width you prefer */
   margin: 0 auto;
 }
+:global(.love-heart-burst) {
+  position: fixed;
+  width: var(--hb-size, 14px);
+  height: var(--hb-size, 14px);
+  pointer-events: none;
+  user-select: none;
+  z-index: 99999;
 
+  opacity: 0;
+  transform: translate(-50%, -50%) rotate(45deg) scale(var(--hb-scale, 1));
+  filter: blur(0.35px) saturate(1.08);
+
+  animation: loveHeartBurst var(--hb-dur, 1550ms)
+    cubic-bezier(0.16, 0.84, 0.24, 1)
+    var(--hb-delay, 0ms) forwards;
+}
+
+:global(.love-heart-burst::before),
+:global(.love-heart-burst::after) {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 999px;
+  background: inherit;
+}
+
+:global(.love-heart-burst::before) {
+  left: -50%;
+}
+
+:global(.love-heart-burst::after) {
+  top: -50%;
+}
+
+:global(.love-heart-burst[data-layer='cyan']) {
+  background: radial-gradient(
+    circle at 35% 30%,
+    rgba(214, 255, 255, 0.82),
+    rgba(0, 255, 255, 0.42) 62%,
+    rgba(0, 255, 255, 0.1)
+  );
+  box-shadow:
+    0 0 18px rgba(0, 255, 255, 0.28),
+    0 0 34px rgba(0, 255, 255, 0.16);
+}
+
+:global(.love-heart-burst[data-layer='magenta']) {
+  background: radial-gradient(
+    circle at 35% 30%,
+    rgba(255, 220, 247, 0.82),
+    rgba(255, 0, 209, 0.44) 62%,
+    rgba(255, 0, 209, 0.1)
+  );
+  box-shadow:
+    0 0 18px rgba(255, 0, 209, 0.28),
+    0 0 34px rgba(255, 0, 209, 0.16);
+}
+
+:global(.love-heart-burst[data-layer='gradient']) {
+  background: linear-gradient(
+    140deg,
+    rgba(0, 255, 255, 0.54),
+    rgba(255, 0, 209, 0.54)
+  );
+  box-shadow:
+    0 0 16px rgba(0, 255, 255, 0.22),
+    0 0 16px rgba(255, 0, 209, 0.22),
+    0 0 30px rgba(255, 255, 255, 0.08);
+}
+
+@keyframes loveHeartBurst {
+  0% {
+    opacity: 0;
+    filter: blur(0.6px) saturate(1.05);
+    transform: translate(-50%, -50%) rotate(45deg)
+      scale(calc(var(--hb-scale, 1) * 0.42));
+  }
+
+  12% {
+    opacity: 0.78;
+    filter: blur(0.2px) saturate(1.12);
+  }
+
+  38% {
+    opacity: 0.72;
+    transform: translate(
+        calc(-50% + var(--hb-dx) * 0.45 + var(--hb-drift) * 0.35),
+        calc(-50% + var(--hb-dy) * 0.45)
+      )
+      rotate(calc(45deg + var(--hb-rot) * 0.45))
+      scale(calc(var(--hb-scale, 1) * 1.06));
+  }
+
+  72% {
+    opacity: 0.42;
+    filter: blur(0.45px) saturate(1.04);
+    transform: translate(
+        calc(-50% + var(--hb-dx) * 0.78 + var(--hb-drift) * 0.75),
+        calc(-50% + var(--hb-dy) * 0.78)
+      )
+      rotate(calc(45deg + var(--hb-rot) * 0.8))
+      scale(calc(var(--hb-scale, 1) * 0.92));
+  }
+
+  100% {
+    opacity: 0;
+    filter: blur(0.9px) saturate(0.98);
+    transform: translate(
+        calc(-50% + var(--hb-dx) + var(--hb-drift)),
+        calc(-50% + var(--hb-dy))
+      )
+      rotate(calc(45deg + var(--hb-rot)))
+      scale(calc(var(--hb-scale, 1) * 0.68));
+  }
+}
 @keyframes bounce-in {
   0% {
     transform: scale(0.5);
@@ -1804,4 +1965,5 @@ onUnmounted(() => {
     padding: var(--ds-space-3) var(--ds-space-4);
   }
 }
+
 </style>

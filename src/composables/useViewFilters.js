@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue';
 export function useViewFilters() {
   const currentView = ref(localStorage.getItem('currentView') || 'home');
 
+  const titleFilter = ref('');
   const locationFilter = ref('');
   const hashtagFilter = ref('');
   const dateFilter = ref('');
@@ -12,10 +13,10 @@ export function useViewFilters() {
 
   const enabledFilters = computed(() => {
     if (currentView.value === 'memos') {
-      return ['location', 'hashtags', 'date'];
+      return ['title', 'location', 'hashtags', 'date'];
     }
     if (currentView.value === 'plans') {
-      return ['location', 'hashtags', 'date', 'time', 'duration'];
+      return ['title', 'location', 'hashtags', 'date', 'time', 'duration'];
     }
     if (currentView.value === 'capsules') {
       return ['date', 'lockStatus'];
@@ -25,6 +26,7 @@ export function useViewFilters() {
 
   watch(currentView, (newView) => {
     localStorage.setItem('currentView', newView);
+    titleFilter.value = '';
     locationFilter.value = '';
     hashtagFilter.value = '';
     dateFilter.value = '';
@@ -35,6 +37,7 @@ export function useViewFilters() {
 
   return {
     currentView,
+    titleFilter,
     locationFilter,
     hashtagFilter,
     dateFilter,

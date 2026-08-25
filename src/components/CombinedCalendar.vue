@@ -55,44 +55,42 @@
 
     <!-- Centered Modal with Animation -->
     <Transition name="modal">
-      <div v-if="isModalVisible" class="modal-overlay" @click="closeModal">
-        <div class="modal-content" @click.stop :style="modalStyle">
-          <button @click="closeModal" class="close-button">&times;</button>
+  <div v-if="isModalVisible" class="modal-overlay ds-modal-overlay" @click="closeModal">
+    <div
+      class="modal-content ds-modal-surface ds-modal-surface--xs calendar-entry-modal"
+      @click.stop
+      :style="modalStyle"
+    >
+      <button @click="closeModal" class="close-button">&times;</button>
 
-          <div v-for="attr in modalAttributes" :key="attr.key">
-            <!-- MEMO -->
-            <p v-if="attr.customData && attr.customData.type === 'memo'" class="memo-text">
-              <span class="event-title">Memo: </span>
-              {{ attr.customData.text }}
-            </p>
+      <div v-for="attr in modalAttributes" :key="attr.key">
+        <p v-if="attr.customData && attr.customData.type === 'memo'" class="memo-text">
+          <span class="event-title">Memo: </span>
+          {{ attr.customData.text }}
+        </p>
 
-            <!-- PLAN -->
-            <p v-else-if="attr.customData && attr.customData.type === 'plan'" class="plan-text">
-              <span class="event-title">Plan: </span>
-              {{ attr.customData.text }}
-            </p>
+        <p v-else-if="attr.customData && attr.customData.type === 'plan'" class="plan-text">
+          <span class="event-title">Plan: </span>
+          {{ attr.customData.text }}
+        </p>
 
-            <!-- QUEST -->
-            <div
-              v-else-if="attr.customData && attr.customData.type === 'quest'"
-              class="quest-block"
-            >
-              <p class="quest-meta">
-                Quest –
-                {{ attr.customData.userName || 'Unknown' }}
-                –
-                <span class="quest-status">
-                  {{ questStatusFor(attr.customData) }}
-                </span>
-              </p>
-              <p class="quest-text">
-                {{ attr.customData.text }}
-              </p>
-            </div>
-          </div>
+        <div v-else-if="attr.customData && attr.customData.type === 'quest'" class="quest-block">
+          <p class="quest-meta">
+            Quest –
+            {{ attr.customData.userName || 'Unknown' }}
+            –
+            <span class="quest-status">
+              {{ questStatusFor(attr.customData) }}
+            </span>
+          </p>
+          <p class="quest-text">
+            {{ attr.customData.text }}
+          </p>
         </div>
       </div>
-    </Transition>
+    </div>
+  </div>
+</Transition>
   </div>
 </template>
 
@@ -388,31 +386,30 @@ function questStatusFor(customData) {
 }
 
 /* --- Modal Base Styles (No Transitions Here) --- */
+
 .modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background-color: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(2px);
-  display: flex;
-  justify-content: center;
-  align-items: center;
   z-index: 1000;
 }
-.modal-content {
-  background: #00000050;
-  border: 1px solid rgba(255, 79, 233, 0.65);
-  border-radius: var(--ds-radius-md);
-  padding: 20px 25px;
-  width: 90%;
-  max-width: 500px;
-  box-shadow: 0 0 25px rgba(255, 0, 255, 0.5);
+
+.calendar-entry-modal {
   position: relative;
+  border-radius: var(--ds-radius-lg);
+  padding: 1.2rem 1.3rem 1rem;
+  background:
+    radial-gradient(circle at 10% 10%, rgba(0, 247, 255, 0.2), transparent 55%),
+    radial-gradient(circle at 90% 90%, rgba(255, 79, 233, 0.24), transparent 58%),
+    rgba(7, 8, 18, 0.62);
+  box-shadow:
+    var(--ds-shadow-soft),
+    0 0 26px rgba(255, 79, 233, 0.35),
+    0 0 18px rgba(0, 247, 255, 0.28);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   font-family: var(--ds-font-body);
   color: var(--ds-color-text);
+  max-width: 500px;
 }
+
 .close-button {
   position: absolute;
   top: -0.8rem;
