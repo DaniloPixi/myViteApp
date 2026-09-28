@@ -5,7 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:full": "netlify dev --command \"npm run dev -- --port 5175 --strictPort\" --target-port 5175",
     "build": "vite build",
+    "test:media": "node tests/media.test.mjs",
+    "test:deeplinks": "node tests/deeplinks.test.mjs",
     "preview": "vite preview",
     "generate:pwa-icons": "node scripts/generate-pwa-icons.mjs",
     "lint": "eslint .",

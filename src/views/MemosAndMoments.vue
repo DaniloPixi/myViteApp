@@ -10,6 +10,13 @@
 
     <!-- Main Content -->
     <div v-if="!loading && !error">
+      <p
+        v-if="focusMemoId && !memos.some((memo) => memo.id === focusMemoId)"
+        role="status"
+        class="ds-state-copy"
+      >
+        This linked memo is no longer available.
+      </p>
       <div class="add-memo-section">
         <button @click="openAddForm" class="add-memo-btn">
           <svg class="add-memo-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 121.24 122.88">
@@ -51,6 +58,10 @@
               >
                 <img
                   :src="getThumbnailUrl(media)"
+                  :srcset="getMediaSrcSet(media, 'thumbnail')"
+                  sizes="auto, (max-width: 700px) 90vw, 400px"
+                  loading="lazy"
+                  decoding="async"
                   alt="Memo media"
                   :class="{ 'adult-content-blur': media.isAdult }"
                   width="320"
@@ -144,8 +155,6 @@
     <MemoForm
       v-if="showForm"
       :memo="selectedMemo"
-      :cloudinary-cloud-name="cloudinaryCloudName"
-      :cloudinary-upload-preset="cloudinaryUploadPreset"
       @close="closeForm"
       @memo-saved="handleMemoSaved"
     />
@@ -167,6 +176,7 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, watch, computed, nextTick } from 'vue';
+import { useItemFocus } from '../composables/useItemFocus';
 import { getFirestore, collection, query, orderBy, onSnapshot } from 'firebase/firestore';
 import { auth } from '../firebase';
 import MemoForm from '../components/MemoForm.vue';
@@ -174,7 +184,7 @@ import ConfirmDeleteModal from '../components/ConfirmDeleteModal.vue';
 import ImageModal from '../components/ImageModal.vue';
 import { usePhotoUtils } from '../composables/usePhotoUtils';
 
-const { getImageUrlByPreset } = usePhotoUtils();
+const { getMediaThumbnail, getMediaSrcSet } = usePhotoUtils();
 
 const props = defineProps({
   titleFilter: { type: String, default: '' },
@@ -182,6 +192,7 @@ const props = defineProps({
   hashtagFilter: { type: String, default: '' },
   dateFilter: { type: String, default: '' },
   focusMemoId: { type: String, default: null },
+  focusRequest: { type: Number, default: 0 },
 });
 
 const memos = ref([]);
@@ -199,10 +210,6 @@ const selectedImageIndex = ref(0);
 
 const galleryState = ref({});
 let unsubscribeFromMemos = null;
-
-
-const cloudinaryCloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || 'dknmcj1qj';
-const cloudinaryUploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || 'memos_dev';
 
 // --------- refs + “plans-style” scroll focus ----------
 const memoRefs = ref({});
@@ -332,10 +339,7 @@ const ensureGalleryState = (memoId) => {
 
 const getMemoMedia = (memo) => (Array.isArray(memo.photos) ? memo.photos : []);
 
-const getThumbnailUrl = (media) => {
-  if (media.resource_type === 'video') return media.url.replace(/\.mp4$/, '.jpg');
-  return getImageUrlByPreset(media.url, 'thumbnail');
-};
+const getThumbnailUrl = (media) => getMediaThumbnail(media, 'thumbnail');
 
 // ---------- modal ----------
 const openImageModal = (media, index) => {
@@ -475,56 +479,19 @@ const handleTouchEnd = (memoId, event) => {
   state.touchStartX = 0;
 };
 
-// ---------- focus from notification ----------
-function scrollToMemoWithRetry(id) {
-  if (!id) return;
-
-  let attempts = 0;
-  const maxAttempts = 10;
-  const delay = 150;
-
-  const tryOnce = () => {
-    const el = memoRefs.value[id];
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      el.classList.add('memo-highlight');
-
-      setTimeout(() => {
-        el.classList.remove('memo-highlight');
-      }, 1500);
-
-      return;
-    }
-
-    attempts += 1;
-    if (attempts < maxAttempts) setTimeout(tryOnce, delay);
-  };
-
-  nextTick(tryOnce);
-}
-
-watch(
-  () => props.focusMemoId,
-  (id) => {
-    if (!id) return;
-    scrollToMemoWithRetry(id);
-  },
-  { immediate: true }
-);
+useItemFocus({
+  getId: () => props.focusMemoId,
+  getRequest: () => props.focusRequest,
+  isReady: () => !loading.value && !error.value &&
+    filteredMemos.value.some((memo) => memo.id === props.focusMemoId),
+  getElement: (id) => memoRefs.value[id],
+  highlightClass: 'memo-highlight',
+});
 
 let unsubscribeAuth = null;
 
 const onScroll = () => scheduleRectsUpdate();
 const onResize = () => scheduleRectsUpdate();
-
-watch(
-  () => props.focusMemoId,
-  (id) => {
-    if (!id) return;
-    scrollToMemoWithRetry(id);
-  },
-  { immediate: true }
-);
 
 watch(
   memos,
@@ -689,7 +656,7 @@ onUnmounted(() => {
     0 0 30px 10px rgba(0, 255, 255, 0.5);
 }
 
-.memo-highlight {
+.memo-card.memo-highlight {
   box-shadow:
     0 0 16px rgba(255, 0, 255, 0.7),
     0 0 22px rgba(0, 255, 255, 0.6);

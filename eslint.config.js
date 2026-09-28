@@ -15,6 +15,14 @@ export default [
   ...vuePlugin.configs['flat/recommended'],
 
   {
+    files: ['netlify/functions/**/*.mjs', 'netlify/functions/**/*.mts', 'tests/**/*.mjs'],
+    languageOptions: { globals: globals.node },
+    rules: {
+      'no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
+    },
+  },
+
+  {
     files: ['**/*.vue', '**/*.js'],
     languageOptions: {
       parser: vueParser,

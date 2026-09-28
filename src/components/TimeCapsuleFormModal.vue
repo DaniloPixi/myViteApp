@@ -99,18 +99,30 @@
         <div v-if="photos.length" class="tc-form-photos">
           <div v-for="(media, index) in photos" :key="index" class="tc-photo-thumb">
             <img
-              v-if="media.resource_type === 'image' || !media.resource_type"
-              :src="media.url"
+              v-if="media.resource_type !== 'video' || !media.file"
+              :src="getMediaThumbnail(media, 'preview')"
+              :srcset="getMediaSrcSet(media, 'preview')"
+              sizes="auto, 88px"
+              loading="lazy"
+              decoding="async"
               alt="Attachment image"
             />
             <video
               v-else-if="media.resource_type === 'video'"
               :src="media.url"
+              preload="metadata"
               playsinline
               muted
             ></video>
 
-            <button type="button" class="tc-photo-remove" @click="removePhoto(index)">×</button>
+            <button
+              type="button"
+              class="tc-photo-remove"
+              :disabled="isUploading || isSubmitting"
+              @click="removePhoto(index)"
+            >
+              ×
+            </button>
           </div>
         </div>
       </div>
@@ -151,7 +163,10 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
+import { usePhotoUtils } from '../composables/usePhotoUtils';
+import { useMediaUpload } from '../composables/useMediaUpload';
+const { getMediaThumbnail, getMediaSrcSet } = usePhotoUtils();
 import BaseCapsuleModal from './BaseCapsuleModal.vue';
 
 const props = defineProps({
@@ -175,14 +190,6 @@ const props = defineProps({
     type: String,
     default: '',
   },
-  cloudinaryCloudName: {
-    type: String,
-    default: '',
-  },
-  cloudinaryUploadPreset: {
-    type: String,
-    default: '',
-  },
 });
 
 const emit = defineEmits(['close', 'save']);
@@ -198,7 +205,16 @@ const unlockAtLocal = ref(props.capsule?.unlockAt ? toLocalInputValue(props.caps
 const recipient = ref('partner');
 
 // photos is ALWAYS an array
-const photos = ref(Array.isArray(props.capsule?.photos) ? [...props.capsule.photos] : []);
+const {
+  media: photos,
+  uploading: isUploading,
+  addFiles,
+  remove: removePhoto,
+  uploadAll,
+  setSaving,
+} = useMediaUpload(props.capsule?.photos || []);
+const createRequestId = crypto.randomUUID();
+watch(() => props.isSubmitting, setSaving, { flush: 'sync' });
 
 // this is what appears in the subtitle after "to"
 const recipientLabel = computed(() => {
@@ -208,7 +224,6 @@ const recipientLabel = computed(() => {
 
 // upload state
 const fileInput = ref(null);
-const isUploading = ref(false);
 const uploadError = ref('');
 
 function toLocalInputValue(isoString) {
@@ -224,17 +239,33 @@ function toLocalInputValue(isoString) {
 }
 
 function emitClose() {
-  emit('close');
+  if (!isUploading.value && !props.isSubmitting) emit('close');
 }
 
-function handleSubmit() {
-  emit('save', {
-    title: title.value,
-    message: message.value,
-    unlockAtLocal: unlockAtLocal.value,
-    recipient: recipient.value,
-    photos: photos.value,
-  });
+async function handleSubmit() {
+  if (isUploading.value || props.isSubmitting) return;
+  uploadError.value = '';
+  if (
+    !message.value.trim() ||
+    !unlockAtLocal.value ||
+    !(new Date(unlockAtLocal.value).getTime() > Date.now())
+  ) {
+    uploadError.value = 'Add a message and choose a future unlock time.';
+    return;
+  }
+  try {
+    const uploaded = await uploadAll();
+    emit('save', {
+      title: title.value,
+      message: message.value,
+      unlockAtLocal: unlockAtLocal.value,
+      recipient: recipient.value,
+      photos: uploaded,
+      requestId: createRequestId,
+    });
+  } catch (error) {
+    uploadError.value = error.message;
+  }
 }
 
 function triggerFilePicker() {
@@ -244,64 +275,14 @@ function triggerFilePicker() {
   }
 }
 
-async function onFilesSelected(event) {
-  const files = Array.from(event.target.files || []);
-  if (!files.length) return;
-
-  if (!props.cloudinaryCloudName || !props.cloudinaryUploadPreset) {
-    uploadError.value = 'Media upload is not configured.';
-    event.target.value = '';
-    return;
-  }
-
-  isUploading.value = true;
-  uploadError.value = '';
-
+function onFilesSelected(event) {
   try {
-    for (const file of files) {
-      const isVideo = file.type && file.type.startsWith('video');
-      const resourceType = isVideo ? 'video' : 'image';
-
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('upload_preset', props.cloudinaryUploadPreset);
-
-      const endpoint = `https://api.cloudinary.com/v1_1/${props.cloudinaryCloudName}/${resourceType}/upload`;
-
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!res.ok) {
-        let msg = 'Upload failed';
-        try {
-          const errJson = await res.json();
-          msg = errJson?.error?.message || msg;
-        } catch {
-          // ignore parse
-        }
-        throw new Error(msg);
-      }
-
-      const data = await res.json();
-
-      photos.value.push({
-        url: data.secure_url || data.url,
-        resource_type: data.resource_type || resourceType,
-      });
-    }
-  } catch (e) {
-    console.error('[TimeCapsuleFormModal] upload failed:', e);
-    uploadError.value = e?.message || 'Failed to upload media. Please try again.';
-  } finally {
-    isUploading.value = false;
-    if (event.target) event.target.value = '';
+    addFiles(Array.from(event.target.files || []));
+    uploadError.value = '';
+  } catch (error) {
+    uploadError.value = error.message;
   }
-}
-
-function removePhoto(index) {
-  photos.value.splice(index, 1);
+  event.target.value = '';
 }
 </script>
 

@@ -345,6 +345,7 @@
                     <CombinedCalendar
                       :memos="memos"
                       :plans="plans"
+                      @open-item="openItem"
                     />
                   </div>
                 </div>
@@ -356,6 +357,7 @@
                   :hashtag-filter="hashtagFilter"
                   :date-filter="dateFilter"
                   :focus-memo-id="focusMemoId"
+                  :focus-request="focusRequest"
                 />
 
                 <Plans
@@ -368,6 +370,7 @@
                   :time-filter="timeFilter"
                   :duration-filter="durationFilter"
                   :focus-plan-id="focusPlanId"
+                  :focus-request="focusRequest"
                 />
 
                 <TimeCapsulesView
@@ -441,6 +444,7 @@ import TimeCapsulesView from './views/TimeCapsulesView.vue';
 
 import { usePwaAutoUpdate } from './composables/usePwaAutoUpdate';
 import { useViewFilters } from './composables/useViewFilters';
+import { useDeepLinks } from './composables/useDeepLinks';
 import { useCalendarData } from './composables/useCalendarData';
 import { forceReloadCalendarQuests } from './composables/useDailyQuests';
 import { usePresence } from './composables/usePresence';
@@ -552,14 +556,23 @@ const {
   durationFilter,
   lockStatusFilter,
   enabledFilters,
+  resetFilters,
 } = useViewFilters();
+
+const { focusRequest, applyDeepLinkFromUrlString, navigateToView } = useDeepLinks({
+  currentView,
+  focusMemoId,
+  focusPlanId,
+  focusCapsuleId,
+  resetFilters,
+});
 
 function switchView(view) {
   if (currentView.value !== view) {
     play('tap');
   }
 
-  currentView.value = view;
+  navigateToView(view);
   closeSoundPanel();
 }
 
@@ -1125,7 +1138,7 @@ const unsubscribeAuth =
           'currentView'
         );
 
-        currentView.value = 'home';
+        // Keep a linked destination while the user signs in.
 
         clearPartnerPresenceSubscription();
       }
@@ -1133,6 +1146,7 @@ const unsubscribeAuth =
   );
 
 const logout = () => {
+  navigateToView('home');
   auth.signOut();
 };
 
@@ -1800,6 +1814,7 @@ function clearPartnerPresenceSubscription() {
 // -----------------------------------------------------------------------------
 
 onMounted(() => {
+  window.addEventListener('popstate', handleLocationChange);
   isMobileDevice.value =
     window.matchMedia(
       '(pointer: coarse)'
@@ -1898,120 +1913,27 @@ onMounted(() => {
   );
 });
 
-function handleMapSpotOpenItem(event) {
-  const type =
-    event?.detail?.type;
-
-  const id =
-    event?.detail?.id;
-
+function openItem({ type, id }) {
   if (!id) {
     return;
   }
 
   if (type === 'memo') {
-    currentView.value = 'memos';
-    focusMemoId.value = id;
+    navigateToView('memos', id);
     return;
   }
 
   if (type === 'plan') {
-    currentView.value = 'plans';
-    focusPlanId.value = id;
+    navigateToView('plans', id);
   }
 }
 
-function applyDeepLinkFromUrlString(
-  urlString
-) {
-  if (
-    typeof window === 'undefined' ||
-    !urlString
-  ) {
-    return;
-  }
+function handleLocationChange() {
+  applyDeepLinkFromUrlString(window.location.href);
+}
 
-  try {
-    const url = new URL(
-      urlString,
-      window.location.origin
-    );
-
-    const params =
-      url.searchParams;
-
-    const viewParam =
-      params.get('view');
-
-    const memoIdParam =
-      params.get('memoId');
-
-    const planIdParam =
-      params.get('planId');
-
-    const capsuleIdParam =
-      params.get('capsuleId');
-
-    const allowedViews = [
-      'home',
-      'memos',
-      'plans',
-      'capsules',
-    ];
-
-    if (
-      viewParam &&
-      allowedViews.includes(
-        viewParam
-      )
-    ) {
-      currentView.value =
-        viewParam;
-    }
-
-    if (memoIdParam) {
-      focusMemoId.value =
-        memoIdParam;
-    }
-
-    if (planIdParam) {
-      focusPlanId.value =
-        planIdParam;
-    }
-
-    if (capsuleIdParam) {
-      focusCapsuleId.value =
-        capsuleIdParam;
-    }
-
-    params.delete('view');
-    params.delete('memoId');
-    params.delete('planId');
-    params.delete('capsuleId');
-
-    const cleanQuery =
-      params.toString();
-
-    const cleanUrl =
-      url.pathname +
-      (
-        cleanQuery
-          ? `?${cleanQuery}`
-          : ''
-      ) +
-      url.hash;
-
-    window.history.replaceState(
-      {},
-      '',
-      cleanUrl
-    );
-  } catch (error) {
-    console.warn(
-      'Failed to apply deep link from URL:',
-      error
-    );
-  }
+function handleMapSpotOpenItem(event) {
+  openItem(event?.detail || {});
 }
 
 function handleInAppNotificationClick() {
@@ -2035,6 +1957,7 @@ function handleInAppNotificationClick() {
 }
 
 onUnmounted(() => {
+  window.removeEventListener('popstate', handleLocationChange);
   if (unsubscribeAuth) {
     unsubscribeAuth();
   }

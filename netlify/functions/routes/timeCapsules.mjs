@@ -1,12 +1,8 @@
 // netlify/functions/routes/timeCapsules.mjs
 import express from 'express';
+import { saveWithMedia, deleteDocumentWithMedia, flushMediaDeletions } from '../_shared/media.mjs';
 
-export default function createTimeCapsulesRouter(
-  db,
-  cloudinary,
-  extractPublicId,
-  sendPushNotification
-) {
+export default function createTimeCapsulesRouter(db, cloudinary, sendPushNotification) {
   const router = express.Router();
 
   /**
@@ -23,38 +19,6 @@ export default function createTimeCapsulesRouter(
   function dateKeyFromIso(iso) {
     if (!iso || typeof iso !== 'string') return null;
     return iso.slice(0, 10); // "YYYY-MM-DD"
-  }
-
-  /**
-   * Normalize photos for a capsule.
-   * Supports current shape: photos: [{ url, resource_type? }]
-   * and a hypothetical older shape: photoUrls: [url1, url2]
-   */
-  function getCapsulePhotos(capsule) {
-    if (!capsule) return [];
-    if (Array.isArray(capsule.photos)) return capsule.photos;
-    if (Array.isArray(capsule.photoUrls)) {
-      return capsule.photoUrls.map((url) => ({ url }));
-    }
-    return [];
-  }
-
-  async function deleteCloudinaryResources(urls) {
-    if (!cloudinary || typeof cloudinary.config !== 'function' || !cloudinary.config().api_key) {
-      return;
-    }
-
-    if (!Array.isArray(urls) || urls.length === 0) return;
-
-    const publicIdsToDelete = urls
-      .map((url) => extractPublicId && extractPublicId(url))
-      .filter(Boolean);
-
-    if (publicIdsToDelete.length === 0) return;
-
-    console.log(`[timeCapsules] Deleting ${publicIdsToDelete.length} photos from Cloudinary...`);
-
-    await cloudinary.api.delete_resources(publicIdsToDelete);
   }
 
   /**
@@ -144,19 +108,32 @@ export default function createTimeCapsulesRouter(
     try {
       const displayName = name || email || 'Someone';
 
-      const docRef = await db.collection('timeCapsules').add({
-        fromUid: uid,
-        fromName: displayName,
-        toUid,
-        unlockAt: unlockAtIso,
-        unlockDateKey,
-        title: title || '',
-        message: message || '',
-        photos: Array.isArray(photos) ? photos : [],
-        createdAt: new Date().toISOString(),
-        openedAt: null,
-        opened: false,
-      });
+      const requestId = req.body.requestId;
+      if (requestId && !/^[\da-f-]{36}$/i.test(requestId))
+        return res.status(400).json({ message: 'Invalid request ID.' });
+      const docRef = requestId
+        ? db.collection('timeCapsules').doc(requestId)
+        : db.collection('timeCapsules').doc();
+      const created = await saveWithMedia(
+        db,
+        docRef,
+        {
+          fromUid: uid,
+          fromName: displayName,
+          toUid,
+          unlockAt: unlockAtIso,
+          unlockDateKey,
+          title: title || '',
+          message: message || '',
+          photos: Array.isArray(photos) ? photos : [],
+          createdAt: new Date().toISOString(),
+          openedAt: null,
+          opened: false,
+        },
+        uid,
+        { create: true }
+      );
+      if (!created) return res.status(201).json({ success: true, id: docRef.id });
 
       // 🔔 Notify the other person that a capsule has been scheduled
       try {
@@ -277,31 +254,11 @@ export default function createTimeCapsulesRouter(
         updateData.unlockDateKey = dateKeyFromIso(unlockAtIso);
       }
 
-      // Handle photos: delete from Cloudinary any URLs removed by this update
-      if (Array.isArray(photos)) {
-        const originalPhotoUrls = getCapsulePhotos(data)
-          .map((p) => p.url)
-          .filter(Boolean);
-
-        const newPhotoUrls = photos.map((p) => p && p.url).filter(Boolean);
-
-        const photosToDelete = originalPhotoUrls.filter((url) => !newPhotoUrls.includes(url));
-
-        if (photosToDelete.length > 0) {
-          try {
-            await deleteCloudinaryResources(photosToDelete);
-          } catch (delErr) {
-            console.warn(
-              '[timeCapsules] Failed to delete some Cloudinary photos on update:',
-              delErr
-            );
-          }
-        }
-
-        updateData.photos = photos;
-      }
-
-      await docRef.set(updateData, { merge: true });
+      if (Array.isArray(photos)) updateData.photos = photos;
+      await saveWithMedia(db, docRef, updateData, uid, { merge: true });
+      await flushMediaDeletions(db, cloudinary).catch((error) =>
+        console.warn('Media cleanup queued for retry:', error.message)
+      );
 
       return res.status(200).json({ success: true });
     } catch (error) {
@@ -436,19 +393,10 @@ export default function createTimeCapsulesRouter(
           .json({ success: false, message: 'Only the creator can delete this capsule.' });
       }
 
-      const photoUrlsToDelete = getCapsulePhotos(data)
-        .map((p) => p.url)
-        .filter(Boolean);
-
-      if (photoUrlsToDelete.length > 0) {
-        try {
-          await deleteCloudinaryResources(photoUrlsToDelete);
-        } catch (delErr) {
-          console.warn('[timeCapsules] Failed to delete some Cloudinary photos on delete:', delErr);
-        }
-      }
-
-      await docRef.delete();
+      await deleteDocumentWithMedia(db, docRef);
+      await flushMediaDeletions(db, cloudinary).catch((error) =>
+        console.warn('Media cleanup queued for retry:', error.message)
+      );
 
       return res.status(200).json({ success: true, message: 'Time capsule deleted.' });
     } catch (error) {

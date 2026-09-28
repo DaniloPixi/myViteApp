@@ -40,10 +40,12 @@
         <!-- Media Slider -->
         <div class="image-slider" :style="{ transform: `translateX(-${currentIndex * 100}%)` }">
           <div v-for="(item, index) in mediaItems" :key="index" class="slide">
-            <div class="image-container">
+            <div v-if="index === currentIndex" class="image-container">
               <video
                 v-if="item.resource_type === 'video'"
-                :src="getOptimizedUrl(item.url, { width: 1200 })"
+                :src="getVideoUrl(item.url, { width: 1200 })"
+                :poster="getMediaThumbnail(item, 'card')"
+                preload="metadata"
                 controls
                 autoplay
                 loop
@@ -53,9 +55,10 @@
               <img
                 v-else
                 :src="getImageUrlByPreset(item.url, 'modal')"
+                :srcset="getImageSrcSet(item.url, 'modal')"
+                sizes="90vw"
+                decoding="async"
                 alt="Enlarged media"
-                width="1400"
-                height="1400"
               />
             </div>
           </div>
@@ -85,7 +88,7 @@
 <script setup>
 import { ref, computed, watch, nextTick, onUnmounted } from 'vue';
 import { usePhotoUtils } from '../composables/usePhotoUtils';
-const { getOptimizedUrl, getImageUrlByPreset } = usePhotoUtils();
+const { getVideoUrl, getImageUrlByPreset, getImageSrcSet, getMediaThumbnail } = usePhotoUtils();
 const props = defineProps({
   isVisible: { type: Boolean, required: true },
   mediaItems: { type: Array, default: () => [] },
@@ -94,7 +97,9 @@ const props = defineProps({
 
 const emit = defineEmits(['close']);
 
-const currentIndex = ref(0);
+const currentIndex = ref(
+  Math.min(Math.max(props.startIndex, 0), Math.max(0, props.mediaItems.length - 1))
+);
 const modal = ref(null);
 const touchStartX = ref(0);
 

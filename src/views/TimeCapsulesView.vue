@@ -35,20 +35,24 @@
       >
         <div class="tc-card-main">
           <div class="tc-card-text">
-  <h2 class="tc-card-title">{{ capsule.title || 'Untitled capsule' }}</h2>
+            <h2 class="tc-card-title">{{ capsule.title || 'Untitled capsule' }}</h2>
 
-  <div class="tc-badges">
-    <span class="tc-badge" :class="isMine(capsule) ? 'tc-badge-mine' : 'tc-badge-theirs'">
-      From {{ nameForUid(capsule.fromUid) }}
-    </span>
+            <div class="tc-badges">
+              <span class="tc-badge" :class="isMine(capsule) ? 'tc-badge-mine' : 'tc-badge-theirs'">
+                From {{ nameForUid(capsule.fromUid) }}
+              </span>
 
-    <span class="tc-badge tc-badge-target">To {{ nameForUid(capsule.toUid) }}</span>
-  </div>
+              <span class="tc-badge tc-badge-target">To {{ nameForUid(capsule.toUid) }}</span>
+            </div>
 
-  <p class="tc-open-at">
-    {{ isOpened(capsule) ? 'Opened' : `Open at ${formatOpenAt(capsule.unlockAt || capsule.createdAt)}` }}
-  </p>
-</div>
+            <p class="tc-open-at">
+              {{
+                isOpened(capsule)
+                  ? 'Opened'
+                  : `Open at ${formatOpenAt(capsule.unlockAt || capsule.createdAt)}`
+              }}
+            </p>
+          </div>
         </div>
 
         <div class="tc-card-actions">
@@ -70,7 +74,11 @@
             </svg>
           </button>
 
-          <button class="tc-btn tc-btn-primary" :disabled="isLocked(capsule)" @click="handleOpen(capsule)">
+          <button
+            class="tc-btn tc-btn-primary"
+            :disabled="isLocked(capsule)"
+            @click="handleOpen(capsule)"
+          >
             <span v-if="isLocked(capsule)">🔒 Locked</span>
             <span v-else-if="isOpened(capsule)">🔓 View</span>
             <span v-else>🔓 Open</span>
@@ -88,8 +96,6 @@
         :from-name="myName"
         :is-submitting="saving"
         :submit-error="submitError"
-        :cloudinary-cloud-name="cloudinaryCloudName"
-        :cloudinary-upload-preset="cloudinaryUploadPreset"
         @close="closeFormModal"
         @save="handleSaveCapsule"
       />
@@ -140,8 +146,6 @@ const props = defineProps({
 });
 
 /* ---------- runtime config ---------- */
-const cloudinaryCloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || 'dknmcj1qj';
-const cloudinaryUploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || 'memos_dev';
 
 /* ---------- auth / identity ---------- */
 const currentUserRef = ref(auth.currentUser || null);
@@ -452,7 +456,7 @@ async function handleSaveCapsule(payload) {
     return;
   }
 
-  const { title, message, unlockAtLocal, recipient, photos } = payload;
+  const { title, message, unlockAtLocal, recipient, photos, requestId } = payload;
 
   if (!unlockAtLocal) {
     alert('Please choose an unlock date and time.');
@@ -485,6 +489,7 @@ async function handleSaveCapsule(payload) {
       const toUid = resolveRecipientUid(recipient);
 
       await createTimeCapsule({
+        requestId,
         toUid,
         unlockAt: unlockAtIso,
         title: title || '',
@@ -500,8 +505,8 @@ async function handleSaveCapsule(payload) {
       });
     }
 
-    await fetchTimeCapsules();
     closeFormModal();
+    await fetchTimeCapsules().catch((error) => console.warn('Refresh failed after save:', error));
   } catch (e) {
     console.warn('[TimeCapsulesView] handleSaveCapsule failed:', e);
     submitError.value = e?.message || 'Failed to save time capsule.';

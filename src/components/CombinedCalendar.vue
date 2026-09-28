@@ -64,15 +64,25 @@
       <button @click="closeModal" class="close-button">&times;</button>
 
       <div v-for="attr in modalAttributes" :key="attr.key">
-        <p v-if="attr.customData && attr.customData.type === 'memo'" class="memo-text">
+        <button
+          v-if="attr.customData && attr.customData.type === 'memo'"
+          type="button"
+          class="calendar-entry memo-text"
+          @click="openItem(attr.customData)"
+        >
           <span class="event-title">Memo: </span>
           {{ attr.customData.text }}
-        </p>
+        </button>
 
-        <p v-else-if="attr.customData && attr.customData.type === 'plan'" class="plan-text">
+        <button
+          v-else-if="attr.customData && attr.customData.type === 'plan'"
+          type="button"
+          class="calendar-entry plan-text"
+          @click="openItem(attr.customData)"
+        >
           <span class="event-title">Plan: </span>
           {{ attr.customData.text }}
-        </p>
+        </button>
 
         <div v-else-if="attr.customData && attr.customData.type === 'quest'" class="quest-block">
           <p class="quest-meta">
@@ -102,6 +112,13 @@ const props = defineProps({
   memos: { type: Array, default: () => [] },
   plans: { type: Array, default: () => [] },
 });
+const emit = defineEmits(['open-item']);
+
+function openItem({ type, id }) {
+  if (!id || (type !== 'memo' && type !== 'plan')) return;
+  closeModal();
+  emit('open-item', { type, id });
+}
 
 // --- Modal State & Animation ---
 const isModalVisible = ref(false);
@@ -152,6 +169,7 @@ const attributes = computed(() => {
         dot: { color: 'magenta', class: 'memo-dot' },
         customData: {
           type: 'memo',
+          id: memo.id,
           text: memo.description || 'Memo',
         },
       };
@@ -169,6 +187,7 @@ const attributes = computed(() => {
         dot: { color: 'turquoise', class: 'plan-dot' },
         customData: {
           type: 'plan',
+          id: plan.id,
           text: plan.text || 'Plan',
         },
       };
@@ -431,6 +450,29 @@ function questStatusFor(customData) {
 }
 .modal-content .plan-text {
   color: turquoise;
+}
+
+.calendar-entry {
+  display: block;
+  width: 100%;
+  margin: 8px 0;
+  padding: 10px 12px;
+  border: 1px solid currentColor;
+  border-radius: 8px;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+
+.calendar-entry:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.calendar-entry:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
 }
 
 /* --- SLOWER ANIMATION --- */

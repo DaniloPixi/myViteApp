@@ -24,8 +24,7 @@ export function useViewFilters() {
     return [];
   });
 
-  watch(currentView, (newView) => {
-    localStorage.setItem('currentView', newView);
+  function resetFilters() {
     titleFilter.value = '';
     locationFilter.value = '';
     hashtagFilter.value = '';
@@ -33,6 +32,11 @@ export function useViewFilters() {
     timeFilter.value = '';
     durationFilter.value = [];
     lockStatusFilter.value = '';
+  }
+
+  watch(currentView, (newView) => {
+    localStorage.setItem('currentView', newView);
+    resetFilters();
   });
 
   return {
@@ -45,5 +49,6 @@ export function useViewFilters() {
     durationFilter,
     lockStatusFilter,
     enabledFilters,
+    resetFilters,
   };
 }

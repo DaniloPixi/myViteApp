@@ -69,10 +69,10 @@ function startRealtimeSubscription() {
 
   const sentQuery = query(colRef, where('fromUid', '==', user.uid), orderBy('unlockAt'));
   const receivedQuery = query(colRef, where('toUid', '==', user.uid), orderBy('unlockAt'));
-  
+
   let sent = [];
   let received = [];
-  
+
   const sync = () => {
     const mergedMap = new Map();
     [...sent, ...received].forEach((item) => mergedMap.set(item.id, item));
@@ -85,7 +85,7 @@ function startRealtimeSubscription() {
     error.value = null;
     initialized = true;
   };
-  
+
   const unsubSent = onSnapshot(
     sentQuery,
     (snapshot) => {
@@ -98,7 +98,7 @@ function startRealtimeSubscription() {
       loading.value = false;
     }
   );
-  
+
   const unsubReceived = onSnapshot(
     receivedQuery,
     (snapshot) => {
@@ -111,7 +111,7 @@ function startRealtimeSubscription() {
       loading.value = false;
     }
   );
-  
+
   unsubscribe = () => {
     unsubSent();
     unsubReceived();
@@ -176,10 +176,18 @@ const unlockedCapsules = computed(() => {
 
 // --- Mutations via API (backend enforces permissions) ---
 
-export async function createTimeCapsule({ toUid, unlockAt, title, message, photos = [] }) {
+export async function createTimeCapsule({
+  toUid,
+  unlockAt,
+  title,
+  message,
+  photos = [],
+  requestId,
+}) {
   const headers = await getAuthHeaders();
 
   const payload = {
+    requestId,
     toUid,
     unlockAt,
     title: title || '',

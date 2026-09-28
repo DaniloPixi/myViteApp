@@ -2,84 +2,16 @@
 
 import express from 'express';
 import serverless from 'serverless-http';
-import admin from 'firebase-admin';
+import { db, admin, cloudinary } from './_shared/services.mjs';
+import createMediaRouter from './routes/media.mjs';
 import { getMessaging } from 'firebase-admin/messaging';
 import bodyParser from 'body-parser';
-import path from 'path';
-import fs from 'fs';
-import { v2 as cloudinary } from 'cloudinary';
 
 // Import route handlers
 import createPlansRouter from './routes/plans.mjs';
 import createMemosRouter from './routes/memos.mjs';
 import createQuestsRouter from './routes/quests.mjs';
 import createTimeCapsulesRouter from './routes/timeCapsules.mjs';
-
-let db;
-
-// --- Dual-Environment Firebase Initialization ---
-try {
-  if (admin.apps.length === 0) {
-    let serviceAccount;
-    if (process.env.FIREBASE_PROJECT_ID) {
-      console.log('Initializing Firebase Admin with environment variables (Production Mode).');
-      serviceAccount = {
-        type: 'service_account',
-        project_id: process.env.FIREBASE_PROJECT_ID,
-        private_key_id: process.env.FIREBASE_PRIVATE_KEY_ID,
-        private_key: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
-        client_email: process.env.FIREBASE_CLIENT_EMAIL,
-        client_id: process.env.FIREBASE_CLIENT_ID,
-        auth_uri: 'https://accounts.google.com/o/oauth2/auth',
-        token_uri: 'https://oauth2.googleapis.com/token',
-        auth_provider_x509_cert_url: 'https://www.googleapis.com/oauth2/v1/certs',
-        client_x509_cert_url: process.env.FIREBASE_CLIENT_X509_CERT_URL,
-      };
-    } else {
-      console.log('Initializing Firebase Admin with local serviceAccountKey.json (Local Mode).');
-      const keyPath = path.join(process.cwd(), 'netlify', 'functions', 'serviceAccountKey.json');
-      serviceAccount = JSON.parse(fs.readFileSync(keyPath, 'utf8'));
-    }
-    admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
-    db = admin.firestore();
-    console.log('✅ Firebase Admin Initialized SUCCESSFULLY.');
-  } else {
-    db = admin.firestore();
-  }
-} catch (error) {
-  db = null;
-  console.error('❌ CRITICAL: FIREBASE ADMIN SDK INITIALIZATION FAILED.', error);
-}
-
-// --- Dual-Environment Cloudinary Initialization ---
-try {
-  let cloudinaryConfig = {};
-  if (process.env.CLOUDINARY_API_KEY) {
-    console.log('Initializing Cloudinary with environment variables (Production Mode).');
-    cloudinaryConfig = {
-      cloud_name: 'dknmcj1qj',
-      api_key: process.env.CLOUDINARY_API_KEY,
-      api_secret: process.env.CLOUDINARY_API_SECRET,
-    };
-  } else {
-    console.log('Initializing Cloudinary with local cloudinaryCreds.json (Local Mode).');
-    const credsPath = path.join(process.cwd(), 'netlify', 'functions', 'cloudinaryCreds.json');
-    if (fs.existsSync(credsPath)) {
-      const { api_key, api_secret } = JSON.parse(fs.readFileSync(credsPath, 'utf8'));
-      cloudinaryConfig = { cloud_name: 'dknmcj1qj', api_key, api_secret };
-    } else {
-      console.warn(
-        'Cloudinary credentials not found for local development. Deletion will be skipped.'
-      );
-    }
-  }
-  if (cloudinaryConfig.api_key) {
-    cloudinary.config(cloudinaryConfig);
-    console.log('✅ Cloudinary Initialized SUCCESSFULLY.');
-  }
-} catch (error) {
-  console.error('❌ CRITICAL: CLOUDINARY INITIALIZATION FAILED.', error);
-}
 
 const app = express();
 app.use(bodyParser.json());
@@ -116,19 +48,6 @@ const authenticateToken = async (req, res, next) => {
 };
 
 // --- Helper Functions ---
-const extractPublicId = (url) => {
-  const regex = /upload\/(?:v\d+\/)?([\w\/\-]+)/;
-  const match = url.match(regex);
-  if (match && match[1]) {
-    const pathWithExtension = match[1];
-    const lastDotIndex = pathWithExtension.lastIndexOf('.');
-    if (lastDotIndex > -1) {
-      return pathWithExtension.substring(0, lastDotIndex);
-    }
-    return pathWithExtension;
-  }
-  return null;
-};
 
 /**
  * ✅ Web tokens only: send DATA-only and let the Service Worker render.
@@ -256,14 +175,13 @@ const apiRouter = express.Router();
 apiRouter.use(authenticateToken);
 apiRouter.use(checkDb);
 
+apiRouter.use('/media', createMediaRouter(db, cloudinary));
+
 // Feature-specific routes
 apiRouter.use('/plans', createPlansRouter(db, sendPushNotification));
-apiRouter.use('/memos', createMemosRouter(db, cloudinary, extractPublicId, sendPushNotification));
+apiRouter.use('/memos', createMemosRouter(db, cloudinary, sendPushNotification));
 apiRouter.use('/quests', createQuestsRouter(db, sendPushNotification));
-apiRouter.use(
-  '/time-capsules',
-  createTimeCapsulesRouter(db, cloudinary, extractPublicId, sendPushNotification)
-);
+apiRouter.use('/time-capsules', createTimeCapsulesRouter(db, cloudinary, sendPushNotification));
 
 // Standalone registration endpoint
 app.post('/api/register', authenticateToken, checkDb, async (req, res) => {
@@ -314,6 +232,3 @@ app.use((req, res, next) => {
 app.use('/api', apiRouter);
 
 export const handler = serverless(app);
-
-// Export for routers that need it
-export { extractPublicId };

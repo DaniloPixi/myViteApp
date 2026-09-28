@@ -15,6 +15,13 @@
     <!-- Plan Display List -->
     <section class="plan-list-section">
       <h1>Our Upcoming Plans</h1>
+      <p
+        v-if="!isLoading && !fetchError && focusPlanId && !plans.some((plan) => plan.id === focusPlanId)"
+        role="status"
+        class="ds-state-copy"
+      >
+        This linked plan is no longer available.
+      </p>
       <div v-if="isLoading" class="loading-state ds-state">
         <p class="ds-state-copy">Loading plans...</p>
       </div>
@@ -36,6 +43,7 @@
           :key="plan.id"
           class="plan-card"
           :data-plan-id="plan.id"
+          tabindex="-1"
           :class="{
             expanded: expandedPlanId === plan.id,
             hovered: hoveredPlanId === plan.id && expandedPlanId !== plan.id,
@@ -109,6 +117,7 @@ import { getFirestore, collection, query, orderBy, onSnapshot } from 'firebase/f
 import PlanFormModal from '../components/PlanFormModal.vue';
 import ConfirmDeleteModal from '../components/ConfirmDeleteModal.vue';
 import ProgressBar from '../components/ProgressBar.vue';
+import { useItemFocus } from '../composables/useItemFocus';
 
 const props = defineProps({
   user: {
@@ -144,18 +153,8 @@ const props = defineProps({
     type: String,
     default: null,
   },
+  focusRequest: { type: Number, default: 0 },
 });
-
-watch(
-  () => props.focusPlanId,
-  (id) => {
-    if (!id) return;
-    nextTick(() => {
-      scrollToPlan(id);
-    });
-  },
-  { immediate: true }
-);
 
 const plans = ref([]);
 const isLoading = ref(true);
@@ -198,45 +197,6 @@ const getPlanBubbleStyle = (plan, index) => {
   return style;
 };
 
-function scrollToPlanWithRetry(id) {
-  if (!id) return;
-
-  let attempts = 0;
-  const maxAttempts = 10;
-  const delay = 150;
-
-  const selector = `[data-plan-id="${id}"]`;
-
-  const tryOnce = () => {
-    const el = document.querySelector(selector);
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      el.classList.add('plan-highlight');
-
-      setTimeout(() => {
-        el.classList.remove('plan-highlight');
-      }, 1500);
-
-      return;
-    }
-
-    attempts += 1;
-    if (attempts < maxAttempts) {
-      setTimeout(tryOnce, delay);
-    }
-  };
-
-  nextTick(tryOnce);
-}
-
-watch(
-  () => props.focusPlanId,
-  (id) => {
-    if (!id) return;
-    scrollToPlanWithRetry(id);
-  },
-  { immediate: true }
-);
 const centerPlanInViewport = (planId) => {
   if (!planId) return;
   nextTick(() => {
@@ -365,6 +325,16 @@ const filteredPlans = computed(() => {
 
     return titleMatch && locationMatch && hashtagMatch && dateMatch && timeMatch && durationMatch;
   });
+});
+
+useItemFocus({
+  getId: () => props.focusPlanId,
+  getRequest: () => props.focusRequest,
+  isReady: () => !isLoading.value && !fetchError.value &&
+    filteredPlans.value.some((plan) => plan.id === props.focusPlanId),
+  getElement: (id) => document.querySelector(`[data-plan-id="${CSS.escape(id)}"]`),
+  highlightClass: 'plan-highlight',
+  beforeFocus: (id) => { expandedPlanId.value = id; },
 });
 
 const focusedPlanId = computed(() => {
@@ -595,7 +565,7 @@ watch(
   gap: 1.5rem;
   padding: 2rem 0;
 }
-.plan-highlight {
+.plan-card.plan-highlight {
   box-shadow:
     0 0 16px rgba(0, 255, 255, 0.7),
     0 0 22px rgba(255, 0, 255, 0.6);

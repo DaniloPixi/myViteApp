@@ -1,68 +1,88 @@
+const MEDIA_PRESETS = {
+  preview: { width: 160, height: 160, crop: 'fill' },
+  thumbnail: { width: 320, height: 320, crop: 'fill' },
+  card: { width: 600, height: 420, crop: 'fill' },
+  modal: { width: 1400, height: 1400, crop: 'limit' },
+};
+
+function transformUrl(originalUrl, options = {}, video = false, poster = false) {
+  let url;
+  try {
+    url = new URL(originalUrl);
+  } catch {
+    return originalUrl;
+  }
+  if (url.hostname !== 'res.cloudinary.com' || !url.pathname.includes('/upload/'))
+    return originalUrl;
+  const { width, height, crop = 'limit', quality = 'auto' } = options;
+  const transforms = ['c_' + crop];
+  if (crop === 'fill') transforms.push('g_auto');
+  if (width) transforms.push('w_' + width);
+  if (height) transforms.push('h_' + height);
+  if (poster) {
+    // Force a still frame for every video extension, including MOV and WebM.
+    url.pathname = url.pathname.replace(/\.[^/.]+$/, '') + '.jpg';
+    transforms.push('so_0');
+  }
+  const format = video && !poster ? 'f_auto:video' : 'f_auto';
+  url.pathname = url.pathname.replace(
+    '/upload/',
+    '/upload/' + transforms.join(',') + '/' + format + '/q_' + quality + '/'
+  );
+  return url.href;
+}
+
 export function usePhotoUtils() {
-  const MEDIA_PRESETS = {
-    thumbnail: { width: 320, height: 320, crop: 'fill' },
-    card: { width: 600, height: 420, crop: 'fill' },
-    modal: { width: 1400, height: 1400, crop: 'fill' },
+  const getImageUrl = (url, options = {}) => transformUrl(url, options);
+  const getImageUrlByPreset = (url, preset = 'thumbnail', overrides = {}) =>
+    getImageUrl(url, { ...(MEDIA_PRESETS[preset] || MEDIA_PRESETS.thumbnail), ...overrides });
+  const getMediaThumbnail = (media, preset = 'thumbnail', overrides = {}) =>
+    transformUrl(
+      media.url,
+      { ...(MEDIA_PRESETS[preset] || MEDIA_PRESETS.thumbnail), ...overrides },
+      media.resource_type === 'video',
+      media.resource_type === 'video'
+    );
+  const getImageSrcSet = (url, preset = 'modal') => {
+    if (!/^https:\/\/res\.cloudinary\.com\//.test(url || '')) return undefined;
+    const options = MEDIA_PRESETS[preset] || MEDIA_PRESETS.thumbnail;
+    const widths = preset === 'modal' ? [480, 800, 1200, 1600, 2000] : [160, 320, 480, 640];
+    return widths
+      .map((width) => {
+        // Width descriptors must describe the actual width. Do not constrain the
+        // height of portrait fullscreen photos to a square bounding box.
+        const height =
+          preset === 'modal' ? undefined : Math.round((width * options.height) / options.width);
+        return getImageUrl(url, { ...options, width, height }) + ' ' + width + 'w';
+      })
+      .join(', ');
   };
-
-  /**
-   * Builds Cloudinary transformation params.
-   * Includes: f_auto,q_auto,dpr_auto and (optionally) crop settings.
-   */
-  const buildTransformString = ({
-    width,
-    height,
-    crop,
-    gravity = 'auto',
-    dpr = 'auto',
-    quality = 'auto',
-  } = {}) => {
-    const transforms = ['f_auto', `q_${quality}`, `dpr_${dpr}`];
-
-    if (crop) transforms.push(`c_${crop}`);
-    if (crop && gravity) transforms.push(`g_${gravity}`);
-    if (width) transforms.push(`w_${width}`);
-    if (height) transforms.push(`h_${height}`);
-
-    return transforms.join(',');
+  const getVideoUrl = (url, { width = 1200 } = {}) => transformUrl(url, { width }, true);
+  const getMediaSrcSet = (media, preset = 'thumbnail') => {
+    if (!/^https:\/\/res\.cloudinary\.com\//.test(media.url || '')) return undefined;
+    const options = MEDIA_PRESETS[preset] || MEDIA_PRESETS.thumbnail;
+    const widths = preset === 'preview' ? [80, 160, 240] : [160, 320, 480, 640, 960, 1280];
+    return widths
+      .map(
+        (width) =>
+          getMediaThumbnail(media, preset, {
+            width,
+            height: Math.round((width * options.height) / options.width),
+          }) +
+          ' ' +
+          width +
+          'w'
+      )
+      .join(', ');
   };
-
-  /**
-   * General Cloudinary URL helper.
-   */
-  const getImageUrl = (originalUrl, options = {}) => {
-    if (!originalUrl || !originalUrl.includes('res.cloudinary.com')) {
-      return originalUrl;
-    }
-
-    const transformation = buildTransformString(options);
-    return originalUrl.replace('/upload/', `/upload/${transformation}/`);
-  };
-
-  /**
-   * Preset-based helper.
-   */
-  const getImageUrlByPreset = (originalUrl, preset = 'thumbnail', overrides = {}) => {
-    const presetOptions = MEDIA_PRESETS[preset] || MEDIA_PRESETS.thumbnail;
-    return getImageUrl(originalUrl, { ...presetOptions, ...overrides });
-  };
-
-  /**
-   * Backward-compatible helper (legacy behavior).
-   * Keeps old output pattern: w_{width},f_auto,q_auto
-   */
-  const getOptimizedUrl = (originalUrl, { width = 400 } = {}) => {
-    if (!originalUrl || !originalUrl.includes('res.cloudinary.com')) {
-      return originalUrl;
-    }
-    const transformation = `w_${width},f_auto,q_auto`;
-    return originalUrl.replace('/upload/', `/upload/${transformation}/`);
-  };
-
   return {
     MEDIA_PRESETS,
     getImageUrl,
     getImageUrlByPreset,
-    getOptimizedUrl,
+    getMediaThumbnail,
+    getMediaSrcSet,
+    getImageSrcSet,
+    getVideoUrl,
+    getOptimizedUrl: getVideoUrl,
   };
 }

@@ -27,20 +27,17 @@
         @click="openMediaViewer(index)"
       >
         <img
-          v-if="media.resource_type === 'image' || !media.resource_type"
-          :src="getImageUrlByPreset(media.url, 'card')"
+          :src="getMediaThumbnail(media, 'card')"
+          :srcset="getMediaSrcSet(media, 'card')"
+          sizes="auto, (max-width: 700px) 40vw, 300px"
           class="tc-read-media-img"
-          alt="Time capsule image"
+          :alt="media.resource_type === 'video' ? 'Play time capsule video' : 'Time capsule image'"
+          loading="lazy"
+          decoding="async"
           width="600"
           height="420"
         />
-        <video
-          v-else-if="media.resource_type === 'video'"
-          :src="media.url"
-          class="tc-read-media-video"
-          playsinline
-          muted
-        ></video>
+        <span v-if="media.resource_type === 'video'" class="video-play-label">Play video</span>
       </div>
     </div>
 
@@ -78,7 +75,7 @@ import BaseCapsuleModal from './BaseCapsuleModal.vue';
 import ImageModal from './ImageModal.vue';
 import { usePhotoUtils } from '../composables/usePhotoUtils';
 
-const { getImageUrlByPreset } = usePhotoUtils();
+const { getMediaThumbnail, getMediaSrcSet } = usePhotoUtils();
 const props = defineProps({
   capsule: { type: Object, required: true },
   isMine: { type: Boolean, default: false },
@@ -213,6 +210,17 @@ function closeMediaViewer() {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
   gap: var(--ds-space-3);
+}
+
+.video-play-label {
+  position: absolute;
+  bottom: 0.4rem;
+  left: 0.4rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 0.4rem;
+  color: white;
+  background: rgba(0, 0, 0, 0.7);
+  pointer-events: none;
 }
 
 .tc-read-media-item {

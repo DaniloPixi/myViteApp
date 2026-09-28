@@ -1,5 +1,5 @@
 <template>
-  <div class="modal-overlay ds-modal-overlay" @click.self="$emit('close')">
+  <div class="modal-overlay ds-modal-overlay" @click.self="closeForm">
     <div class="modal-content ds-modal-surface">
       <h3 class="modal-title ds-modal-title">
         {{ isEditing ? 'Edit Memo' : 'Create New Memo' }}
@@ -54,7 +54,7 @@
             @change="handleFileChange"
             multiple
             accept="image/*,video/*"
-            :disabled="isUploading"
+            :disabled="isUploading || isSubmitting"
             class="file-input-hidden"
           />
           <label for="file-upload" class="file-upload-label" :class="{ disabled: isUploading }">
@@ -66,19 +66,30 @@
         <div v-if="mediaPreviews.length > 0" class="media-previews">
           <div v-for="(preview, index) in mediaPreviews" :key="index" class="preview-item">
             <img
-              v-if="preview.resource_type === 'image'"
-              :src="preview.url"
+              v-if="preview.resource_type !== 'video' || !preview.file"
+              :src="getMediaThumbnail(preview, 'preview')"
+              :srcset="getMediaSrcSet(preview, 'preview')"
+              sizes="auto, 88px"
+              loading="lazy"
+              decoding="async"
+              alt="Attachment preview"
               :class="{ 'adult-preview-blur': preview.isAdult }"
             />
             <video
               v-else-if="preview.resource_type === 'video'"
               :src="preview.url"
+              preload="metadata"
               muted
-              loop
               playsinline
               class="video-preview"
             ></video>
-            <button @click.prevent="removeMedia(index)" class="remove-media-btn">X</button>
+            <button
+              :disabled="isUploading || isSubmitting"
+              @click.prevent="removeMedia(index)"
+              class="remove-media-btn"
+            >
+              X
+            </button>
             <button
               @click.prevent="toggleAdultFlag(index)"
               class="adult-flag"
@@ -105,7 +116,7 @@
           <button
             type="button"
             class="ds-modal-action-btn ds-modal-action-btn--cancel"
-            @click="$emit('close')"
+            @click="closeForm"
           >
             Cancel
           </button>
@@ -117,17 +128,20 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue';
+import { usePhotoUtils } from '../composables/usePhotoUtils';
+import { useMediaUpload } from '../composables/useMediaUpload';
+import { readApiResponse } from '../composables/readApiResponse';
+const { getMediaThumbnail, getMediaSrcSet } = usePhotoUtils();
 import { auth } from '../firebase';
 import LocationAutocomplete from './LocationAutocomplete.vue';
 import { geocodeLocationLabel, sanitizeLocationLabel } from '../composables/useLocationGeocoding';
 
 const props = defineProps({
   memo: { type: Object, default: null },
-  cloudinaryCloudName: { type: String, required: true },
-  cloudinaryUploadPreset: { type: String, required: true },
 });
 
 const emit = defineEmits(['close', 'memo-saved']);
+const createRequestId = crypto.randomUUID();
 
 const availableHashtags = ref([
   'date',
@@ -144,10 +158,16 @@ const availableHashtags = ref([
 const isEditing = computed(() => !!props.memo);
 const formData = ref({ hashtags: [] });
 const selectedLocationCoords = ref(null);
-const mediaPreviews = ref([]);
-const isUploading = ref(false);
+const {
+  media: mediaPreviews,
+  uploading: isUploading,
+  progress: uploadProgress,
+  addFiles,
+  remove: removeMedia,
+  uploadAll,
+  setSaving,
+} = useMediaUpload(props.memo?.photos || []);
 const isSubmitting = ref(false);
-const uploadProgress = ref(0);
 const error = ref(null);
 
 watch(
@@ -159,16 +179,6 @@ watch(
       formData.value.hashtags = (newMemo.hashtags || []).map((t) =>
         t.startsWith('#') ? t.substring(1) : t
       );
-
-      if (newMemo.photos && Array.isArray(newMemo.photos)) {
-        mediaPreviews.value = newMemo.photos.map((media) => ({
-          ...media,
-          resource_type: media.resource_type || 'image',
-          source: 'existing',
-        }));
-      } else {
-        mediaPreviews.value = [];
-      }
     } else {
       formData.value = {
         description: '',
@@ -177,7 +187,6 @@ watch(
         hashtags: [],
       };
       selectedLocationCoords.value = null;
-      mediaPreviews.value = [];
     }
   },
   { immediate: true }
@@ -192,113 +201,53 @@ const toggleHashtag = (tag) => {
   }
 };
 
-const handleFileChange = (event) => {
-  const files = Array.from(event.target.files);
-  const availableSlots = 10 - mediaPreviews.value.length;
-
-  if (files.length > availableSlots) {
-    error.value = `You can only add ${availableSlots} more files.`;
-    event.target.value = null;
-    return;
-  }
-  error.value = null;
-
-  for (const file of files) {
-    const resource_type = file.type.startsWith('video') ? 'video' : 'image';
-    mediaPreviews.value.push({
-      url: URL.createObjectURL(file),
-      file: file,
-      isAdult: false,
-      resource_type: resource_type,
-      source: 'new',
-    });
-  }
-  event.target.value = null;
+const closeForm = () => {
+  if (!isUploading.value && !isSubmitting.value) emit('close');
 };
-
-const removeMedia = (index) => {
-  mediaPreviews.value.splice(index, 1);
+const handleFileChange = (event) => {
+  try {
+    addFiles(Array.from(event.target.files || []));
+    error.value = null;
+  } catch (err) {
+    error.value = err.message;
+  }
+  event.target.value = '';
 };
 
 const toggleAdultFlag = (index) => {
   mediaPreviews.value[index].isAdult = !mediaPreviews.value[index].isAdult;
 };
 
-const uploadFiles = async () => {
-  isUploading.value = true;
-  uploadProgress.value = 0;
-  const uploadedMedia = [];
-
-  const filesToUpload = mediaPreviews.value.filter((p) => p.source === 'new');
-  if (filesToUpload.length === 0) {
-    isUploading.value = false;
-    return [];
-  }
-
-  for (let i = 0; i < filesToUpload.length; i++) {
-    const preview = filesToUpload[i];
-    const uploadFormData = new FormData();
-    uploadFormData.append('file', preview.file);
-    uploadFormData.append('upload_preset', props.cloudinaryUploadPreset);
-
-    try {
-      const endpoint = `https://api.cloudinary.com/v1_1/${props.cloudinaryCloudName}/${preview.resource_type}/upload`;
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        body: uploadFormData,
-      });
-      const data = await response.json();
-      if (data.secure_url) {
-        uploadedMedia.push({
-          url: data.secure_url,
-          isAdult: preview.isAdult,
-          resource_type: data.resource_type,
-        });
-        uploadProgress.value = Math.round(((i + 1) / filesToUpload.length) * 100);
-      } else {
-        throw new Error('File upload failed.');
-      }
-    } catch (err) {
-      error.value = `Upload failed for one or more files: ${err.message}`;
-      isUploading.value = false;
-      return null;
-    }
-  }
-
-  isUploading.value = false;
-  return uploadedMedia;
-};
-
 const submitForm = async () => {
+  if (isSubmitting.value || isUploading.value) return;
   isSubmitting.value = true;
   error.value = null;
 
-  const newMedia = await uploadFiles();
-  if (newMedia === null) {
+  let finalMedia;
+  try {
+    finalMedia = await uploadAll();
+  } catch (err) {
+    error.value = err.message;
     isSubmitting.value = false;
     return;
   }
-
-  const existingMedia = mediaPreviews.value
-    .filter((p) => p.source === 'existing')
-    .map(({ url, isAdult, resource_type }) => ({ url, isAdult, resource_type }));
-
-  const finalMedia = [...existingMedia, ...newMedia];
   const memoHashtags = new Set(formData.value.hashtags);
   const hasAdultContent = finalMedia.some((p) => p.isAdult);
 
   if (hasAdultContent) memoHashtags.add('18+');
 
-  const payload = {
-    ...formData.value,
-    location: sanitizeLocationLabel(formData.value.location),
-    locationCoords:
-      selectedLocationCoords.value || (await geocodeLocationLabel(formData.value.location)),
-    hashtags: Array.from(memoHashtags).map((tag) => `#${tag}`),
-    photos: finalMedia,
-  };
-
   try {
+    const payload = {
+      ...formData.value,
+      requestId: createRequestId,
+      location: sanitizeLocationLabel(formData.value.location),
+      locationCoords:
+        selectedLocationCoords.value || (await geocodeLocationLabel(formData.value.location)),
+      hashtags: Array.from(memoHashtags).map((tag) => `#${tag}`),
+      photos: finalMedia,
+    };
+
+    setSaving(true);
     if (!auth.currentUser) throw new Error('Authentication required.');
     const idToken = await auth.currentUser.getIdToken();
 
@@ -314,10 +263,7 @@ const submitForm = async () => {
       body: JSON.stringify(payload),
     });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || 'Failed to save memo.');
-    }
+    await readApiResponse(response, { operation: 'Saving memo', apiRequest: true });
 
     emit('memo-saved');
     emit('close');
@@ -325,6 +271,7 @@ const submitForm = async () => {
     console.error('Form submission error:', err);
     error.value = err.message;
   } finally {
+    setSaving(false);
     isSubmitting.value = false;
   }
 };

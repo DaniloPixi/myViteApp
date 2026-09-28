@@ -1,23 +1,11 @@
 // netlify/functions/routes/memos.mjs
 import express from 'express';
+import { saveWithMedia, deleteDocumentWithMedia, flushMediaDeletions } from '../_shared/media.mjs';
 
 // This function will set up the routes and return a router.
-// We'll pass in 'db', 'cloudinary', 'extractPublicId' and 'sendPushNotification' from api.mjs
-export default function (db, cloudinary, extractPublicId, sendPushNotification) {
+// Dependencies are shared with the API runtime.
+export default function (db, cloudinary, sendPushNotification) {
   const router = express.Router();
-
-  // Helper to robustly get photos from a memo, supporting both old and new data structures.
-  const getMemoPhotos = (memo) => {
-    if (memo.photos && Array.isArray(memo.photos)) {
-      return memo.photos; // New format: [{ url, isAdult }]
-    }
-    if (memo.photoUrls && Array.isArray(memo.photoUrls)) {
-      // Old format: [url1, url2]
-      const isAdult = memo.hashtags && memo.hashtags.includes('#18+');
-      return memo.photoUrls.map((url) => ({ url, isAdult }));
-    }
-    return [];
-  };
 
   const getDescriptionSnippet = (description) => {
     if (!description) return '';
@@ -60,7 +48,14 @@ export default function (db, cloudinary, extractPublicId, sendPushNotification) 
         createdAt: new Date().toISOString(),
       };
 
-      const newMemoRef = await db.collection('memos').add(memoData);
+      const requestId = req.body.requestId;
+      if (requestId && !/^[\da-f-]{36}$/i.test(requestId))
+        return res.status(400).json({ message: 'Invalid request ID.' });
+      const newMemoRef = requestId
+        ? db.collection('memos').doc(requestId)
+        : db.collection('memos').doc();
+      const created = await saveWithMedia(db, newMemoRef, memoData, uid, { create: true });
+      if (!created) return res.status(201).json({ success: true, memoId: newMemoRef.id });
 
       const snippet = getDescriptionSnippet(description);
       const viewUrl = `/?view=memos&memoId=${newMemoRef.id}`;
@@ -79,7 +74,7 @@ export default function (db, cloudinary, extractPublicId, sendPushNotification) 
         // Optional overrides (leave commented unless you create these assets):
         // icon: '/icons/manifest-icon-192.png',
         // badge: '/badge-96.png',
-      });
+      }).catch((error) => console.warn('Notification failed after save:', error.message));
 
       res.status(201).json({ success: true, memoId: newMemoRef.id });
     } catch (error) {
@@ -104,18 +99,6 @@ export default function (db, cloudinary, extractPublicId, sendPushNotification) 
         return res.status(404).json({ success: false, message: 'Memo not found.' });
       }
 
-      const originalPhotoUrls = getMemoPhotos(doc.data()).map((p) => p.url);
-      const newPhotoUrls = photos ? photos.map((p) => p.url) : [];
-      const photosToDelete = originalPhotoUrls.filter((url) => !newPhotoUrls.includes(url));
-
-      if (photosToDelete.length > 0 && cloudinary.config().api_key) {
-        const publicIdsToDelete = photosToDelete.map(extractPublicId).filter((id) => id);
-        if (publicIdsToDelete.length > 0) {
-          console.log(`Deleting ${publicIdsToDelete.length} photos from Cloudinary...`);
-          await cloudinary.api.delete_resources(publicIdsToDelete);
-        }
-      }
-
       const updateData = {
         description,
         date,
@@ -124,7 +107,10 @@ export default function (db, cloudinary, extractPublicId, sendPushNotification) 
         hashtags,
         photos,
       };
-      await memoRef.set(updateData, { merge: true });
+      await saveWithMedia(db, memoRef, updateData, uid, { merge: true });
+      await flushMediaDeletions(db, cloudinary).catch((error) =>
+        console.warn('Media cleanup queued for retry:', error.message)
+      );
 
       const snippet = getDescriptionSnippet(description);
       const viewUrl = `/?view=memos&memoId=${memoId}`;
@@ -142,7 +128,7 @@ export default function (db, cloudinary, extractPublicId, sendPushNotification) 
         // Optional overrides:
         // icon: '/icons/manifest-icon-192.png',
         // badge: '/badge-96.png',
-      });
+      }).catch((error) => console.warn('Notification failed after save:', error.message));
 
       res.status(200).json({ success: true, message: 'Memo updated successfully.' });
     } catch (error) {
@@ -169,16 +155,10 @@ export default function (db, cloudinary, extractPublicId, sendPushNotification) 
       const memoData = doc.data();
       const description = memoData.description || '';
 
-      const photoUrlsToDelete = getMemoPhotos(memoData).map((p) => p.url);
-      if (photoUrlsToDelete.length > 0 && cloudinary.config().api_key) {
-        const publicIdsToDelete = photoUrlsToDelete.map(extractPublicId).filter((id) => id);
-        if (publicIdsToDelete.length > 0) {
-          console.log(`Deleting ${publicIdsToDelete.length} photos from Cloudinary...`);
-          await cloudinary.api.delete_resources(publicIdsToDelete);
-        }
-      }
-
-      await memoRef.delete();
+      await deleteDocumentWithMedia(db, memoRef);
+      await flushMediaDeletions(db, cloudinary).catch((error) =>
+        console.warn('Media cleanup queued for retry:', error.message)
+      );
 
       const snippet = getDescriptionSnippet(description);
       const viewUrl = `/?view=memos&memoId=${memoId}`;
@@ -195,7 +175,7 @@ export default function (db, cloudinary, extractPublicId, sendPushNotification) 
         // Optional overrides:
         // icon: '/icons/manifest-icon-192.png',
         // badge: '/badge-96.png',
-      });
+      }).catch((error) => console.warn('Notification failed after save:', error.message));
 
       res.status(200).json({ success: true, message: 'Memo and associated photos deleted.' });
     } catch (error) {
